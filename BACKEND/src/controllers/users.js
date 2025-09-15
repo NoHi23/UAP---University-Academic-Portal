@@ -1,5 +1,4 @@
 const User = require('../models/users')
-const Cart = require('../models/cart');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { Error } = require('mongoose');
