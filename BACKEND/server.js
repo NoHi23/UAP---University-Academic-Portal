@@ -4,7 +4,7 @@ const connectDB = require('./config/db.js');
 const router = require('./src/routes/index.js');
 app.get('/', async (req, res) => {
     try {
-        res.send({ message: 'Welcome to Practical Exam!' });
+        res.send({ message: 'Welcome to Practical Exam!!' });
     } catch (error) {
         res.send({ error: error.message });
     }
