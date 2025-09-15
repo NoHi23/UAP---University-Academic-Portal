@@ -3,7 +3,6 @@ BACKEND/node_modules/
 FRONTEND/node_modules/
 
 # Ngoài ra có thể bỏ qua các file hệ thống khác (khuyến nghị)
-.env
 *.log
 dist/
 build/
