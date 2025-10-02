@@ -5,12 +5,17 @@ const majorSchema = new Schema({
   majorName: {
     type: String,
     required: true,
-    unique: true, 
+    unique: true,
     trim: true
+  },
+  majorCode: {
+    type: String,
+    required: true,
+    unique: true,
   },
   status: {
     type: Number,
-    default: 1, 
+    default: 1,
     required: true
   }
 }, {

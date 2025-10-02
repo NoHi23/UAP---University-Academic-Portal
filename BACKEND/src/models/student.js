@@ -7,6 +7,17 @@ const studentSchema = new Schema({
     required: true,
     unique: true
   },
+  studentAvatar: {
+    type: String,
+    required: true,
+    validate: {
+      validator(v) {
+        // chấp nhận data URI ảnh base64
+        return /^data:image\/(png|jpe?g|gif|webp);base64,/.test(v);
+      },
+      message: 'studentAvatar phải là data URI base64 của ảnh'
+    }
+  },
   firstName: {
     type: String,
     required: true
@@ -15,12 +26,16 @@ const studentSchema = new Schema({
     type: String,
     required: true
   },
+  citizenID: {
+    type: Number,
+    required: true
+  },
   gender: {
     type: Boolean,
-    default: true 
+    default: true
   },
   phone: {
-    type: String, 
+    type: String,
     required: true
   },
   semester: {
@@ -31,18 +46,18 @@ const studentSchema = new Schema({
   },
   curriculumId: {
     type: Schema.Types.ObjectId,
-    ref: 'Curriculum', 
+    ref: 'Curriculum',
     required: true
   },
   accountId: {
     type: Schema.Types.ObjectId,
-    ref: 'Account', 
+    ref: 'Account',
     required: true,
     unique: true
   },
   majorId: {
     type: Schema.Types.ObjectId,
-    ref: 'Major', 
+    ref: 'Major',
     required: true
   }
 }, {

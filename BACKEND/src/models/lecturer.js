@@ -1,11 +1,26 @@
 const mongoose = require('mongoose');
-const { Schema } = mongoose; 
+const { Schema } = mongoose;
 
 const lecturerSchema = new Schema({
   lecturerCode: {
     type: String,
     required: true,
     unique: true
+  },
+  lecturerAvatar: {
+    type: String,
+    required: true,
+    validate: {
+      validator(v) {
+        // chấp nhận data URI ảnh base64
+        return /^data:image\/(png|jpe?g|gif|webp);base64,/.test(v);
+      },
+      message: 'lecturerAvatar phải là data URI base64 của ảnh'
+    }
+  },
+  citizenID: {
+    type: Number,
+    required: true
   },
   firstName: {
     type: String,
@@ -36,7 +51,7 @@ const lecturerSchema = new Schema({
   },
   accountId: {
     type: Schema.Types.ObjectId,
-    ref: 'Account', 
+    ref: 'Account',
     required: true,
     unique: true
   },
