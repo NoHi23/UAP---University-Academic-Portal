@@ -4,9 +4,7 @@ import './BackToTopButton.css';
 const BackToTopButton = () => {
     const [isVisible, setIsVisible] = useState(false);
 
-    // Hàm kiểm tra vị trí cuộn
     const toggleVisibility = () => {
-        // Hiện nút khi cuộn xuống hơn 300px
         if (window.pageYOffset > 300) {
             setIsVisible(true);
         } else {
@@ -14,19 +12,16 @@ const BackToTopButton = () => {
         }
     };
 
-    // Hàm để cuộn lên đầu trang
     const scrollToTop = () => {
         window.scrollTo({
             top: 0,
-            behavior: 'smooth' // Tạo hiệu ứng cuộn mượt
+            behavior: 'smooth' 
         });
     };
 
     useEffect(() => {
-        // Thêm event listener khi component được mount
         window.addEventListener('scroll', toggleVisibility);
 
-        // Xóa event listener khi component bị unmount
         return () => {
             window.removeEventListener('scroll', toggleVisibility);
         };

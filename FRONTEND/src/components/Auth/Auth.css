@@ -1,102 +1,215 @@
-.auth-container {
+.login-page {
     display: flex;
-    justify-content: center;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.login-image-panel {
+    flex: 1;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    display: flex;
     align-items: center;
-    padding: 50px 20px;
-    background-color: #f4f4f4;
-}
-
-.auth-form {
-    background: white;
+    justify-content: center;
+    color: white;
+    text-align: center;
     padding: 40px;
-    border-radius: 8px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    width: 100%;
-    max-width: 400px;
 }
 
-.auth-form h2 {
+.login-image-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.7), rgba(50, 40, 30, 0.5));
+}
+
+.welcome-message {
+    position: relative;
+    z-index: 1;
+    max-width: 450px;
+}
+
+.welcome-message h1 {
+    font-size: 2.8rem;
+    margin-bottom: 1rem;
+    font-weight: 700;
+}
+
+.welcome-message p {
+    font-size: 1.1rem;
+    line-height: 1.6;
+}
+
+.login-form-panel {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+}
+
+.auth-form-container {
+    width: 100%;
+    max-width: 420px;
+    background: white;
+    padding: 40px 30px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+.logo-container {
     text-align: center;
     margin-bottom: 20px;
 }
 
-.form-group {
-    margin-bottom: 15px;
+.logo-container img {
+    max-width: 80px;
+    height: auto;
 }
 
-.form-group label {
-    display: block;
-    margin-bottom: 5px;
-}
-
-.form-group input {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-}
-
-.auth-form button {
-    width: 100%;
-    padding: 12px;
-    border: none;
-    border-radius: 4px;
-    background-color: #333;
-    color: white;
-    cursor: pointer;
-    font-size: 16px;
-}
-
-.auth-form button:hover {
-    background-color: #555;
-}
-
-.error-message {
-    color: red;
+.auth-form-container h2 {
     text-align: center;
-    margin-bottom: 15px;
+    font-size: 1.8rem;
+    color: #333;
+    margin-bottom: 10px;
 }
+
+.auth-form-container .subtitle {
+    text-align: center;
+    color: #888;
+    margin-bottom: 30px;
+}
+
+.input-group {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.input-group i {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #aaa;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 12px 15px 12px 45px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+    box-sizing: border-box;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: #a5855b;
+}
+
+.form-options {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 20px;
+    margin-right: 10px;
+}
+
+.forgot-password {
+    color: #a5855b;
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+.btn-submit {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(90deg, #b8956c, #a5855b);
+    color: white;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(165, 133, 91, 0.4);
+}
+
+.btn-submit:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.social-login-divider {
+    text-align: center;
+    margin: 30px 0;
+    color: #aaa;
+    font-size: 0.8rem;
+    position: relative;
+}
+
+.social-login-divider::before,
+.social-login-divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 38%;
+    height: 1px;
+    background-color: #ddd;
+}
+
+.social-login-divider::before {
+    left: 0;
+}
+
+.social-login-divider::after {
+    right: 0;
+}
+
+.social-login-buttons {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 30px;
+}
+
+/* Căn giữa nút Google */
+.google-login-wrapper {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
 
 .auth-switch {
     text-align: center;
+    color: #555;
     margin-top: 20px;
 }
 
-.success-message {
-    color: green;
-    text-align: center;
-    margin-bottom: 15px;
-    background-color: #e8f5e9;
-    padding: 10px;
-    border-radius: 4px;
-    border: 1px solid #c8e6c9;
+.auth-switch a {
+    color: #a5855b;
+    text-decoration: none;
+    font-weight: bold;
 }
 
-/* Thêm vào Auth.css */
-.avatar-group {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-bottom: 20px;
-}
-.avatar-preview {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    border: 2px dashed #ccc;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    overflow: hidden;
-    background-color: #f8f8f8;
-}
-.avatar-preview img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-.avatar-preview i {
-    font-size: 30px;
-    color: #ccc;
+/* Responsive */
+@media (max-width: 992px) {
+    .login-image-panel {
+        display: none;
+    }
+
+    .login-form-panel {
+        flex: 1;
+        padding: 20px;
+    }
 }
