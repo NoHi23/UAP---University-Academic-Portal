@@ -9,7 +9,14 @@ const studentSchema = new Schema({
   },
   studentAvatar: {
     type: String,
-    required: true
+    required: true,
+    validate: {
+      validator(v) {
+        // chấp nhận data URI ảnh base64
+        return /^data:image\/(png|jpe?g|gif|webp);base64,/.test(v);
+      },
+      message: 'studentAvatar phải là data URI base64 của ảnh'
+    }
   },
   firstName: {
     type: String,
@@ -17,6 +24,10 @@ const studentSchema = new Schema({
   },
   lastName: {
     type: String,
+    required: true
+  },
+  citizenID: {
+    type: Number,
     required: true
   },
   gender: {

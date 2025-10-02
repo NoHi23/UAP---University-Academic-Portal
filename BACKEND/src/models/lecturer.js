@@ -9,6 +9,17 @@ const lecturerSchema = new Schema({
   },
   lecturerAvatar: {
     type: String,
+    required: true,
+    validate: {
+      validator(v) {
+        // chấp nhận data URI ảnh base64
+        return /^data:image\/(png|jpe?g|gif|webp);base64,/.test(v);
+      },
+      message: 'lecturerAvatar phải là data URI base64 của ảnh'
+    }
+  },
+  citizenID: {
+    type: Number,
     required: true
   },
   firstName: {

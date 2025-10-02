@@ -1,176 +1,77 @@
-// controllers/accounts.controller.js
-const mongoose = require('mongoose')
-const Account = require('../models/account')
-const Student = require('../models/student')
-const Lecturer = require('../models/Lecturer')
-const Major = require('../models/major')
-// const Curriculum = require('../models/Curriculum') // nếu cần validate tồn tại
+const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
 
-// ==== Helpers ====
-const computeSemesterNo = (date = new Date()) => {
-    const baseYear = 2025
-    const y = date.getFullYear()
-    const n = Math.max(1, y - baseYear + 1)
-    return { number: n, str2: String(n).padStart(2, '0') }
-}
+const Account = require('../models/account');
+const Student = require('../models/student');
+const Lecturer = require('../models/Lecturer');
+const Major = require('../models/major');
 
-const generateUniqueCode = async ({ majorCode, sem2, model, field }) => {
-    // Thử tối đa 10 lần để tránh trùng
-    for (let i = 0; i < 10; i++) {
-        const rand4 = Math.floor(1000 + Math.random() * 9000) // 1000–9999
-        const code = `${majorCode}${sem2}${rand4}`
-        const exists = await model.exists({ [field]: code })
-        if (!exists) return code
-    }
-    throw new Error('Không thể tạo mã duy nhất, vui lòng thử lại')
-}
+const {
+    computeSemesterNo,
+    generateUniqueCode,
+    makeStudentEmail,
+    makeLecturerEmail,
+    generateInitialPassword,
+    isValidImageDataUri,
+} = require('../helpers/staff.helpers');
 
-// ==== Controllers ====
+// ==========STUDENT=============
 
-/**
- * POST /api/accounts/students
- * body: { email, password, firstName, lastName, gender, phone, majorId, curriculumId }
- */
+// create account
 const createStudentAccount = async (req, res) => {
-    const session = await mongoose.startSession()
     try {
-        const { email, password, firstName, lastName, gender, phone, majorId, curriculumId } = req.body
+        const { firstName, lastName, citizenID, gender, phone, majorId, curriculumId, avatarBase64 } = req.body;
 
-        // Validate sơ bộ
-        if (!email || !password || !firstName || !lastName || typeof gender === 'undefined' || !phone || !majorId || !curriculumId) {
-            return res.status(400).json({ message: 'Thiếu dữ liệu đầu vào' })
+        // Validate cơ bản
+        if (!firstName || !lastName || !citizenID || typeof gender === 'undefined' || !phone || !majorId || !curriculumId || !avatarBase64) {
+            return res.status(400).json({ message: 'Thiếu dữ liệu đầu vào' });
+        }
+        if (!isValidImageDataUri(avatarBase64)) {
+            return res.status(400).json({ message: 'studentAvatar phải là data URI base64 của ảnh (png/jpg/jpeg/gif/webp)' });
         }
 
-        const major = await Major.findById(majorId).lean()
-        if (!major) return res.status(404).json({ message: 'Major không tồn tại' })
+        // Check trùng citizenID
+        const citizenTaken = await Student.exists({ citizenID });
+        if (citizenTaken) return res.status(409).json({ message: 'CitizenID đã tồn tại cho Student' });
 
-        // Nếu cần: kiểm tra curriculum tồn tại
-        // const cur = await Curriculum.findById(curriculumId).lean()
-        // if (!cur) return res.status(404).json({ message: 'Curriculum không tồn tại' })
+        const major = await Major.findById(majorId).lean();
+        if (!major) return res.status(404).json({ message: 'Major không tồn tại' });
 
-        // Kiểm tra email trùng
-        const emailTaken = await Account.exists({ email })
-        if (emailTaken) return res.status(409).json({ message: 'Email đã tồn tại' })
+        const { number: semesterNo, str2: sem2 } = computeSemesterNo();
 
-        const { number: semesterNo, str2: sem2 } = computeSemesterNo()
+        const studentCode = await generateUniqueCode({
+            majorCode: major.majorCode, sem2,
+            model: Student, field: 'studentCode'
+        });
 
-        await session.withTransaction(async () => {
-            // 1) Tạo Account
-            const acc = await Account.create([{
-                email,
-                password, // TODO: khuyến nghị hash bằng bcrypt
-                role: 'student',
-                status: true
-            }], { session })
+        const email = makeStudentEmail({ firstName, lastName, studentCode });
+        let finalEmail = email;
+        if (await Account.exists({ email })) {
+            const suffix = Math.floor(100 + Math.random() * 900);
+            finalEmail = email.replace('@edu.vn', `${suffix}@edu.vn`);
+            if (await Account.exists({ email: finalEmail })) {
+                return res.status(409).json({ message: 'Không thể tạo email duy nhất, vui lòng thử lại' });
+            }
+        }
 
-            const account = acc[0]
+        const plainPassword = generateInitialPassword(12);
+        const hashed = await bcrypt.hash(plainPassword, 10);
 
-            // 2) Tạo studentCode duy nhất
-            const studentCode = await generateUniqueCode({
-                majorCode: major.majorCode,
-                sem2,
-                model: Student,
-                field: 'studentCode'
-            })
+        const account = await Account.create({
+            email: finalEmail,
+            password: hashed,
+            role: 'student',
+            status: true
+        });
 
-            // 3) Tạo Student
-            const student = await Student.create([{
+        let student;
+        try {
+            student = await Student.create({
                 studentCode,
+                studentAvatar: avatarBase64,
                 firstName,
                 lastName,
-                gender,
-                phone,
-                semester: sem2,         // nếu bạn muốn lưu thêm dạng chuỗi "01", optional
-                semesterNo,             // dạng số: 1, 2, 3...
-                curriculumId,
-                accountId: account._id,
-                majorId
-            }], { session })
-
-            // Trả về theo format "map" giống bạn cung cấp
-            const s = student[0]
-            res.status(201).json({
-                message: 'Tạo account student thành công',
-                account: {
-                    _id: account._id,
-                    email: account.email,
-                    role: account.role,
-                    status: account.status,
-                    createdAt: account.createdAt
-                },
-                student: {
-                    _id: s._id,
-                    studentCode: s.studentCode,
-                    firstName: s.firstName,
-                    lastName: s.lastName,
-                    gender: s.gender,
-                    phone: s.phone,
-                    semester: s.semester,
-                    semesterNo: s.semesterNo,
-                    major: {
-                        _id: major._id,
-                        majorName: major.majorName,
-                        majorCode: major.majorCode
-                    },
-                    curriculumId: s.curriculumId,
-                    accountId: s.accountId,
-                    createdAt: s.createdAt
-                }
-            })
-        })
-    } catch (error) {
-        console.error(error)
-        res.status(500).json({ message: 'server error' })
-    } finally {
-        session.endSession()
-    }
-}
-
-/**
- * POST /api/accounts/lecturers
- * body: { email, password, firstName, lastName, gender, phone, majorId, curriculumId }
- */
-const createLecturerAccount = async (req, res) => {
-    const session = await mongoose.startSession()
-    try {
-        const { email, password, firstName, lastName, gender, phone, majorId, curriculumId } = req.body
-
-        if (!email || !password || !firstName || !lastName || typeof gender === 'undefined' || !phone || !majorId || !curriculumId) {
-            return res.status(400).json({ message: 'Thiếu dữ liệu đầu vào' })
-        }
-
-        const major = await Major.findById(majorId).lean()
-        if (!major) return res.status(404).json({ message: 'Major không tồn tại' })
-
-        const emailTaken = await Account.exists({ email })
-        if (emailTaken) return res.status(409).json({ message: 'Email đã tồn tại' })
-
-        const { number: semesterNo, str2: sem2 } = computeSemesterNo()
-
-        await session.withTransaction(async () => {
-            // 1) Account
-            const acc = await Account.create([{
-                email,
-                password, // TODO: hash
-                role: 'lecture', // CHÚ Ý: enum model là 'lecture' (không phải 'lecturer')
-                status: true
-            }], { session })
-
-            const account = acc[0]
-
-            // 2) lecturerCode duy nhất
-            const lecturerCode = await generateUniqueCode({
-                majorCode: major.majorCode,
-                sem2,
-                model: Lecturer,
-                field: 'lecturerCode'
-            })
-
-            // 3) Lecturer
-            const lecturer = await Lecturer.create([{
-                lecturerCode,
-                firstName,
-                lastName,
+                citizenID,
                 gender,
                 phone,
                 semester: sem2,
@@ -178,47 +79,422 @@ const createLecturerAccount = async (req, res) => {
                 curriculumId,
                 accountId: account._id,
                 majorId
-            }], { session })
+            });
+        } catch (err) {
+            await Account.deleteOne({ _id: account._id }).catch(() => { });
+            throw err;
+        }
 
-            const l = lecturer[0]
-            res.status(201).json({
-                message: 'Tạo account lecture thành công',
-                account: {
-                    _id: account._id,
-                    email: account.email,
-                    role: account.role,
-                    status: account.status,
-                    createdAt: account.createdAt
+        return res.status(201).json({
+            message: 'Tạo account student thành công',
+            account: {
+                _id: account._id,
+                email: account.email,
+                role: account.role,
+                status: account.status,
+                createdAt: account.createdAt
+            },
+            student: {
+                _id: student._id,
+                studentCode: student.studentCode,
+                firstName: student.firstName,
+                lastName: student.lastName,
+                citizenID: student.citizenID,
+                gender: student.gender,
+                phone: student.phone,
+                semester: student.semester,
+                semesterNo: student.semesterNo,
+                major: {
+                    _id: major._id,
+                    majorName: major.majorName,
+                    majorCode: major.majorCode
                 },
-                lecturer: {
-                    _id: l._id,
-                    lecturerCode: l.lecturerCode,
-                    firstName: l.firstName,
-                    lastName: l.lastName,
-                    gender: l.gender,
-                    phone: l.phone,
-                    semester: l.semester,
-                    semesterNo: l.semesterNo,
-                    major: {
-                        _id: major._id,
-                        majorName: major.majorName,
-                        majorCode: major.majorCode
-                    },
-                    curriculumId: l.curriculumId,
-                    accountId: l.accountId,
-                    createdAt: l.createdAt
-                }
-            })
-        })
+                curriculumId: student.curriculumId,
+                accountId: student.accountId,
+                createdAt: student.createdAt
+            },
+            initialPassword: plainPassword
+        });
+
     } catch (error) {
-        console.error(error)
-        res.status(500).json({ message: 'server error' })
-    } finally {
-        session.endSession()
+        console.error(error);
+        return res.status(500).json({ message: 'server error' });
     }
-}
+};
+
+//get student by ID
+const getStudentById = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const s = await Student.findById(id).lean();
+        if (!s) return res.status(404).json({ message: 'Student không tồn tại' });
+
+        const [major, account] = await Promise.all([
+            Major.findById(s.majorId).lean(),
+            Account.findById(s.accountId).lean()
+        ]);
+
+        return res.json({
+            _id: s._id,
+            studentCode: s.studentCode,
+            studentAvatar: s.studentAvatar,
+            firstName: s.firstName,
+            lastName: s.lastName,
+            citizenID: s.citizenID,
+            gender: s.gender,
+            phone: s.phone,
+            semester: s.semester,
+            semesterNo: s.semesterNo,
+            curriculumId: s.curriculumId,
+            account: account ? {
+                _id: account._id,
+                email: account.email,
+                role: account.role,
+                status: account.status
+            } : null,
+            major: major ? {
+                _id: major._id,
+                majorName: major.majorName,
+                majorCode: major.majorCode
+            } : null,
+            createdAt: s.createdAt,
+            updatedAt: s.updatedAt
+        });
+    } catch (e) {
+        console.error(e);
+        return res.status(500).json({ message: 'server error' });
+    }
+};
+
+//get all student
+const listStudents = async (req, res) => {
+    try {
+        const page = Math.max(1, parseInt(req.query.page || '1', 10));
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit || '20', 10)));
+        const skip = (page - 1) * limit;
+
+        const [items, total] = await Promise.all([
+            Student.find().sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+            Student.countDocuments()
+        ]);
+
+        return res.json({
+            page, limit, total, items
+        });
+    } catch (e) {
+        console.error(e);
+        return res.status(500).json({ message: 'server error' });
+    }
+};
+
+//update student
+const updateStudent = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // chặn nếu client cố gửi các field bị cấm
+        if ('citizenID' in req.body) {
+            return res.status(400).json({ message: 'Không được cập nhật citizenID' });
+        }
+        if ('email' in req.body) {
+            return res.status(400).json({ message: 'Không được cập nhật email qua student; email thuộc Account' });
+        }
+
+        // các field cho phép update
+        const allowed = [
+            'studentAvatar', 'firstName', 'lastName', 'gender', 'phone',
+            'semester', 'semesterNo', 'curriculumId', 'majorId'
+            // KHÔNG cho update: studentCode, accountId, citizenID
+        ];
+        const data = pick(req.body, allowed);
+
+        // validate avatar nếu có
+        if (data.studentAvatar && !isValidImageDataUri(data.studentAvatar)) {
+            return res.status(400).json({ message: 'studentAvatar phải là data URI base64 (png/jpg/jpeg/gif/webp)' });
+        }
+
+        const updated = await Student.findByIdAndUpdate(
+            id,
+            { $set: data },
+            { new: true, runValidators: true }
+        ).lean();
+
+        if (!updated) return res.status(404).json({ message: 'Student không tồn tại' });
+
+        return res.json({ message: 'Cập nhật student thành công', student: updated });
+    } catch (e) {
+        console.error(e);
+        return res.status(500).json({ message: 'server error' });
+    }
+};
+
+//delete Student
+const deleteStudent = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const s = await Student.findById(id).lean();
+        if (!s) return res.status(404).json({ message: 'Student không tồn tại' });
+
+        // xóa student trước
+        await Student.deleteOne({ _id: id });
+
+        // rồi xóa account (nếu có)
+        if (s.accountId) {
+            await Account.deleteOne({ _id: s.accountId }).catch(err => {
+                console.error('Delete linked Account failed:', err);
+            });
+        }
+
+        return res.json({ message: 'Xoá student (và account liên kết) thành công' });
+    } catch (e) {
+        console.error(e);
+        return res.status(500).json({ message: 'server error' });
+    }
+};
+
+
+// ========LECTURER=========
+
+//Create lecturer
+const createLecturerAccount = async (req, res) => {
+    try {
+        const { firstName, lastName, citizenID, gender, phone, majorId, curriculumId } = req.body;
+
+        if (!firstName || !lastName || !citizenID || typeof gender === 'undefined' || !phone || !majorId || !curriculumId) {
+            return res.status(400).json({ message: 'Thiếu dữ liệu đầu vào' });
+        }
+
+        // Check trùng citizenID
+        const citizenTaken = await Lecturer.exists({ citizenID });
+        if (citizenTaken) return res.status(409).json({ message: 'CitizenID đã tồn tại cho Lecturer' });
+
+        const major = await Major.findById(majorId).lean();
+        if (!major) return res.status(404).json({ message: 'Major không tồn tại' });
+
+        const { number: semesterNo, str2: sem2 } = computeSemesterNo();
+
+        const lecturerCode = await generateUniqueCode({
+            majorCode: major.majorCode, sem2,
+            model: Lecturer, field: 'lecturerCode'
+        });
+
+        const email = makeLecturerEmail({ firstName, lastName, lecturerCode });
+        let finalEmail = email;
+        if (await Account.exists({ email })) {
+            const suffix = Math.floor(100 + Math.random() * 900);
+            finalEmail = email.replace('@edu.vn', `${suffix}@edu.vn`);
+            if (await Account.exists({ email: finalEmail })) {
+                return res.status(409).json({ message: 'Không thể tạo email duy nhất, vui lòng thử lại' });
+            }
+        }
+
+        const plainPassword = generateInitialPassword(12);
+        const hashed = await bcrypt.hash(plainPassword, 10);
+
+        const account = await Account.create({
+            email: finalEmail,
+            password: hashed,
+            role: 'lecture',
+            status: true
+        });
+
+        let lecturer;
+        try {
+            lecturer = await Lecturer.create({
+                lecturerCode,
+                lecturerAvatar: req.body.lecturerAvatar || '', // nếu bạn muốn bắt buộc thì validate thêm
+                firstName,
+                lastName,
+                citizenID,
+                gender,
+                phone,
+                semester: sem2,
+                semesterNo,
+                curriculumId,
+                accountId: account._id,
+                majorId
+            });
+        } catch (err) {
+            await Account.deleteOne({ _id: account._id }).catch(() => { });
+            throw err;
+        }
+
+        return res.status(201).json({
+            message: 'Tạo account lecture thành công',
+            account: {
+                _id: account._id,
+                email: account.email,
+                role: account.role,
+                status: account.status,
+                createdAt: account.createdAt
+            },
+            lecturer: {
+                _id: lecturer._id,
+                lecturerCode: lecturer.lecturerCode,
+                firstName: lecturer.firstName,
+                lastName: lecturer.lastName,
+                citizenID: lecturer.citizenID,
+                gender: lecturer.gender,
+                phone: lecturer.phone,
+                semester: lecturer.semester,
+                semesterNo: lecturer.semesterNo,
+                major: {
+                    _id: major._id,
+                    majorName: major.majorName,
+                    majorCode: major.majorCode
+                },
+                curriculumId: lecturer.curriculumId,
+                accountId: lecturer.accountId,
+                createdAt: lecturer.createdAt
+            },
+            initialPassword: plainPassword
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'server error' });
+    }
+};
+//get lecturer by ID
+const getLecturerById = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const l = await Lecturer.findById(id).lean();
+        if (!l) return res.status(404).json({ message: 'Lecturer không tồn tại' });
+
+        const [major, account] = await Promise.all([
+            Major.findById(l.majorId).lean(),
+            Account.findById(l.accountId).lean()
+        ]);
+
+        return res.json({
+            _id: l._id,
+            lecturerCode: l.lecturerCode,
+            lecturerAvatar: l.lecturerAvatar,
+            firstName: l.firstName,
+            lastName: l.lastName,
+            citizenID: l.citizenID,
+            gender: l.gender,
+            phone: l.phone,
+            semester: l.semester,
+            semesterNo: l.semesterNo,
+            curriculumId: l.curriculumId,
+            account: account ? {
+                _id: account._id,
+                email: account.email,
+                role: account.role,
+                status: account.status
+            } : null,
+            major: major ? {
+                _id: major._id,
+                majorName: major.majorName,
+                majorCode: major.majorCode
+            } : null,
+            createdAt: l.createdAt,
+            updatedAt: l.updatedAt
+        });
+    } catch (e) {
+        console.error(e);
+        return res.status(500).json({ message: 'server error' });
+    }
+};
+
+//list lecturer
+const listLecturers = async (req, res) => {
+    try {
+        const page = Math.max(1, parseInt(req.query.page || '1', 10));
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit || '20', 10)));
+        const skip = (page - 1) * limit;
+
+        const [items, total] = await Promise.all([
+            Lecturer.find().sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+            Lecturer.countDocuments()
+        ]);
+
+        return res.json({ page, limit, total, items });
+    } catch (e) {
+        console.error(e);
+        return res.status(500).json({ message: 'server error' });
+    }
+};
+
+//update lecturer
+const updateLecturer = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if ('citizenID' in req.body) {
+            return res.status(400).json({ message: 'Không được cập nhật citizenID' });
+        }
+        if ('email' in req.body) {
+            return res.status(400).json({ message: 'Không được cập nhật email qua lecturer; email thuộc Account' });
+        }
+
+        const allowed = [
+            'lecturerAvatar', 'firstName', 'lastName', 'gender', 'phone',
+            'semester', 'semesterNo', 'curriculumId', 'majorId'
+            // KHÔNG cho update: lecturerCode, accountId, citizenID
+        ];
+        const data = pick(req.body, allowed);
+
+        // nếu muốn validate data URI cho lecturerAvatar:
+        if (data.lecturerAvatar && !isValidImageDataUri(data.lecturerAvatar)) {
+            return res.status(400).json({ message: 'lecturerAvatar phải là data URI base64 (png/jpg/jpeg/gif/webp)' });
+        }
+
+        const updated = await Lecturer.findByIdAndUpdate(
+            id,
+            { $set: data },
+            { new: true, runValidators: true }
+        ).lean();
+
+        if (!updated) return res.status(404).json({ message: 'Lecturer không tồn tại' });
+
+        return res.json({ message: 'Cập nhật lecturer thành công', lecturer: updated });
+    } catch (e) {
+        console.error(e);
+        return res.status(500).json({ message: 'server error' });
+    }
+};
+
+// delete lecturer
+const deleteLecturer = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const l = await Lecturer.findById(id).lean();
+        if (!l) return res.status(404).json({ message: 'Lecturer không tồn tại' });
+
+        await Lecturer.deleteOne({ _id: id });
+
+        if (l.accountId) {
+            await Account.deleteOne({ _id: l.accountId }).catch(err => {
+                console.error('Delete linked Account failed:', err);
+            });
+        }
+
+        return res.json({ message: 'Xoá lecturer (và account liên kết) thành công' });
+    } catch (e) {
+        console.error(e);
+        return res.status(500).json({ message: 'server error' });
+    }
+};
+
 
 module.exports = {
+    //STUDENT
     createStudentAccount,
-    createLecturerAccount
-}
+    getStudentById,
+    listStudents,
+    updateStudent,
+    deleteStudent,
+    //LECTURER
+    createLecturerAccount,
+    getLecturerById,
+    listLecturers,
+    updateLecturer,
+    deleteLecturer
+};
