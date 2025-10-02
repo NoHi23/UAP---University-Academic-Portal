@@ -7,6 +7,10 @@ const studentSchema = new Schema({
     required: true,
     unique: true
   },
+  studentAvatar: {
+    type: String,
+    required: true
+  },
   firstName: {
     type: String,
     required: true
@@ -17,10 +21,10 @@ const studentSchema = new Schema({
   },
   gender: {
     type: Boolean,
-    default: true 
+    default: true
   },
   phone: {
-    type: String, 
+    type: String,
     required: true
   },
   semester: {
@@ -31,18 +35,18 @@ const studentSchema = new Schema({
   },
   curriculumId: {
     type: Schema.Types.ObjectId,
-    ref: 'Curriculum', 
+    ref: 'Curriculum',
     required: true
   },
   accountId: {
     type: Schema.Types.ObjectId,
-    ref: 'Account', 
+    ref: 'Account',
     required: true,
     unique: true
   },
   majorId: {
     type: Schema.Types.ObjectId,
-    ref: 'Major', 
+    ref: 'Major',
     required: true
   }
 }, {

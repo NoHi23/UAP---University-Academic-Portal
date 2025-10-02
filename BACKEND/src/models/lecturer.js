@@ -1,11 +1,15 @@
 const mongoose = require('mongoose');
-const { Schema } = mongoose; 
+const { Schema } = mongoose;
 
 const lecturerSchema = new Schema({
   lecturerCode: {
     type: String,
     required: true,
     unique: true
+  },
+  lecturerAvatar: {
+    type: String,
+    required: true
   },
   firstName: {
     type: String,
@@ -36,7 +40,7 @@ const lecturerSchema = new Schema({
   },
   accountId: {
     type: Schema.Types.ObjectId,
-    ref: 'Account', 
+    ref: 'Account',
     required: true,
     unique: true
   },
