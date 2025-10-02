@@ -1,70 +1,139 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
-import './Auth.css'; // Sẽ tạo file CSS sau
-import { notifySuccess, notifyError } from '../../services/notificationService';
-import { showConfirmDialog } from '../../services/confirmationService';
+import { GoogleLogin } from '@react-oauth/google';
+import './Auth.css';
+import { notifySuccess, notifyError, notifyInfo } from '../../services/notificationService';
+import posterImage from '../../assets/UAPPT.png';
+import FullScreenLoader from '../../components/Common/FullScreenLoader';
+
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const { login } = useContext(AuthContext);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const { login, loginWithGoogle } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      // Hứng kết quả trả về từ hàm login, trong đó có thông tin user
-      const response = await login(email, password);
-      const loggedInUser = response.data.user;
+  const handleLoginSuccess = (loggedInUser) => {
+    notifySuccess(`Chào mừng ${loggedInUser.name} đã quay trở lại!`);
 
-      notifySuccess(`Chào mừng ${loggedInUser.name} đã quay trở lại!`);
-
-      // === PHÂN LUỒNG DỰA TRÊN VAI TRÒ (ROLE) ===
-      if (loggedInUser.role === 'admin' || loggedInUser.role === 'moderator') {
-        // Nếu là admin hoặc mod, chuyển đến trang quản lý đơn hàng
-        navigate('/admin/orders');
-      } else {
-        // Nếu là user thường, về trang chủ
+    switch (loggedInUser.role) {
+      case 'admin':
+        navigate('/admin/dashboard'); 
+        break;
+      case 'student':
+        navigate('/student/dashboard');
+        break;
+      case 'lecture':
+        navigate('/lecture/dashboard');
+        break;
+      case 'staff':
+        navigate('/staff/dashboard');
+        break;
+      default:
         navigate('/');
-      }
-
-    } catch (err) {
-      notifyError('Email hoặc mật khẩu không chính xác.');
+        break;
     }
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsProcessing(true);
+    try {
+      const response = await login(email, password);
+      handleLoginSuccess(response.data.user);
+    } catch (err) {
+      const message = err.response?.data?.message || 'Email hoặc mật khẩu không chính xác.';
+      notifyError(message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setIsProcessing(true);
+    try {
+      const response = await loginWithGoogle(credentialResponse.credential);
+      handleLoginSuccess(response.data.user);
+    } catch (err) {
+      const message = err.response?.data?.message || 'Đăng nhập Google thất bại.';
+      notifyError(message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    notifyError('Xác thực Google thất bại. Vui lòng thử lại.');
+  };
+
   return (
-    <div className="auth-container">
-      <form onSubmit={handleSubmit} className="auth-form">
-        <h2>Đăng nhập</h2>
-        {error && <p className="error-message">{error}</p>}
-        <div className="form-group">
-          <label htmlFor="email">Email</label>
-          <input
-            type="email"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+    <>
+      <FullScreenLoader loading={isProcessing} />
+      <div className="login-page">
+        <div className="login-image-panel" style={{ backgroundImage: `url(${posterImage})` }}>
+          {/* <div className="welcome-message">
+            <h1>Chào mừng trở lại!</h1>
+            <p>Hệ thống UAP - University Academic Portal của chúng tôi!</p>
+          </div> */}
         </div>
-        <div className="form-group">
-          <label htmlFor="password">Mật khẩu</label>
-          <input
-            type="password"
-            id="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+
+        <div className="login-form-panel">
+          <div className="auth-form-container">
+            <div className="logo-container">
+              <img src="/UAP.png" alt="Logo Dấu Ấn Kinh Kỳ" />
+            </div>
+            <h2>Đăng Nhập Tài Khoản</h2>
+            <p className="subtitle">Sử dụng tài khoản của bạn để tiếp tục</p>
+
+            <form onSubmit={handleSubmit} className="auth-form">
+              <div className="input-group">
+                <i className="fa-solid fa-envelope"></i>
+                <input
+                  type="email"
+                  placeholder="Nhập email của bạn"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={isProcessing}
+                />
+              </div>
+              <div className="input-group">
+                <i className="fa-solid fa-lock"></i>
+                <input
+                  type="password"
+                  placeholder="Nhập mật khẩu"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={isProcessing}
+                />
+              </div>
+              <div className="form-options">
+                <Link to="/forgot-password" className="forgot-password">Quên mật khẩu?</Link>
+              </div>
+              <button type="submit" className="btn-submit" disabled={isProcessing}>
+                {isProcessing ? 'Đang xử lý...' : 'Đăng Nhập'}
+              </button>
+            </form>
+
+            <div className="social-login-divider">
+              <span>HOẶC ĐĂNG NHẬP VỚI</span>
+            </div>
+
+            <div className="social-login-buttons">
+              <div className="google-login-wrapper">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  useOneTap
+                />
+              </div>
+            </div>
+          </div>
         </div>
-        <button type="submit">Đăng nhập</button>
-        <p className="auth-switch">
-          Chưa có tài khoản? <Link to="/register">Đăng ký ngay</Link>
-        </p>
-      </form>
-    </div>
+      </div>
+    </>
   );
 };
 
