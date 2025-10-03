@@ -4,4 +4,5 @@ const usersRouter = require('./account.js');
 const staffRouter = require('./staff.js')
 router.use('/api/account', usersRouter);
 router.use('/api/staff', staffRouter);
+router.use('/announcements', require('./announcement'));
 module.exports = router;
