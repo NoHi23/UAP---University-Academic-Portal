@@ -11,13 +11,19 @@ import RegisterPage from './components/Auth/RegisterPage';
 
 
 import ProtectedRoute from './components/Routing/ProtectedRoute';
-import BackToTopButton from './components/Common/BackToTopButton'; 
+import BackToTopButton from './components/Common/BackToTopButton';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 
 function App() {
+
+  const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+
   return (
     <div className="app-wrapper">
       <BrowserRouter>
-        <AuthProvider>
+        <GoogleOAuthProvider clientId={googleClientId}>
+
+          <AuthProvider>
             <ToastContainer
               position="top-right"
               autoClose={3000}
@@ -37,7 +43,7 @@ function App() {
 
               <Route element={<ProtectedRoute />}>
 
-              
+
               </Route>
 
               {/* <Route element={<ProtectedRoute allowedRoles={['admin', 'moderator']} />}>
@@ -52,7 +58,8 @@ function App() {
 
             </Routes>
             <BackToTopButton />
-        </AuthProvider>
+          </AuthProvider>
+        </GoogleOAuthProvider>
       </BrowserRouter>
     </div>
   );

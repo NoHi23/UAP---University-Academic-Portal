@@ -7,7 +7,7 @@ const FullScreenLoader = ({ loading }) => {
     return (
         <div className="loader-overlay">
             <div className="loader-content">
-                <img src="/DAUANKINHKY.png" alt="Loading..." className="loader-logo" />
+                <img src="/UAP.png" alt="Loading..." className="loader-logo" />
                 <p>Đang xử lý...</p>
             </div>
         </div>

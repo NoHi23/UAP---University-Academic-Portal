@@ -9,7 +9,6 @@
     justify-content: center;
     align-items: center;
     z-index: 9999;
-    /* Hiệu ứng mờ dần khi xuất hiện */
     animation: fadeIn 0.3s ease-in-out;
 }
 
@@ -18,9 +17,8 @@
 }
 
 .loader-logo {
-    width: 100px; /* Chỉnh kích thước logo nếu cần */
+    width: 100px; 
     height: auto;
-    /* Áp dụng animation */
     animation: pulse 1.5s ease-in-out infinite;
 }
 
@@ -32,9 +30,6 @@
     letter-spacing: 1px;
 }
 
-/* === ĐỊNH NGHĨA ANIMATION === */
-
-/* Hiệu ứng "nhịp thở" cho logo */
 @keyframes pulse {
     0% {
         transform: scale(1);
@@ -50,7 +45,6 @@
     }
 }
 
-/* Hiệu ứng mờ dần cho lớp phủ */
 @keyframes fadeIn {
     from {
         opacity: 0;
