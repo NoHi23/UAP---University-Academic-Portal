@@ -14,6 +14,9 @@ import ProtectedRoute from './components/Routing/ProtectedRoute';
 import BackToTopButton from './components/Common/BackToTopButton';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
+import StaffLayout from "./pages/Staff/StaffLayout";
+import StudentAccount from "./pages/Staff/accountManagement/StudentAccount";
+import LectureAccount from "./pages/Staff/accountManagement/LectureAccount";
 function App() {
 
   const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
@@ -43,9 +46,11 @@ function App() {
 
               <Route element={<ProtectedRoute />}>
 
-
               </Route>
-
+              <Route path="/staff" element={<StaffLayout />}>
+                <Route path="students" element={<StudentAccount />} />
+                <Route path="Lectures" element={<LectureAccount />} />
+              </Route>
               {/* <Route element={<ProtectedRoute allowedRoles={['admin', 'moderator']} />}>
                 <Route path="/admin" element={<AdminLayout />}>
                   <Route path="figures/edit/:id" element={<AdminFigureForm />} />

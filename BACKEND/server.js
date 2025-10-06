@@ -1,5 +1,6 @@
 const express = require('express');
 const app = express();
+const bodyParser = require("body-parser");
 const connectDB = require('./config/db.js');
 const router = require('./src/routes/index.js');
 app.get('/', async (req, res) => {
@@ -18,6 +19,9 @@ app.use(
         credential: true
     })
 )
+
+app.use(bodyParser.json({ limit: "10mb" }));
+app.use(bodyParser.urlencoded({ limit: "10mb", extended: true }));
 
 app.use(express.json());
 app.use("/", router);
