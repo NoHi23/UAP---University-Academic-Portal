@@ -171,61 +171,67 @@ const getStudentById = async (req, res) => {
 //get all student
 // get all student (có lọc, tìm kiếm, phân trang, sắp xếp)
 const listStudents = async (req, res) => {
-  try {
-    const {
-      q = "",                 // tìm theo tên/mã/email
-      major = "",             // lọc theo majorId
-      page = "1",
-      limit = "20",
-      sort = "-createdAt",    // ví dụ: 'firstName' | '-createdAt'
-      fields = ""             // ví dụ: 'studentCode,firstName,lastName,majorId'
-    } = req.query;
+    try {
+        const {
+            q = "",                 // tìm kiếm theo tên, mã, email
+            major = "",             // lọc theo majorId
+            page = "1",
+            limit = "20",
+            sort = "-createdAt",    // sắp xếp mới nhất trước
+            fields = ""             // chọn field trả về
+        } = req.query;
 
-    const pageNum = Math.max(1, parseInt(page, 10) || 1);
-    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
-    const skip = (pageNum - 1) * limitNum;
+        const pageNum = Math.max(1, parseInt(page, 10) || 1);
+        const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+        const skip = (pageNum - 1) * limitNum;
 
-    // điều kiện lọc
-    const where = {};
-    if (q) {
-      where.$or = [
-        { firstName:   { $regex: q, $options: "i" } },
-        { lastName:    { $regex: q, $options: "i" } },
-        { studentCode: { $regex: q, $options: "i" } },
-        { email:       { $regex: q, $options: "i" } }, // nếu model Student có trường email
-      ];
+        // Điều kiện lọc
+        const where = {};
+        if (q) {
+            where.$or = [
+                { firstName: { $regex: q, $options: "i" } },
+                { lastName: { $regex: q, $options: "i" } },
+                { studentCode: { $regex: q, $options: "i" } },
+            ];
+        }
+        if (major) where.majorId = major;
+
+        // Projection (chọn field)
+        const projection = {};
+        if (fields) {
+            fields
+                .split(",")
+                .map(s => s.trim())
+                .filter(Boolean)
+                .forEach(f => (projection[f] = 1));
+        }
+
+        // Truy vấn DB
+        const [items, total] = await Promise.all([
+            Student.find(where, Object.keys(projection).length ? projection : undefined)
+                .populate('accountId', 'email')
+                .populate('majorId', 'majorName majorCode')
+                .sort(sort)
+                .skip(skip)
+                .limit(limitNum)
+                .lean(),
+            Student.countDocuments(where),
+        ]);
+
+        // ✅ Trả JSON chuẩn RESTful
+        return res.json({
+            data: items,
+            meta: {
+                page: pageNum,
+                limit: limitNum,
+                total,
+                totalPages: Math.ceil(total / limitNum),
+            },
+        });
+    } catch (e) {
+        console.error('❌ Lỗi listStudents:', e);
+        return res.status(500).json({ message: 'Server error', error: e.message });
     }
-    if (major) where.majorId = major;
-
-    // chọn field trả về (projection)
-    const projection = {};
-    if (fields) {
-      fields.split(",").map(s => s.trim()).filter(Boolean).forEach(f => projection[f] = 1);
-    }
-
-    const [items, total] = await Promise.all([
-      Student
-        .find(where, Object.keys(projection).length ? projection : undefined)
-        .sort(sort)
-        .skip(skip)
-        .limit(limitNum)
-        .lean(),
-      Student.countDocuments(where)
-    ]);
-
-    return res.json({
-      data: items,
-      meta: {
-        page: pageNum,
-        limit: limitNum,
-        total,
-        totalPages: Math.ceil(total / limitNum)
-      }
-    });
-  } catch (e) {
-    console.error(e);
-    return res.status(500).json({ message: "server error" });
-  }
 };
 
 
@@ -446,59 +452,59 @@ const getLecturerById = async (req, res) => {
 //list lecturer
 // list lecturer (có lọc, tìm kiếm, phân trang, sắp xếp)
 const listLecturers = async (req, res) => {
-  try {
-    const {
-      q = "",
-      major = "",
-      page = "1",
-      limit = "20",
-      sort = "-createdAt",
-      fields = ""
-    } = req.query;
+    try {
+        const {
+            q = "",
+            major = "",
+            page = "1",
+            limit = "20",
+            sort = "-createdAt",
+            fields = ""
+        } = req.query;
 
-    const pageNum = Math.max(1, parseInt(page, 10) || 1);
-    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
-    const skip = (pageNum - 1) * limitNum;
+        const pageNum = Math.max(1, parseInt(page, 10) || 1);
+        const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+        const skip = (pageNum - 1) * limitNum;
 
-    const where = {};
-    if (q) {
-      where.$or = [
-        { firstName:     { $regex: q, $options: "i" } },
-        { lastName:      { $regex: q, $options: "i" } },
-        { lecturerCode:  { $regex: q, $options: "i" } },
-        { email:         { $regex: q, $options: "i" } }, // nếu model Lecturer có trường email
-      ];
+        const where = {};
+        if (q) {
+            where.$or = [
+                { firstName: { $regex: q, $options: "i" } },
+                { lastName: { $regex: q, $options: "i" } },
+                { lecturerCode: { $regex: q, $options: "i" } },
+                { email: { $regex: q, $options: "i" } }, // nếu model Lecturer có trường email
+            ];
+        }
+        if (major) where.majorId = major;
+
+        const projection = {};
+        if (fields) {
+            fields.split(",").map(s => s.trim()).filter(Boolean).forEach(f => projection[f] = 1);
+        }
+
+        const [items, total] = await Promise.all([
+            Lecturer
+                .find(where, Object.keys(projection).length ? projection : undefined)
+                .sort(sort)
+                .skip(skip)
+                .limit(limitNum)
+                .lean(),
+            Lecturer.countDocuments(where)
+        ]);
+
+        return res.json({
+            data: items,
+            meta: {
+                page: pageNum,
+                limit: limitNum,
+                total,
+                totalPages: Math.ceil(total / limitNum)
+            }
+        });
+    } catch (e) {
+        console.error(e);
+        return res.status(500).json({ message: "server error" });
     }
-    if (major) where.majorId = major;
-
-    const projection = {};
-    if (fields) {
-      fields.split(",").map(s => s.trim()).filter(Boolean).forEach(f => projection[f] = 1);
-    }
-
-    const [items, total] = await Promise.all([
-      Lecturer
-        .find(where, Object.keys(projection).length ? projection : undefined)
-        .sort(sort)
-        .skip(skip)
-        .limit(limitNum)
-        .lean(),
-      Lecturer.countDocuments(where)
-    ]);
-
-    return res.json({
-      data: items,
-      meta: {
-        page: pageNum,
-        limit: limitNum,
-        total,
-        totalPages: Math.ceil(total / limitNum)
-      }
-    });
-  } catch (e) {
-    console.error(e);
-    return res.status(500).json({ message: "server error" });
-  }
 };
 
 

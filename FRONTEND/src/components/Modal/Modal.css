@@ -1,0 +1,172 @@
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.modal-box {
+    background: #fff;
+    padding: 40px;
+    border-radius: 16px;
+    width: 800px;
+    /* tăng chiều rộng */
+    max-width: 90%;
+    /* vẫn giữ responsive */
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+    position: relative;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #b91c1c;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #b91c1c;
+    cursor: pointer;
+}
+
+.modal-content {
+    margin-top: 10px;
+}
+
+/* ======================== */
+/* 🧩 FORM TẠO SINH VIÊN    */
+/* ======================== */
+
+.create-student-form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    margin-top: 10px;
+    font-family: "Inter", sans-serif;
+}
+
+/* Lưới form: chia đều các cột linh hoạt */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 20px;
+}
+
+/* Input và Select có khoảng cách đồng đều */
+.MuiFormControl-root,
+.MuiTextField-root {
+    width: 100%;
+}
+
+/* Label phần ảnh */
+.form-grid label {
+    display: block;
+    font-weight: 600;
+    color: #282e4e;
+    margin-bottom: 6px;
+}
+
+/* Nút Submit */
+.create-student-form button[type="submit"] {
+    align-self: flex-end;
+    background-color: #282e4e;
+    color: #f4e3cf;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 8px;
+    transition: 0.25s;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+}
+
+.create-student-form button[type="submit"]:hover {
+    background-color: #3a4168;
+}
+
+/* Ảnh xem trước */
+.create-student-form img {
+    display: block;
+    margin-top: 10px;
+    border: 2px solid #c8bdb0;
+    border-radius: 10px;
+    width: 90px;
+    height: 90px;
+    object-fit: cover;
+    transition: transform 0.2s ease;
+}
+
+.create-student-form img:hover {
+    transform: scale(1.05);
+}
+
+/* File input */
+.create-student-form input[type="file"] {
+    font-size: 0.85rem;
+    border: 1px solid #ccc;
+    padding: 6px;
+    border-radius: 8px;
+    width: 100%;
+    cursor: pointer;
+}
+
+/* Cải thiện modal box */
+.modal-box {
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 16px;
+    width: 850px;
+    max-width: 95%;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    position: relative;
+    animation: fadeIn 0.3s ease-in-out;
+    border-top: 6px solid #282e4e;
+}
+
+/* Header modal */
+.modal-header h3 {
+    margin: 0;
+    font-size: 20px;
+    color: #282e4e;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.modal-close {
+    color: #b91c1c;
+    font-weight: 600;
+    transition: 0.25s;
+}
+
+.modal-close:hover {
+    transform: scale(1.1);
+    color: #7f1d1d;
+}
+
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
