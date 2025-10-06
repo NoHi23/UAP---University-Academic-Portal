@@ -9,7 +9,7 @@ const classSchema = new Schema({
   },
   status: {
     type: Boolean,
-    default: true 
+    default: true
   },
   subjectId: {
     type: Schema.Types.ObjectId,
@@ -18,7 +18,12 @@ const classSchema = new Schema({
   },
   roomId: {
     type: Schema.Types.ObjectId,
-    ref: 'Room', 
+    ref: 'Room',
+    required: true
+  },
+  lecturerId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Lecturer',
     required: true
   }
 }, {
