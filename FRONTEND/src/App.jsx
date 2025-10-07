@@ -50,7 +50,6 @@ function App() {
                 <Route path="/student/materials" element={<MaterialsPage />} />
 
               </Route>
-
               {/* <Route element={<ProtectedRoute allowedRoles={['admin', 'moderator']} />}>
                 <Route path="/admin" element={<AdminLayout />}>
                   <Route path="figures/edit/:id" element={<AdminFigureForm />} />
