@@ -1,70 +1,26 @@
-const express = require('express')
-const {
-    //STUDENT
-    createStudentAccount,
-    getStudentById,
-    listStudents,
-    updateStudent,
-    deleteStudent,
-    //LECTURER
-    createLecturerAccount,
-    getLecturerById,
-    listLecturers,
-    updateLecturer,
-    deleteLecturer } = require('../controllers/staff');
+const express = require('express');
+const router = express.Router();
+const { verifyToken, authorize } = require('../middleware/authorization');
 
-//HIEUNN
-
-const {
-    createMaterial,
-    getAllMaterials,
-    updateMaterial,
-    deleteMaterial
-} = require('../controllers/material');
-
+const { createMaterial, getAllMaterials, updateMaterial, deleteMaterial } = require('../controllers/material');
+const { getAllRequests, updateRequest } = require('../controllers/requestController');
 const { createSlotNotification } = require('../controllers/notificationController');
 
-const {
-    getAllRequests,
-    updateRequest
-} = require('../controllers/requestController');
+router.use(verifyToken, authorize('staff', 'admin', 'lecturer'));
 
-const { protect, authorize } = require('../middleware/authorization');
-//HIEUNN
-//END 
-
-const staffRouter = express.Router();
-//STUDENT
-staffRouter.post('/accounts/students', createStudentAccount);
-staffRouter.get('/student/:id', getStudentById)
-staffRouter.get('/students', listStudents)
-staffRouter.put('/student/:id', updateStudent)
-staffRouter.delete('/student/:id', deleteStudent)
-//LECTURER
-staffRouter.post('/accounts/lecturers', createLecturerAccount);
-staffRouter.get('/lecturer/:id', getLecturerById)
-staffRouter.get('/lecturers', listLecturers)
-staffRouter.put('/lecturer/:id', updateLecturer)
-staffRouter.delete('/lecturer/:id', deleteLecturer)
-
-
-//HIEUNN
-staffRouter.use(protect, authorize('staff', 'admin'));
-
-staffRouter.route('/materials')
-    .post(createMaterial)
+router.route('/materials')
+    .post(authorize('staff', 'admin'), createMaterial)
     .get(getAllMaterials);
+router.route('/materials/:id')
+    .put(authorize('staff', 'admin'), updateMaterial)
+    .delete(authorize('staff', 'admin'), deleteMaterial);
 
-staffRouter.route('/materials/:id')
-    .put(updateMaterial)
-    .delete(deleteMaterial);
+router.route('/requests')
+    .get(authorize('staff', 'admin'), getAllRequests);
+router.route('/requests/:id')
+    .put(authorize('staff', 'admin'), updateRequest);
 
-staffRouter.route('/requests')
-    .get(getAllRequests);
 
-staffRouter.route('/requests/:id')
-    .put(updateRequest);
+router.post('/notifications/slots', createSlotNotification);
 
-router.post('/notifications/slots', protect, authorize('lecturer', 'staff', 'admin'), createSlotNotification);
-
-module.exports = staffRouter
+module.exports = router;
