@@ -1,30 +1,26 @@
-const express = require('express')
-const {
-    //STUDENT
-    createStudentAccount,
-    getStudentById,
-    listStudents,
-    updateStudent,
-    deleteStudent,
-    //LECTURER
-    createLecturerAccount,
-    getLecturerById,
-    listLecturers,
-    updateLecturer,
-    deleteLecturer } = require('../controllers/staff');
-const staffRouter = express.Router();
-//STUDENT
-staffRouter.post('/accounts/students', createStudentAccount);
-staffRouter.get('/student/:id', getStudentById)
-staffRouter.get('/students', listStudents)
-staffRouter.put('/student/:id', updateStudent)
-staffRouter.delete('/student/:id', deleteStudent)
-//LECTURER
-staffRouter.post('/accounts/lecturers', createLecturerAccount);
-staffRouter.get('/lecturer/:id', getLecturerById)
-staffRouter.get('/lecturers', listLecturers)
-staffRouter.put('/lecturer/:id', updateLecturer)
-staffRouter.delete('/lecturer/:id', deleteLecturer)
+const express = require('express');
+const router = express.Router();
+const { verifyToken, authorize } = require('../middleware/authorization');
+
+const { createMaterial, getAllMaterials, updateMaterial, deleteMaterial } = require('../controllers/material');
+const { getAllRequests, updateRequest } = require('../controllers/requestController');
+const { createSlotNotification } = require('../controllers/notificationController');
+
+router.use(verifyToken, authorize('staff', 'admin', 'lecturer'));
+
+router.route('/materials')
+    .post(authorize('staff', 'admin'), createMaterial)
+    .get(getAllMaterials);
+router.route('/materials/:id')
+    .put(authorize('staff', 'admin'), updateMaterial)
+    .delete(authorize('staff', 'admin'), deleteMaterial);
+
+router.route('/requests')
+    .get(authorize('staff', 'admin'), getAllRequests);
+router.route('/requests/:id')
+    .put(authorize('staff', 'admin'), updateRequest);
 
 
-module.exports = staffRouter
+router.post('/notifications/slots', createSlotNotification);
+
+module.exports = router;

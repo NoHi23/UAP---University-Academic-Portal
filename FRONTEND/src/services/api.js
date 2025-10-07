@@ -4,7 +4,6 @@ const api = axios.create({
   baseURL: 'http://localhost:9999/api/',
 });
 
-// Thêm một interceptor để tự động gắn token vào header mỗi khi gửi request
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');

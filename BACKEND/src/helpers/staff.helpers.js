@@ -76,6 +76,12 @@ const generateInitialPassword = (len = 12) => {
 const isValidImageDataUri = (v) =>
     /^data:image\/(png|jpe?g|gif|webp);base64,/.test(v);
 
+// Lấy các field cho phép từ object
+const pick = (obj = {}, allowed = []) =>
+  Object.fromEntries(
+    Object.entries(obj).filter(([k]) => allowed.includes(k))
+  );
+
 module.exports = {
     computeSemesterNo,
     generateUniqueCode,
@@ -86,4 +92,5 @@ module.exports = {
     makeLecturerEmail,
     generateInitialPassword,
     isValidImageDataUri,
+    pick,
 };
