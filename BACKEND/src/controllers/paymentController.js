@@ -1,7 +1,5 @@
 const TuitionFee = require('../models/tuitionFeeModel');
 const Transaction = require('../models/transactionModel');
-const Student = require('../models/studentSchema');
-const Transaction = require('../models/transactionModel');
 const Student = require('../models/student');
 const crypto = require('crypto');
 const querystring = require('qs');
@@ -25,7 +23,6 @@ const createPaymentUrl = async (req, res) => {
     const amount = (tuition.totalAmount - tuition.amountPaid) * 100;
     const transactionCode = `FEE${student.studentCode}${Date.now()}`;
 
-    // Tạo giao dịch mới trong DB
     await Transaction.create({
       tuitionFeeId: tuition._id,
       studentId: student._id,

@@ -1,6 +1,6 @@
 import './App.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider } from './context/AuthContext';
@@ -14,9 +14,10 @@ import ProtectedRoute from './components/Routing/ProtectedRoute';
 import BackToTopButton from './components/Common/BackToTopButton';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
-import StaffLayout from "./pages/Staff/StaffLayout";
-import StudentAccount from "./pages/Staff/accountManagement/StudentAccount";
-import LectureAccount from "./pages/Staff/accountManagement/LectureAccount";
+import StudentDashboard from './components/Student/Dashboard';
+import MaterialsPage from './components/Student/MaterialsPage';
+
+
 function App() {
 
   const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
@@ -45,11 +46,9 @@ function App() {
               <Route path='/register' element={<RegisterPage />} />
 
               <Route element={<ProtectedRoute />}>
+                <Route path="/student/dashboard" element={<StudentDashboard />} />
+                <Route path="/student/materials" element={<MaterialsPage />} />
 
-              </Route>
-              <Route path="/staff" element={<StaffLayout />}>
-                <Route path="students" element={<StudentAccount />} />
-                <Route path="Lectures" element={<LectureAccount />} />
               </Route>
               {/* <Route element={<ProtectedRoute allowedRoles={['admin', 'moderator']} />}>
                 <Route path="/admin" element={<AdminLayout />}>
