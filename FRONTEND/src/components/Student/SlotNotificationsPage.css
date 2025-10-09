@@ -1,0 +1,99 @@
+.notifications-page-container {
+    padding: 20px 40px;
+    background-color: #f9fafb;
+    font-family: Arial, sans-serif;
+    min-height: 100vh;
+}
+
+.notifications-header h1 {
+    font-size: 2rem;
+    color: #111827;
+    margin-bottom: 30px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.notifications-list {
+    max-width: 900px;
+    margin: 0 auto;
+    display: grid;
+    gap: 20px;
+}
+
+.notification-card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    border-left: 5px solid #f59e0b; /* Orange accent */
+}
+
+.notification-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.notification-card-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: #1f2937;
+}
+
+.notification-date {
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+.notification-card-body {
+    padding: 20px;
+}
+
+.notification-content {
+    font-size: 1rem;
+    color: #374151;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.notification-card-footer {
+    padding: 15px 20px;
+    background-color: #f9fafb;
+    border-top: 1px solid #f3f4f6;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    font-size: 0.9rem;
+    color: #6b7280;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+.slot-info p {
+    margin: 4px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sender-info {
+    font-style: italic;
+    font-size: 0.8rem;
+}
+
+.info-message {
+    text-align: center;
+    padding: 50px;
+    background-color: #fff;
+    border-radius: 8px;
+    color: #6b7280;
+    font-size: 1.1rem;
+}
+
+.info-message svg {
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+    color: #9ca3af;
+}
