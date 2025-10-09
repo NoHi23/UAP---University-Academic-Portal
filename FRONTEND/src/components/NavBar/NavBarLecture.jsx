@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   AppBar,
@@ -122,4 +121,4 @@ const NavbarLecturer = () => {
   );
 };
 
-export default NavbarLecturer;
+export default NavbarLecturer
