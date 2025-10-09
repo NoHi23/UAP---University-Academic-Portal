@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import './Dashboard.css';
-import { FaUser, FaCalendarAlt, FaChartBar, FaBook, FaMoneyBillWave, FaHistory, FaBookOpen } from 'react-icons/fa';
+import {
+  FaUser, FaCalendarAlt, FaChartBar, FaBook, FaMoneyBillWave,
+  FaHistory, FaBookOpen, FaPaperPlane, FaStar, FaBullhorn
+} from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 
 const mockStudentInfo = {
@@ -107,8 +110,15 @@ const Dashboard = () => {
           <div className="feature-card" onClick={() => navigate('/student/materials')}>
             <FaBookOpen /><span>Tài liệu học tập</span>
           </div>
-          <div className="feature-card"><FaMoneyBillWave /><span>Thanh toán học phí</span></div>
-          <div className="feature-card"><FaHistory /><span>Lịch sử thanh toán</span></div>
+          <div className="feature-card" onClick={() => navigate('/student/payment')}>
+            <FaMoneyBillWave /><span>Thanh toán học phí</span>
+          </div>
+          <div className="feature-card" onClick={() => navigate('/student/transactions')}>
+            <FaHistory /><span>Lịch sử thanh toán</span>
+          </div>
+          <div className="feature-card" onClick={() => navigate('/student/requests')}><FaPaperPlane /><span>Đơn từ & Yêu cầu</span></div>
+          <div className="feature-card" onClick={() => navigate('/student/evaluation')}><FaStar /><span>Đánh giá giảng viên</span></div>
+          <div className="feature-card" onClick={() => navigate('/student/notifications')}><FaBullhorn /><span>Thông báo</span></div>
         </div>
 
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext'; 
 import  api  from '../../services/api';
-import FullScreenLoader from '../../components/Common/FullScreenLoader';
+import FullScreenLoader from '../Common/FullScreenLoader';
 import { FaBook, FaUserEdit, FaLink, FaDownload } from 'react-icons/fa';
 import './MaterialsPage.css';
 

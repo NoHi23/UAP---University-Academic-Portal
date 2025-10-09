@@ -23,7 +23,11 @@ import NavbarLecturer from './components/NavBar/NavbarLecturer';
 import LecturerLayout from './pages/Lecturer';
 import LecturerDashboard from './pages/Lecturer/LecturerDashBoard/LecturerDashboard';
 import ScheduleLecturePages from './pages/Lecturer/ScheduleLecturePages';
-
+import PayTuitionPage from './components/Student/PayTuitionPage';
+import TransactionHistoryPage from './components/Student/TransactionHistoryPage';
+import RequestsPage from './components/Student/RequestsPage';
+import EvaluationPage from './components/Student/EvaluationPage';
+import SlotNotificationsPage from './components/Student/SlotNotificationsPage';
 function App() {
 
   const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
@@ -48,11 +52,27 @@ function App() {
                 pauseOnHover
                 theme="light"
               />
+
               <Routes>
                 <Route path='/' element={<LoginPage />} />
 
                 <Route path='/register' element={<RegisterPage />} />
 
+
+                <Route element={<ProtectedRoute />}>
+                  <Route path="/student/dashboard" element={<StudentDashboard />} />
+                  <Route path="/student/materials" element={<MaterialsPage />} />
+                  <Route path="/student/payment" element={<PayTuitionPage />} />
+                  <Route path="/student/transactions" element={<TransactionHistoryPage />} />
+                  <Route path="/student/requests" element={<RequestsPage />} />
+                  <Route path="/student/evaluation" element={<EvaluationPage />} />
+                  <Route path="/student/notifications" element={<SlotNotificationsPage />} />
+                </Route>
+                <Route path="/lecturer/" element={<LecturerLayout />}>
+                  <Route path="dashboard" element={<LecturerDashboard />} />
+                  <Route path='view-teaching-schedule' element={<ScheduleLecturePages />} />
+                </Route>
+                {/* <Route element={<ProtectedRoute allowedRoles={['admin', 'moderator']} />}>
                 <Route element={<ProtectedRoute />}>
                   <Route path="/student/" element={<StudentLayout />}>
                     <Route path="dashboard" element={<StudentDashboard />} />
@@ -74,13 +94,14 @@ function App() {
                 </Route>
               </Route> */}
 
+
               </Routes>
               <BackToTopButton />
             </AuthProvider>
           </GoogleOAuthProvider>
         </BrowserRouter>
-      </div>
-    </ThemeProvider>
+      </div >
+    </ThemeProvider >
   );
 }
 
