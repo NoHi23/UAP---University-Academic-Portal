@@ -1,32 +1,28 @@
 const express = require('express');
-const { createPaymentUrl } = require('../controllers/paymentController');
+const router = express.Router();
+const { verifyToken, authorize } = require('../middleware/authorization');
 
-router.post('/tuition/create-payment-url', protect, authorize('student'), createPaymentUrl);
-
-const { vnpayIpnHandler, vnpayReturnHandler, getTransactionHistory } = require('../controllers/paymentController');
+const { getStudentMaterials } = require('../controllers/material');
+const { createPaymentUrl, getTransactionHistory } = require('../controllers/paymentController');
 const { submitRequest, getMyRequests } = require('../controllers/requestController');
 const { getEvaluableClasses, submitEvaluation } = require('../controllers/evaluationController');
 const { getMySlotNotifications } = require('../controllers/notificationController');
 
-router.get('/vnpay_ipn', vnpayIpnHandler);
-router.get('/vnpay_return', vnpayReturnHandler);
+router.use(verifyToken, authorize('student'));
 
-const router = express.Router();
-const { getStudentMaterials } = require('../controllers/material');
-const { protect, authorize } = require('../middleware/authorization');
+router.get('/materials/me', getStudentMaterials);
 
-router.get('/materials/me', protect, authorize('student'), getStudentMaterials);
-router.get('/transactions/me', protect, authorize('student'), getTransactionHistory);
+router.post('/tuition/create-payment-url', createPaymentUrl);
+router.get('/transactions/me', getTransactionHistory);
 
-router.route('/requests').post(protect, authorize('student'), submitRequest);
+router.post('/requests', submitRequest);
+router.get('/requests/me', getMyRequests);
 
-router.route('/requests/me').get(protect, authorize('student'), getMyRequests);
+router.get('/evaluations/classes-to-review', getEvaluableClasses);
+router.post('/evaluations', submitEvaluation);
 
+router.get('/notifications/slots', getMySlotNotifications);
 
-router.get('/evaluations/classes-to-review', protect, authorize('student'), getEvaluableClasses);
-router.post('/evaluations', protect, authorize('student'), submitEvaluation);
-
-router.get('/notifications/slots', protect, authorize('student'), getMySlotNotifications);
 
 
 module.exports = router;

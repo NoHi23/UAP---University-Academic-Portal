@@ -5,7 +5,6 @@ import { AuthContext } from '../../context/AuthContext';
 import './Auth.css';
 import { notifySuccess, notifyError } from '../../services/notificationService';
 
-// 1. Import component FullScreenLoader
 import FullScreenLoader from '../../components/Common/FullScreenLoader';
 
 const RegisterPage = () => {
