@@ -25,4 +25,3 @@ const LecturerLayout = () => {
 };
 
 export default LecturerLayout;
-

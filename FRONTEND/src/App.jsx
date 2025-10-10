@@ -1,3 +1,4 @@
+
 import './App.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
@@ -14,7 +15,6 @@ import RegisterPage from './components/Auth/RegisterPage';
 import ProtectedRoute from './components/Routing/ProtectedRoute';
 import BackToTopButton from './components/Common/BackToTopButton';
 import { GoogleOAuthProvider } from '@react-oauth/google';
-
 import StudentDashboard from './pages/Student/StudentDashboard';
 import MaterialsPage from './components/Student/MaterialsPage';
 import Timetable from './components/Student/Timetable';
@@ -33,9 +33,7 @@ import LecturerAnnouncementDetail from './pages/Lecturer/ViewAnoucement/Annoucem
 import StaffLayout from './pages/Staff/StaffLayout';
 import StudentAccount from './pages/Staff/accountManagement/StudentAccount';
 import LectureAccount from './pages/Staff/accountManagement/LectureAccount';
-
 function App() {
-
   const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
   return (
@@ -58,11 +56,9 @@ function App() {
                 pauseOnHover
                 theme="light"
               />
-
               <Routes>
                 <Route path='/' element={<LoginPage />} />
                 <Route path='/register' element={<RegisterPage />} />
-
                 <Route element={<ProtectedRoute />}>
                   <Route path="/student/dashboard" element={<StudentDashboard />} />
                   <Route path="/student/materials" element={<MaterialsPage />} />
@@ -73,7 +69,6 @@ function App() {
                   <Route path="/student/notifications" element={<SlotNotificationsPage />} />
                   <Route path="/student/timetable" element={<Timetable />} />
                 </Route>
-
                 <Route path="/staff/" element={<StaffLayout />}>
                   <Route path="dashboard" element={<StaffLayout />} />
                   <Route path="students" element={<StudentAccount />} />
@@ -85,7 +80,6 @@ function App() {
                   <Route path="announcements" element={<LecturerAnnouncements />} />
                   <Route path="announcements/:id" element={<LecturerAnnouncementDetail />} />
                 </Route>
-
               </Routes>
               <BackToTopButton />
             </AuthProvider>
@@ -95,5 +89,4 @@ function App() {
     </ThemeProvider >
   );
 }
-
 export default App;
