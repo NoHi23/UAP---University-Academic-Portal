@@ -21,6 +21,11 @@ import NavbarLecturer from './components/NavBar/NavbarLecturer';
 import LecturerLayout from './pages/Lecturer';
 import LecturerDashboard from './pages/Lecturer/LecturerDashBoard/LecturerDashboard';
 import ScheduleLecturePages from './pages/Lecturer/ScheduleLecturePages';
+import LecturerAnnouncements from './pages/Lecturer/ViewAnoucement/AnnoucementList';
+import LecturerAnnouncementDetail from './pages/Lecturer/ViewAnoucement/AnnoucementDetail';
+import StaffLayout from './pages/Staff/StaffLayout';
+import StudentAccount from './pages/Staff/accountManagement/StudentAccount';
+import LectureAccount from './pages/Staff/accountManagement/LectureAccount';
 
 function App() {
 
@@ -33,34 +38,40 @@ function App() {
         <BrowserRouter>
           <GoogleOAuthProvider clientId={googleClientId}>
 
-          <AuthProvider>
-            <ToastContainer
-              position="top-right"
-              autoClose={3000}
-              hideProgressBar={false}
-              newestOnTop={false}
-              closeOnClick
-              rtl={false}
-              pauseOnFocusLoss
-              draggable
-              pauseOnHover
-              theme="light"
-            />
-            <Routes>
-              <Route path='/' element={<LoginPage />} />
+            <AuthProvider>
+              <ToastContainer
+                position="top-right"
+                autoClose={3000}
+                hideProgressBar={false}
+                newestOnTop={false}
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+                theme="light"
+              />
+              <Routes>
+                <Route path='/' element={<LoginPage />} />
 
-              <Route path='/register' element={<RegisterPage />} />
+                <Route path='/register' element={<RegisterPage />} />
 
-              <Route element={<ProtectedRoute />}>
-                <Route path="/student/dashboard" element={<StudentDashboard />} />
-                <Route path="/student/materials" element={<MaterialsPage />} />
-
-              </Route>
-              <Route path="/lecturer/" element={<LecturerLayout />}>
-                     <Route path="dashboard" element={<LecturerDashboard/>} />
-                     <Route path='view-teaching-schedule' element={<ScheduleLecturePages />} />
-              </Route>
-              {/* <Route element={<ProtectedRoute allowedRoles={['admin', 'moderator']} />}>
+                <Route element={<ProtectedRoute />}>
+                  <Route path="/student/dashboard" element={<StudentDashboard />} />
+                  <Route path="/student/materials" element={<MaterialsPage />} />
+                </Route>
+                <Route path="/lecturer/" element={<LecturerLayout />}>
+                  <Route path="dashboard" element={<LecturerDashboard />} />
+                  <Route path='view-teaching-schedule' element={<ScheduleLecturePages />} />
+                  <Route path="announcements" element={<LecturerAnnouncements />} />
+                  <Route path="announcements/:id" element={<LecturerAnnouncementDetail />} />
+                </Route>
+                <Route path="/staff/" element={<StaffLayout />}>
+                  <Route path="dashboard" element={<StaffLayout />} />
+                  <Route path="students" element={<StudentAccount />} />
+                  <Route path="lectures" element={<LectureAccount />} />
+                </Route>
+                {/* <Route element={<ProtectedRoute allowedRoles={['admin', 'moderator']} />}>
                 <Route path="/admin" element={<AdminLayout />}>
                   <Route path="figures/edit/:id" element={<AdminFigureForm />} />
 
@@ -70,11 +81,11 @@ function App() {
                 </Route>
               </Route> */}
 
-            </Routes>
-            <BackToTopButton />
-          </AuthProvider>
-        </GoogleOAuthProvider>
-      </BrowserRouter>
+              </Routes>
+              <BackToTopButton />
+            </AuthProvider>
+          </GoogleOAuthProvider>
+        </BrowserRouter>
       </div>
     </ThemeProvider>
   );
