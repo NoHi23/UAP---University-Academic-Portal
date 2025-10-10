@@ -28,6 +28,12 @@ import TransactionHistoryPage from './components/Student/TransactionHistoryPage'
 import RequestsPage from './components/Student/RequestsPage';
 import EvaluationPage from './components/Student/EvaluationPage';
 import SlotNotificationsPage from './components/Student/SlotNotificationsPage';
+import LecturerAnnouncements from './pages/Lecturer/ViewAnoucement/AnnoucementList';
+import LecturerAnnouncementDetail from './pages/Lecturer/ViewAnoucement/AnnoucementDetail';
+import StaffLayout from './pages/Staff/StaffLayout';
+import StudentAccount from './pages/Staff/accountManagement/StudentAccount';
+import LectureAccount from './pages/Staff/accountManagement/LectureAccount';
+
 function App() {
 
   const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
@@ -55,9 +61,7 @@ function App() {
 
               <Routes>
                 <Route path='/' element={<LoginPage />} />
-
                 <Route path='/register' element={<RegisterPage />} />
-
 
                 <Route element={<ProtectedRoute />}>
                   <Route path="/student/dashboard" element={<StudentDashboard />} />
@@ -67,39 +71,26 @@ function App() {
                   <Route path="/student/requests" element={<RequestsPage />} />
                   <Route path="/student/evaluation" element={<EvaluationPage />} />
                   <Route path="/student/notifications" element={<SlotNotificationsPage />} />
+                  <Route path="/student/timetable" element={<Timetable />} />
+                </Route>
+
+                <Route path="/staff/" element={<StaffLayout />}>
+                  <Route path="dashboard" element={<StaffLayout />} />
+                  <Route path="students" element={<StudentAccount />} />
+                  <Route path="lectures" element={<LectureAccount />} />
                 </Route>
                 <Route path="/lecturer/" element={<LecturerLayout />}>
                   <Route path="dashboard" element={<LecturerDashboard />} />
                   <Route path='view-teaching-schedule' element={<ScheduleLecturePages />} />
+                  <Route path="announcements" element={<LecturerAnnouncements />} />
+                  <Route path="announcements/:id" element={<LecturerAnnouncementDetail />} />
                 </Route>
-                {/* <Route element={<ProtectedRoute allowedRoles={['admin', 'moderator']} />}>
-                <Route element={<ProtectedRoute />}>
-                  <Route path="/student/" element={<StudentLayout />}>
-                    <Route path="dashboard" element={<StudentDashboard />} />
-                    <Route path="materials" element={<MaterialsPage />} />
-                    <Route path="timetable" element={<Timetable />} />
-                  </Route>
-                </Route>
-                <Route path="/lecturer/" element={<LecturerLayout />}>
-                  <Route path="dashboard" element={<LecturerDashboard />} />
-                  <Route path='view-teaching-schedule' element={<ScheduleLecturePages />} />
-                </Route>
-                {/* <Route element={<ProtectedRoute allowedRoles={['admin', 'moderator']} />}>
-                <Route path="/admin" element={<AdminLayout />}>
-                  <Route path="figures/edit/:id" element={<AdminFigureForm />} />
-
-                  <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-                    <Route path="coupons/new" element={<AdminCouponForm />} />
-                  </Route>
-                </Route>
-              </Route> */}
-
 
               </Routes>
               <BackToTopButton />
             </AuthProvider>
-          </GoogleOAuthProvider>
-        </BrowserRouter>
+          </GoogleOAuthProvider >
+        </BrowserRouter >
       </div >
     </ThemeProvider >
   );

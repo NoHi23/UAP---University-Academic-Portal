@@ -11,3 +11,15 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+.swal2-container {
+  z-index: 1700 !important;
+  /* > Tooltip(1500), Snackbar(1400), Modal(1300) */
+}
+
+/* Dời toast xuống dưới AppBar 55px (có padding nhẹ) */
+.swal2-container.swal2-top-end,
+.swal2-container.swal2-top-right {
+  top: 64px !important;
+  /* 55px AppBar + ~9px đệm */
+}
