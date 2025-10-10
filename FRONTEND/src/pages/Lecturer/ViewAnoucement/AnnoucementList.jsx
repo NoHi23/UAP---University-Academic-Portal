@@ -11,7 +11,6 @@ import {
     Button,
 } from "@mui/material";
 import { AccessTime as AccessTimeIcon } from "@mui/icons-material";
-import NavbarLecturer from "../../../components/NavBar/NavbarLecturer";
 import announcementAPI from "../../../api/annoucementAPI";
 
 const LecturerAnnouncements = () => {
