@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box } from '@mui/material';
 import { Outlet } from 'react-router-dom';
-import NavbarLecturer from '../../components/NavBar/NavbarLecturer';
+import NavbarLecturer from '../../components/NavBar/NavBarLecture';
 
 const LecturerLayout = () => {
   return (

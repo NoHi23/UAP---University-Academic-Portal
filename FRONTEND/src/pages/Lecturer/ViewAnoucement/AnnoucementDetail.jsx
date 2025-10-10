@@ -12,7 +12,7 @@ import {
 } from "@mui/material";
 import { AccessTime as AccessTimeIcon, ArrowBack as ArrowBackIcon } from "@mui/icons-material";
 import { useParams, useNavigate } from "react-router-dom";
-import NavbarLecturer from "../../../components/NavBar/NavbarLecturer";
+
 import announcementAPI from "../../../api/annoucementAPI";
 
 const LecturerAnnouncementDetail = () => {
@@ -38,9 +38,7 @@ const LecturerAnnouncementDetail = () => {
 
     return (
         <>
-            {/* 🔹 Navbar */}
-            <NavbarLecturer />
-
+          
             {/* 🔹 Nội dung chi tiết */}
             <Container maxWidth="md" sx={{ py: 4 }}>
                 {loading ? (

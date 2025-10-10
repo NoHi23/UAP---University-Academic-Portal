@@ -19,9 +19,8 @@ import StudentDashboard from './pages/Student/StudentDashboard';
 import MaterialsPage from './components/Student/MaterialsPage';
 import Timetable from './components/Student/Timetable';
 import StudentLayout from './pages/Student';
-import NavbarLecturer from './components/NavBar/NavbarLecturer';
-import LecturerLayout from './pages/Lecturer';
-import LecturerDashboard from './pages/Lecturer/LecturerDashBoard/LecturerDashboard';
+import LecturerLayout from './pages/Lecturer/LectureLayout';
+import LecturerDashboard from './pages/Lecturer/LecturerDashBoard/index';
 import ScheduleLecturePages from './pages/Lecturer/ScheduleLecturePages';
 import PayTuitionPage from './components/Student/PayTuitionPage';
 import TransactionHistoryPage from './components/Student/TransactionHistoryPage';
@@ -74,8 +73,8 @@ function App() {
                   <Route path="students" element={<StudentAccount />} />
                   <Route path="lectures" element={<LectureAccount />} />
                 </Route>
-                <Route path="/lecturer/" element={<LecturerLayout />}>
-                  <Route path="dashboard" element={<LecturerDashboard />} />
+                <Route path="/lecture/" element={<LecturerLayout />}>
+                  <Route path="dashboard" element={<LecturerDashboard/>} />
                   <Route path='view-teaching-schedule' element={<ScheduleLecturePages />} />
                   <Route path="announcements" element={<LecturerAnnouncements />} />
                   <Route path="announcements/:id" element={<LecturerAnnouncementDetail />} />

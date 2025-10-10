@@ -1,6 +1,6 @@
 import React from 'react';
 import { Container, Typography, Box } from '@mui/material';
-import WeekTimeTable from './component/WeekTimeTable';
+import WeekTimeTable from './component/WeekTimeTable ';
 
 const ScheduleLecturePages = () => {
 
