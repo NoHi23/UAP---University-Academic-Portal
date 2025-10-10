@@ -159,9 +159,34 @@ const getTransactionHistory = async (req, res) => {
 };
 
 
+
+const getTuitionInfo = async (req, res) => {
+  try {
+    const student = await Student.findOne({ accountId: req.user.id });
+    if (!student) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy sinh viên.' });
+    }
+
+    const tuition = await TuitionFee.findOne({
+      studentId: student._id,
+      status: 'unpaid'
+    });
+
+    if (!tuition) {
+      return res.status(404).json({ success: false, message: 'Hiện không có công nợ học phí nào.' });
+    }
+
+    res.status(200).json({ success: true, data: tuition });
+
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Lỗi máy chủ' });
+  }
+};
+
 module.exports = {
   createPaymentUrl,
   vnpayReturnHandler,
   vnpayIpnHandler,
-  getTransactionHistory
+  getTransactionHistory,
+  getTuitionInfo
 };

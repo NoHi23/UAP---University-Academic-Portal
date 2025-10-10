@@ -28,12 +28,13 @@ import EventNoteIcon from '@mui/icons-material/EventNote';
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks'; // ✅ dùng cho "Class Management"
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import LogoutIcon from '@mui/icons-material/Logout';
+import { notifySuccess, showConfirmDialog } from '../../services/notificationService';
 
 import { Outlet, useNavigate } from 'react-router-dom';
 
 const drawerWidth = 260;
 
-// 🎨 Theme
+//  Theme
 const theme = createTheme({
     palette: {
         primary: { main: '#282E4E' },
@@ -47,7 +48,7 @@ const theme = createTheme({
     },
 });
 
-// 🔷 AppBar
+//  AppBar
 const AppBar = styled(MuiAppBar, {
     shouldForwardProp: (prop) => prop !== 'open',
 })(({ theme, open }) => ({
@@ -68,7 +69,7 @@ const AppBar = styled(MuiAppBar, {
     }),
 }));
 
-// 🔹 Drawer
+//  Drawer
 const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' })(
     ({ theme, open }) => ({
         '& .MuiDrawer-paper': {
@@ -102,6 +103,8 @@ const StyledListItemButton = styled(ListItemButton)(({ selected }) => ({
     }),
 }));
 
+
+
 export default function StaffLayout() {
     const [open, setOpen] = React.useState(true);
     const navigate = useNavigate();
@@ -122,6 +125,25 @@ export default function StaffLayout() {
     const handleNav = (path) => {
         setActive(path);
         navigate(path);
+    };
+
+    const handleSignOut = async () => {
+        const result = await showConfirmDialog({
+            title: 'Đăng xuất?',
+            text: 'Bạn chắc chắn muốn đăng xuất?',
+            icon: 'warning',
+            confirmButtonText: 'Đăng xuất',
+            cancelButtonText: 'Hủy'
+        });
+
+        if (result.isConfirmed) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            sessionStorage.removeItem('token');
+            sessionStorage.removeItem('user');
+            notifySuccess('Đăng xuất thành công');
+            navigate('/', { replace: true });
+        }
     };
 
     const menuItems = [
@@ -266,7 +288,7 @@ export default function StaffLayout() {
                         <Box sx={{ p: open ? 1 : 0.5, pb: 2 }}>
                             <Tooltip title="Sign Out">
                                 <ListItemButton
-                                    onClick={() => alert('Sign Out clicked')}
+                                    onClick={handleSignOut}
                                     sx={{
                                         borderRadius: 2,
                                         justifyContent: open ? 'flex-start' : 'center',

@@ -1,0 +1,112 @@
+.history-page-container {
+    padding: 20px 40px;
+    background-color: #f9fafb;
+    font-family: Arial, sans-serif;
+    min-height: 100vh;
+}
+
+.history-header h1 {
+    font-size: 2rem;
+    color: #111827;
+    margin-bottom: 30px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.history-table-container {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    overflow-x: auto; /* For responsiveness on small screens */
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.history-table th, .history-table td {
+    padding: 15px 20px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.history-table th {
+    background-color: #f3f4f6;
+    font-size: 0.9rem;
+    color: #4b5563;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.history-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.history-table tbody tr:hover {
+    background-color: #f9fafb;
+}
+
+.history-table .amount {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.status-badge {
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-weight: 500;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.status-completed { background-color: #ecfdf5; color: #10b981; }
+.status-failed { background-color: #fef2f2; color: #ef4444; }
+.status-pending { background-color: #fffbeb; color: #f59e0b; }
+
+.info-message {
+    text-align: center;
+    padding: 50px;
+    background-color: #fff;
+    border-radius: 8px;
+    color: #6b7280;
+    font-size: 1.1rem;
+}
+
+/* Responsive for mobile */
+@media (max-width: 768px) {
+    .history-table thead {
+        display: none;
+    }
+    .history-table, .history-table tbody, .history-table tr, .history-table td {
+        display: block;
+        width: 100%;
+    }
+    .history-table tr {
+        margin-bottom: 15px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+    }
+    .history-table td {
+        text-align: right;
+        padding-left: 50%;
+        position: relative;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    .history-table td:before {
+        content: attr(data-label);
+        position: absolute;
+        left: 15px;
+        width: 45%;
+        padding-right: 10px;
+        font-weight: bold;
+        text-align: left;
+    }
+    .history-table td:last-child {
+        border-bottom: none;
+    }
+}

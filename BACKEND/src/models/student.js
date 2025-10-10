@@ -9,13 +9,14 @@ const studentSchema = new Schema({
   },
   studentAvatar: {
     type: String,
-    required: true,
+    required: false,
     validate: {
       validator(v) {
-        // chấp nhận data URI ảnh base64
-        return /^data:image\/(png|jpe?g|gif|webp);base64,/.test(v);
+        if (!v) return true; // allow empty
+        // allow data URI (base64) for common image types or http(s) URLs
+        return /^data:image\/(png|jpe?g|gif|webp);base64,/.test(v) || /^https?:\/\//.test(v);
       },
-      message: 'studentAvatar phải là data URI base64 của ảnh'
+      message: 'studentAvatar must be a base64 data URI (image) or a valid http(s) URL'
     }
   },
   firstName: {

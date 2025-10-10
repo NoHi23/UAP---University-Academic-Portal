@@ -22,9 +22,9 @@ const NavbarLecturer = () => {
   };
 
   return (
-    <AppBar 
-      position="sticky" 
-      sx={{ 
+    <AppBar
+      position="sticky"
+      sx={{
         backgroundColor: theme.palette.primary.main,
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
         zIndex: 1100
@@ -68,15 +68,15 @@ const NavbarLecturer = () => {
         {/* Right side - Navigation items */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
           {/* Trang chủ */}
-          <Box 
-            sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
               gap: 0.5,
               cursor: 'pointer',
               '&:hover': { opacity: 0.8 }
             }}
-            onClick={() => handleNavigate('/lecturer/dashboard')}
+            onClick={() => handleNavigate('/lecturer/dashboard')} // ✅ Navigate to dashboard
           >
             <HomeIcon sx={{ color: 'white', fontSize: 20 }} />
             <Typography sx={{ color: 'white', fontSize: '0.9rem' }}>
@@ -85,14 +85,15 @@ const NavbarLecturer = () => {
           </Box>
 
           {/* Thông báo */}
-          <Box 
-            sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
               gap: 0.5,
               cursor: 'pointer',
               '&:hover': { opacity: 0.8 }
             }}
+            onClick={() => handleNavigate('/lecturer/announcements')} // ✅ Navigate to announcements
           >
             <NotificationsIcon sx={{ color: 'white', fontSize: 20 }} />
             <Typography sx={{ color: 'white', fontSize: '0.9rem' }}>
@@ -101,10 +102,10 @@ const NavbarLecturer = () => {
           </Box>
 
           {/* User Info */}
-          <Box 
-            sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
               gap: 1,
               cursor: 'pointer',
               '&:hover': { opacity: 0.8 }
@@ -112,7 +113,7 @@ const NavbarLecturer = () => {
           >
             <PersonIcon sx={{ color: 'white', fontSize: 20 }} />
             <Typography sx={{ color: 'white', fontSize: '0.9rem' }}>
-              Nguyễn Văn A(HE123456)
+              Nguyễn Văn A (HE123456)
             </Typography>
           </Box>
         </Box>
@@ -121,4 +122,4 @@ const NavbarLecturer = () => {
   );
 };
 
-export default NavbarLecturer
+export default NavbarLecturer;
