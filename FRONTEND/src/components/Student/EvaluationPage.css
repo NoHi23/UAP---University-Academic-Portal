@@ -1,0 +1,101 @@
+.evaluation-page-container {
+    padding: 20px 40px;
+    background-color: #f9fafb;
+    font-family: Arial, sans-serif;
+    min-height: 100vh;
+}
+
+.evaluation-header h1 {
+    font-size: 2rem;
+    color: #111827;
+    margin-bottom: 30px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.classes-list {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.classes-list > p {
+    margin-bottom: 20px;
+    font-size: 1.1rem;
+    color: #4b5563;
+}
+
+.class-card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    padding: 20px;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.class-info h3 {
+    margin: 0 0 5px 0;
+    color: #1f2937;
+}
+
+.class-info p {
+    margin: 0;
+    color: #6b7280;
+}
+
+.btn-evaluate {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #fff;
+    background-color: #10b981;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.2s;
+}
+
+.btn-evaluate:hover {
+    background-color: #059669;
+}
+
+/* Modal for Evaluation */
+.evaluation-modal h2 { margin-top: 0; }
+.evaluation-modal p { color: #6b7280; margin-top: -10px; margin-bottom: 20px;}
+.btn-close-modal {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #9ca3af;
+}
+
+.criterion-group {
+    margin-bottom: 20px;
+}
+
+.criterion-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.stars-container {
+    display: flex;
+    gap: 5px;
+    font-size: 1.8rem;
+    cursor: pointer;
+}
+
+.star-empty { color: #d1d5db; }
+.star-selected { color: #f59e0b; }

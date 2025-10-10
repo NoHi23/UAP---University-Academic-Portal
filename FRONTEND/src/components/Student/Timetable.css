@@ -1,0 +1,319 @@
+/* Timetable Container */
+.timetable-container {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: #f8f9fa;
+    min-height: 100vh;
+}
+
+/* Header */
+.timetable-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px;
+    color: white;
+    position: relative;
+}
+
+.timetable-header h1 {
+    margin: 0 0 10px 0;
+    font-size: 2.5rem;
+    font-weight: 700;
+}
+
+.timetable-header p {
+    margin: 0 0 15px 0;
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+.refresh-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.refresh-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+/* Loading State */
+.loading {
+    text-align: center;
+    padding: 50px;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading p {
+    color: #666;
+    font-size: 1.1rem;
+}
+
+/* Error State */
+.error {
+    text-align: center;
+    padding: 50px;
+    color: #dc3545;
+}
+
+.retry-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 15px;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+}
+
+.retry-btn:hover {
+    background: #c82333;
+}
+
+/* Timetable Content */
+.timetable-content {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+@media (max-width: 1024px) {
+    .timetable-content {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .timetable-content {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .timetable-content {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Day Column */
+.day-column {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.day-column:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.day-header {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+    padding: 15px;
+    text-align: center;
+}
+
+.day-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+/* Schedule List */
+.schedule-list {
+    padding: 10px;
+    min-height: 200px;
+}
+
+.schedule-item {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-left: 4px solid #28a745;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.schedule-item:hover {
+    background: #e9ecef;
+    transform: translateX(5px);
+}
+
+.schedule-item.not-attended {
+    border-left-color: #ffc107;
+}
+
+.schedule-item.attended {
+    border-left-color: #28a745;
+}
+
+/* Schedule Time */
+.schedule-time {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.slot {
+    background: #007bff;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.time-range {
+    color: #666;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* Schedule Info */
+.schedule-info h4 {
+    margin: 0 0 5px 0;
+    color: #2c3e50;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.subject-code {
+    color: #6c757d;
+    font-size: 0.85rem;
+    margin: 0 0 8px 0;
+    font-weight: 500;
+}
+
+.class-info {
+    display: flex;
+    justify-content: space-between;
+    margin: 5px 0;
+    font-size: 0.85rem;
+}
+
+.class-name, .room {
+    color: #495057;
+    font-weight: 500;
+}
+
+.credits {
+    color: #28a745;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin: 5px 0 0 0;
+}
+
+/* Attendance Status */
+.attendance-status {
+    margin-top: 10px;
+}
+
+.attended-badge, .not-attended-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.attended-badge {
+    background: #d4edda;
+    color: #155724;
+}
+
+.not-attended-badge {
+    background: #fff3cd;
+    color: #856404;
+}
+
+/* No Schedule */
+.no-schedule {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6c757d;
+}
+
+.no-schedule p {
+    margin: 0;
+    font-style: italic;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+}
+
+.empty-state h3 {
+    color: #2c3e50;
+    margin: 0 0 10px 0;
+    font-size: 1.5rem;
+}
+
+.empty-state p {
+    color: #6c757d;
+    margin: 0;
+    font-size: 1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .timetable-container {
+        padding: 15px;
+    }
+    
+    .timetable-header h1 {
+        font-size: 2rem;
+    }
+    
+    .class-info {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .schedule-time {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+}
