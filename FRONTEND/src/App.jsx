@@ -15,9 +15,10 @@ import RegisterPage from './components/Auth/RegisterPage';
 import ProtectedRoute from './components/Routing/ProtectedRoute';
 import BackToTopButton from './components/Common/BackToTopButton';
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import StudentDashboard from './pages/Student/StudentDashboard';
+import StudentDashboard from './components/Student/Dashboard';
 import MaterialsPage from './components/Student/MaterialsPage';
 import Timetable from './components/Student/Timetable';
+
 import StudentLayout from './pages/Student';
 import LecturerLayout from './pages/Lecturer/LectureLayout';
 import LecturerDashboard from './pages/Lecturer/LecturerDashBoard/index';
@@ -59,14 +60,17 @@ function App() {
                 <Route path='/' element={<LoginPage />} />
                 <Route path='/register' element={<RegisterPage />} />
                 <Route element={<ProtectedRoute />}>
-                  <Route path="/student/dashboard" element={<StudentDashboard />} />
-                  <Route path="/student/materials" element={<MaterialsPage />} />
-                  <Route path="/student/payment" element={<PayTuitionPage />} />
-                  <Route path="/student/transactions" element={<TransactionHistoryPage />} />
-                  <Route path="/student/requests" element={<RequestsPage />} />
-                  <Route path="/student/evaluation" element={<EvaluationPage />} />
-                  <Route path="/student/notifications" element={<SlotNotificationsPage />} />
-                  <Route path="/student/timetable" element={<Timetable />} />
+                  <Route path="/student" element={<StudentLayout />}>
+                    <Route path="dashboard" element={<StudentDashboard />} />
+                    <Route path="materials" element={<MaterialsPage />} />
+                    <Route path="payment" element={<PayTuitionPage />} />
+                    <Route path="transactions" element={<TransactionHistoryPage />} />
+                    <Route path="requests" element={<RequestsPage />} />
+                    <Route path="evaluation" element={<EvaluationPage />} />
+                    <Route path="notifications" element={<SlotNotificationsPage />} />
+
+                    <Route path="timetable" element={<Timetable />} />
+                  </Route>
                 </Route>
                 <Route path="/staff/" element={<StaffLayout />}>
                   <Route path="dashboard" element={<StaffLayout />} />
@@ -74,7 +78,7 @@ function App() {
                   <Route path="lectures" element={<LectureAccount />} />
                 </Route>
                 <Route path="/lecture/" element={<LecturerLayout />}>
-                  <Route path="dashboard" element={<LecturerDashboard/>} />
+                  <Route path="dashboard" element={<LecturerDashboard />} />
                   <Route path='view-teaching-schedule' element={<ScheduleLecturePages />} />
                   <Route path="announcements" element={<LecturerAnnouncements />} />
                   <Route path="announcements/:id" element={<LecturerAnnouncementDetail />} />

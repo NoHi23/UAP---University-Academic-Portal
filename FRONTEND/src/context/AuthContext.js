@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
       if (token) {
         try {
           const response = await api.get('/users/profile');
-          setUser(response.data); 
+          setUser(response.data);
         } catch (error) {
           localStorage.removeItem('token');
           console.error("Token invalid, logging out.");
@@ -51,12 +51,12 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await api.put('/account/profile', userData);
       const { token, user: updatedUserData } = response.data;
-      localStorage.setItem('token', token); 
-      setUser(updatedUserData); 
+      localStorage.setItem('token', token);
+      setUser(updatedUserData);
       return response;
     } catch (error) {
       console.error("Lỗi khi cập nhật profile:", error);
-      throw error; 
+      throw error;
     }
   };
 

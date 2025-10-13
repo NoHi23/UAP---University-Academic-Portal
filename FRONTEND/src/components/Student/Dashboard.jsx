@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import './Dashboard.css';
 import {
   FaUser, FaCalendarAlt, FaChartBar, FaBook, FaMoneyBillWave,
   FaHistory, FaBookOpen, FaPaperPlane, FaStar, FaBullhorn
 } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../../context/AuthContext';
+import StudentProfile from './StudentProfile';
 
 const mockStudentInfo = {
   fullName: 'Nguyễn Văn A',
@@ -26,6 +28,8 @@ const Dashboard = () => {
   const [studentInfo, setStudentInfo] = useState(null);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showProfile, setShowProfile] = useState(false);
+  const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -33,28 +37,80 @@ const Dashboard = () => {
     const fetchDashboardData = async () => {
       setLoading(true);
       try {
-        // TODO: Thay thế các hàm gọi API giả lập bằng API thật
-        // const studentRes = await fetch('/api/student/me');
-        // const studentData = await studentRes.json();
-        // setStudentInfo(studentData.data);
+        const token = localStorage.getItem('token');
 
-        // const statsRes = await fetch('/api/dashboard/stats');
-        // const statsData = await statsRes.json();
-        // setStats(statsData.data);
+        // Lấy profile sinh viên (backend đã populate majorId)
+        const studentRes = await fetch('http://localhost:9999/api/student/profile', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
 
-        // --- Sử dụng dữ liệu giả lập ---
-        setStudentInfo(mockStudentInfo);
+        if (studentRes.ok) {
+          const studentData = await studentRes.json();
+          setStudentInfo({
+            fullName: `${studentData.firstName} ${studentData.lastName}`,
+            studentCode: studentData.studentCode,
+            dob: new Date(studentData.createdAt).toLocaleDateString('vi-VN'),
+            pob: 'Việt Nam',
+            major: studentData.majorId ? studentData.majorId.majorName : 'Chưa có chuyên ngành',
+            avatarUrl: studentData.studentAvatar || 'https://i.pravatar.cc/150',
+            phone: studentData.phone,
+            gender: studentData.gender
+          });
+        } else {
+          setStudentInfo(mockStudentInfo);
+        }
+
+        // TODO: replace with real stats API when available
         setStats(mockDashboardStats);
-        // -----------------------------
-
       } catch (error) {
         console.error("Lỗi khi tải dữ liệu dashboard:", error);
+        setStudentInfo(mockStudentInfo);
+        setStats(mockDashboardStats);
       } finally {
         setLoading(false);
       }
     };
 
     fetchDashboardData();
+  }, []);
+
+  // refresh when profile updated elsewhere
+  useEffect(() => {
+    const handler = () => {
+      // refetch profile
+      const fetchProfile = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          const res = await fetch('http://localhost:9999/api/student/profile', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const studentData = await res.json();
+            setStudentInfo({
+              fullName: `${studentData.firstName} ${studentData.lastName}`,
+              studentCode: studentData.studentCode,
+              dob: new Date(studentData.createdAt).toLocaleDateString('vi-VN'),
+              pob: 'Việt Nam',
+              major: studentData.majorId ? studentData.majorId.majorName : 'Chưa có chuyên ngành',
+              avatarUrl: studentData.studentAvatar || 'https://i.pravatar.cc/150',
+              phone: studentData.phone,
+              gender: studentData.gender
+            });
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      };
+
+      fetchProfile();
+    };
+
+    window.addEventListener('studentProfileUpdated', handler);
+    return () => window.removeEventListener('studentProfileUpdated', handler);
   }, []);
 
   if (loading) {
@@ -67,7 +123,7 @@ const Dashboard = () => {
       <header className="dashboard-header">
         <h1>UAP - University Academic Portal</h1>
         <div className="user-profile">
-          <span>{studentInfo?.fullName} ({studentInfo?.studentCode})</span>
+          <span>{user?.name || studentInfo?.fullName} ({studentInfo?.studentCode})</span>
         </div>
       </header>
 
@@ -83,14 +139,14 @@ const Dashboard = () => {
               <p><strong>Nơi Sinh:</strong> {studentInfo?.pob}</p>
               <p><strong>Chuyên Ngành:</strong> {studentInfo?.major}</p>
             </div>
-            <button className="btn-detail">Xem chi tiết</button>
+            <button className="btn-detail" onClick={() => setShowProfile(true)}>Xem chi tiết</button>
           </div>
 
           {/* Thẻ thống kê lịch học */}
           <div className="card stat-card">
             <h3>Lịch học trong tuần</h3>
             <div className="stat-number">{stats?.weeklySchedules}</div>
-            <a href="/schedules">Xem chi tiết</a>
+            <span onClick={() => navigate('/student/schedule')} style={{ cursor: 'pointer', color: '#007bff' }}>Xem chi tiết</span>
           </div>
 
           {/* Thẻ thống kê lịch thi */}
@@ -100,6 +156,8 @@ const Dashboard = () => {
             <a href="/exams">Xem chi tiết</a>
           </div>
         </div>
+
+        <StudentProfile isOpen={showProfile} onClose={() => setShowProfile(false)} />
 
         {/* Lưới các chức năng */}
         <div className="features-grid">
