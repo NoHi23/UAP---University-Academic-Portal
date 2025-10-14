@@ -36,10 +36,25 @@ const scheduleSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: 'Lecturer',
     required: true
+  },
+
+  dayOfWeek: {
+    type: Date,
+    required: true
   }
+  
 }, {
   timestamps: true
 });
+
+// Method để hiển thị ngày
+scheduleSchema.methods.getDateOnly = function() {
+  const day = this.dayOfWeek.getDate();
+  const month = this.dayOfWeek.getMonth() + 1;
+  const year = this.dayOfWeek.getFullYear();
+  
+  return `${day}/${month}/${year}`;
+};
 
 // Đảm bảo một phòng học không thể có 2 lớp khác nhau trong cùng một kíp giờ, cùng 1 tuần
 scheduleSchema.index({ timeSlotId: 1, weekId: 1, roomId: 1 }, { unique: true });
