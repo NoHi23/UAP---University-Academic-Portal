@@ -104,7 +104,9 @@ const Dashboard = () => {
         {/* Lưới các chức năng */}
         <div className="features-grid">
           <div className="feature-card"><FaUser /><span>Thông tin Sinh viên</span></div>
-          <div className="feature-card"><FaCalendarAlt /><span>Thời khóa biểu</span></div>
+          <div className="feature-card" onClick={() => navigate('/student/schedule')}>
+            <FaCalendarAlt /><span>Thời khóa biểu</span>
+          </div>
           <div className="feature-card"><FaChartBar /><span>Báo cáo điểm</span></div>
           <div className="feature-card"><FaBook /><span>Khung chương trình</span></div>
           <div className="feature-card" onClick={() => navigate('/student/materials')}>

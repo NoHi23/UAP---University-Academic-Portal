@@ -260,6 +260,47 @@ const getClassList = async (req, res) => {
     }
 };
 
+const getMyWeeklySchedule = async (req, res) => {
+    try {
+        const student = await Student.findOne({ accountId: req.user.id });
+        if (!student) {
+            return res.status(404).json({ message: "Không tìm thấy thông tin sinh viên." });
+        }
+
+        const targetDate = req.query.date ? new Date(req.query.date) : new Date();
+
+        const dayOfWeek = targetDate.getDay(); // 0=CN, 1=T2,...
+        const firstDay = new Date(targetDate);
+        firstDay.setDate(targetDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1)); // Lấy ngày Thứ Hai
+
+        const lastDay = new Date(firstDay);
+        lastDay.setDate(firstDay.getDate() + 6); // Lấy ngày Chủ Nhật
+
+        firstDay.setHours(0, 0, 0, 0);
+        lastDay.setHours(23, 59, 59, 999);
+        // ------------------------------------
+
+        const studentEnrollments = await ScheduleOfStudent.find({ studentId: student._id });
+        const enrolledClassIds = studentEnrollments.map(e => e.classId);
+
+        const schedules = await Schedule.find({
+            classId: { $in: enrolledClassIds },
+            date: { $gte: firstDay, $lte: lastDay } // Điều kiện date vẫn giữ nguyên
+        })
+            .populate('subjectId', 'subjectName subjectCode')
+            .populate('lecturerId', 'firstName lastName')
+            .populate('roomId', 'roomName')
+            .populate('classId', 'className')
+            .sort({ date: 1, slot: 1 });
+
+        res.status(200).json({ success: true, data: schedules });
+
+    } catch (error) {
+        console.error("Lỗi khi lấy lịch học của sinh viên:", error);
+        res.status(500).json({ success: false, message: 'Lỗi máy chủ' });
+    }
+};
+
 module.exports = {
     getProfile,
     updateProfile,
@@ -267,5 +308,6 @@ module.exports = {
     getExamSchedule,
     getGradesReport,
     getTranscript,
-    getClassList
+    getClassList,
+    getMyWeeklySchedule
 };
