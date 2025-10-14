@@ -21,6 +21,6 @@ router.get('/:id', verifyToken, getSupportById);
 
 router.put('/:id/answer', verifyToken, authorize('staff'), answerSupport);
 
-router.put('/:id/status', verifyToken, authorize(['student', 'lecture']), updateStatus);
+router.put('/:id/status', verifyToken, authorize('student', 'lecture'), updateStatus);
 
 module.exports = router;

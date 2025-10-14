@@ -19,13 +19,13 @@ const LoginPage = () => {
 
     switch (loggedInUser.role) {
       case 'admin':
-        navigate('/admin/dashboard'); 
+        navigate('/admin/dashboard');
         break;
       case 'student':
         navigate('/student/dashboard');
         break;
       case 'lecture':
-        navigate('/lecture/dashboard');
+        navigate('/lecturer/dashboard');
         break;
       case 'staff':
         navigate('/staff/dashboard');
