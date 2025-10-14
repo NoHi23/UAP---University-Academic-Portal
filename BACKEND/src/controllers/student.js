@@ -15,7 +15,8 @@ const bcrypt = require('bcrypt');
 // 1. Get Profile
 const getProfile = async (req, res) => {
     try {
-        const student = await Student.findOne({ accountId: req.user.id });
+        // populate major so frontend can display majorName/majorCode
+        const student = await Student.findOne({ accountId: req.user.id }).populate('majorId', 'majorName majorCode');
 
         if (!student) {
             return res.status(404).json({

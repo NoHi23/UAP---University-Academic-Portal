@@ -60,13 +60,32 @@ const StudentProfile = ({ isOpen, onClose }) => {
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
+
+            // Build a cleaned payload: omit empty strings/null and coerce types
+            const payload = {};
+            const fields = ['firstName', 'lastName', 'phone', 'gender', 'citizenID', 'studentAvatar', 'semester', 'semesterNo'];
+            fields.forEach(f => {
+                const v = formData[f];
+                if (typeof v !== 'undefined' && v !== null && v !== '') {
+                    if (f === 'semesterNo') {
+                        // convert to number
+                        const n = Number(v);
+                        if (!Number.isNaN(n)) payload[f] = n;
+                    } else if (f === 'gender') {
+                        payload[f] = (v === true || v === 'true');
+                    } else {
+                        payload[f] = v;
+                    }
+                }
+            });
+
             const response = await fetch('http://localhost:9999/api/student/profile', {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(payload)
             });
 
             if (response.ok) {
@@ -121,9 +140,11 @@ const StudentProfile = ({ isOpen, onClose }) => {
 
     const handleInputChange = (e) => {
         const { name, value, type } = e.target;
+        // Ensure gender is stored as boolean (select returns strings)
+        const newValue = name === 'gender' ? (value === 'true' || value === true) : (type === 'checkbox' ? e.target.checked : value);
         setFormData(prev => ({
             ...prev,
-            [name]: type === 'checkbox' ? e.target.checked : value
+            [name]: newValue
         }));
     };
 
@@ -173,6 +194,15 @@ const StudentProfile = ({ isOpen, onClose }) => {
                                                 value={formData.lastName}
                                                 onChange={handleInputChange}
                                                 placeholder="Nhập họ"
+                                            />
+                                        </div>
+                                        <div className="field-group">
+                                            <label>Chuyên Ngành:</label>
+                                            <input
+                                                type="text"
+                                                name="major"
+                                                value={studentData.majorId ? studentData.majorId.majorName : 'Chưa có chuyên ngành'}
+                                                readOnly
                                             />
                                         </div>
                                         <div className="field-group">
@@ -252,16 +282,7 @@ const StudentProfile = ({ isOpen, onClose }) => {
                                                 accept="image/*"
                                                 onChange={handleFileChange}
                                             />
-                                            <div style={{ marginTop: 8 }}>
-                                                <input
-                                                    type="url"
-                                                    name="studentAvatar"
-                                                    value={typeof formData.studentAvatar === 'string' && formData.studentAvatar.startsWith('data:') ? '' : formData.studentAvatar}
-                                                    onChange={handleInputChange}
-                                                    placeholder="Hoặc nhập URL ảnh đại diện"
-                                                    style={{ width: '100%' }}
-                                                />
-                                            </div>
+
                                         </div>
                                     </div>
 
