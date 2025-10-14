@@ -16,6 +16,7 @@ import Container from '@mui/material/Container';
 import Avatar from '@mui/material/Avatar';
 import Chip from '@mui/material/Chip';
 import Tooltip from '@mui/material/Tooltip';
+import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 
 import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
@@ -153,6 +154,7 @@ export default function StaffLayout() {
         { text: 'Quản lý Giảng viên', icon: <GroupsIcon />, path: '/staff/lectures' },
         { text: 'Quản lý lớp học', icon: <LibraryBooksIcon />, path: '/staff/class' },
         { text: 'Quản lý thông báo', icon: <NotificationsIcon />, path: '/staff/notification' },
+        { text: 'Hỗ trợ', icon: <SupportAgentIcon />, path: '/staff/supports' },
         { text: 'Quản lý thời khóa biểu', icon: <EventNoteIcon />, path: '/staff/schedule' },
         { text: 'Quản lý tài liệu', icon: <MenuBookIcon />, path: '/staff/material' },
     ];
