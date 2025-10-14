@@ -7,8 +7,13 @@ const { createPaymentUrl, getTransactionHistory, getTuitionInfo } = require('../
 const { submitRequest, getMyRequests } = require('../controllers/requestController');
 const { getEvaluableClasses, submitEvaluation } = require('../controllers/evaluationController');
 const { getMySlotNotifications } = require('../controllers/notificationController');
+const { getProfile, updateProfile } = require('../controllers/student');
 
 router.use(verifyToken, authorize('student'));
+
+// Student profile endpoints (protected)
+router.get('/profile', getProfile);
+router.put('/profile', updateProfile);
 
 router.get('/materials/me', getStudentMaterials);
 

@@ -2,10 +2,10 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const curriculumDetailSchema = new Schema({
-  cdSemester: {
-    type: String,
-    required: true,
-    trim: true
+  // semester number or identifier (e.g., 1, 2, 'Fall 2022')
+  semester: {
+    type: Number,
+    required: true
   },
   subjectId: {
     type: Schema.Types.ObjectId,
@@ -14,9 +14,19 @@ const curriculumDetailSchema = new Schema({
   },
   curriculumId: {
     type: Schema.Types.ObjectId,
-    ref: 'Curriculum', 
+    ref: 'Curriculum',
     required: true
   }
+  ,
+  // denormalized subject snapshot fields to make API responses self-contained
+  subjectCode: { type: String },
+  subjectName: { type: String },
+  subjectEnglish: { type: String },
+  credits: { type: Number },
+  type: { type: String },
+  lecturer: { type: String },
+  description: { type: String },
+  learningOutcomes: { type: [String], default: [] }
 }, {
   timestamps: true
 });
