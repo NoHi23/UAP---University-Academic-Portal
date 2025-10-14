@@ -10,6 +10,7 @@ const userManagementRouter = require('./userManagement');
 const paymentRouter = require('./payment');
 const supportRouter = require('./support')
 const majorRouter = require('./major')
+const curriculumRouter = require('./curriculum');
 
 router.use('/api/account', accountRouter);
 router.use('/api/announcements', announcementRouter);
@@ -20,4 +21,5 @@ router.use('/api/manage/users', userManagementRouter);
 router.use('/api/payments', paymentRouter);
 router.use('/api/support', supportRouter)
 router.use('/api/major', majorRouter)
+router.use('/api/curriculums', curriculumRouter)
 module.exports = router;

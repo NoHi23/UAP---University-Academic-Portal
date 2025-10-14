@@ -282,16 +282,7 @@ const StudentProfile = ({ isOpen, onClose }) => {
                                                 accept="image/*"
                                                 onChange={handleFileChange}
                                             />
-                                            <div style={{ marginTop: 8 }}>
-                                                <input
-                                                    type="url"
-                                                    name="studentAvatar"
-                                                    value={typeof formData.studentAvatar === 'string' && formData.studentAvatar.startsWith('data:') ? '' : formData.studentAvatar}
-                                                    onChange={handleInputChange}
-                                                    placeholder="Hoặc nhập URL ảnh đại diện"
-                                                    style={{ width: '100%' }}
-                                                />
-                                            </div>
+
                                         </div>
                                     </div>
 

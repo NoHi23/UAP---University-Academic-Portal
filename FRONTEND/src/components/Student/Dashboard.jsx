@@ -6,6 +6,7 @@ import {
 } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
+import api from '../../services/api';
 import StudentProfile from './StudentProfile';
 
 const mockStudentInfo = {
@@ -56,6 +57,7 @@ const Dashboard = () => {
             dob: new Date(studentData.createdAt).toLocaleDateString('vi-VN'),
             pob: 'Việt Nam',
             major: studentData.majorId ? studentData.majorId.majorName : 'Chưa có chuyên ngành',
+            majorId: studentData.majorId ? (studentData.majorId._id || studentData.majorId) : null,
             avatarUrl: studentData.studentAvatar || 'https://i.pravatar.cc/150',
             phone: studentData.phone,
             gender: studentData.gender
@@ -77,6 +79,33 @@ const Dashboard = () => {
 
     fetchDashboardData();
   }, []);
+
+  // Open curriculum handler: fetch curriculum for student's major and navigate to its details
+  const handleOpenCurriculum = async () => {
+    if (!studentInfo?.majorId) {
+      navigate(`/student/curriculums`);
+      return;
+    }
+    try {
+      const res = await api.get(`curriculums?majorId=${studentInfo.majorId}`);
+      const list = res.data || [];
+      if (list.length === 0) {
+        // fallback to listing page
+        navigate(`/student/curriculums?majorId=${studentInfo.majorId}`);
+        return;
+      }
+      const selected = list[0];
+      const id = selected.curriculumId || selected._id;
+      if (id) {
+        navigate(`/student/curriculums/${id}`);
+      } else {
+        navigate(`/student/curriculums?majorId=${studentInfo.majorId}`);
+      }
+    } catch (err) {
+      console.error('Failed to fetch curriculum for major:', err);
+      navigate(`/student/curriculums?majorId=${studentInfo.majorId}`);
+    }
+  };
 
   // refresh when profile updated elsewhere
   useEffect(() => {
@@ -124,6 +153,7 @@ const Dashboard = () => {
         <h1>UAP - University Academic Portal</h1>
         <div className="user-profile">
           <span>{user?.name || studentInfo?.fullName} ({studentInfo?.studentCode})</span>
+          <button style={{ marginLeft: 12, padding: '6px 10px' }} onClick={() => handleOpenCurriculum()}>Debug: Open Khung CT</button>
         </div>
       </header>
 
@@ -164,7 +194,9 @@ const Dashboard = () => {
           <div className="feature-card"><FaUser /><span>Thông tin Sinh viên</span></div>
           <div className="feature-card"><FaCalendarAlt /><span>Thời khóa biểu</span></div>
           <div className="feature-card"><FaChartBar /><span>Báo cáo điểm</span></div>
-          <div className="feature-card"><FaBook /><span>Khung chương trình</span></div>
+          <div className="feature-card" onClick={handleOpenCurriculum} style={{ cursor: 'pointer' }}>
+            <FaBook /><span>Khung chương trình</span>
+          </div>
           <div className="feature-card" onClick={() => navigate('/student/materials')}>
             <FaBookOpen /><span>Tài liệu học tập</span>
           </div>
@@ -191,6 +223,8 @@ const Dashboard = () => {
             <div className="chart-placeholder">[Biểu đồ tiến độ học tập]</div>
           </div>
         </div>
+
+        {/* Khung chương trình navigates to list page (CurriculumsPage) */}
       </main>
     </div>
   );

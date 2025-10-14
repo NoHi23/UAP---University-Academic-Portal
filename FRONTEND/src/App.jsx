@@ -18,8 +18,10 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import StudentDashboard from './components/Student/Dashboard';
 import MaterialsPage from './components/Student/MaterialsPage';
 import Timetable from './components/Student/Timetable';
+import CurriculumsPage from './components/Student/CurriculumsPage';
+import CurriculumDetailsPage from './components/Student/CurriculumDetailsPage';
 
-import StudentLayout from './pages/Student';
+import StudentLayout from './components/Student';
 import LecturerLayout from './pages/Lecturer/LectureLayout';
 import LecturerDashboard from './pages/Lecturer/LecturerDashBoard/index';
 import ScheduleLecturePages from './pages/Lecturer/ScheduleLecturePages';
@@ -70,6 +72,8 @@ function App() {
                     <Route path="notifications" element={<SlotNotificationsPage />} />
 
                     <Route path="timetable" element={<Timetable />} />
+                    <Route path="curriculums" element={<CurriculumsPage />} />
+                    <Route path="curriculums/:id" element={<CurriculumDetailsPage />} />
                   </Route>
                 </Route>
                 <Route path="/staff/" element={<StaffLayout />}>
