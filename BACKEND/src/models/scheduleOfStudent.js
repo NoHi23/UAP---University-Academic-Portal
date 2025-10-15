@@ -1,25 +1,21 @@
-const mongoose =require('mongoose');
+const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const scheduleOfStudentSchema = new Schema({
-  attendance: {
-    type: Boolean,
-    default: false 
-  },
-  scheduleId: {
-    type: Schema.Types.ObjectId,
-    ref: 'Schedule', 
-    required: true
-  },
-  studentId: {
-    type: Schema.Types.ObjectId,
-    ref: 'Student', 
-    required: true
-  }
-}, {
-  timestamps: true
-});
+  studentId: { type: Schema.Types.ObjectId, ref: 'Student', required: true },
+  classId: { type: Schema.Types.ObjectId, ref: 'Class', required: true },
 
-scheduleOfStudentSchema.index({ scheduleId: 1, studentId: 1 }, { unique: true });
+  attendance: [{
+    scheduleId: { type: Schema.Types.ObjectId, ref: 'Schedule' },
+    status: {
+      type: String,
+      enum: ['Not Yet', 'Present', 'Absent', 'Excused'],
+      default: 'Not Yet'
+    },
+    note: String
+  }]
+}, { timestamps: true });
+
+scheduleOfStudentSchema.index({ studentId: 1, classId: 1 }, { unique: true });
 
 module.exports = mongoose.model("ScheduleOfStudent", scheduleOfStudentSchema);

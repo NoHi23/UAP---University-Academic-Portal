@@ -6,6 +6,10 @@ const { createMaterial, getAllMaterials, updateMaterial, deleteMaterial } = requ
 const { getAllRequests, updateRequest } = require('../controllers/requestController');
 const { createSlotNotification } = require('../controllers/notificationController');
 
+const { getAllSemesters } = require('../controllers/semesterController');
+const { getAllMajors } = require('../controllers/majorController');
+
+
 router.use(verifyToken, authorize('staff', 'admin', 'lecturer'));
 
 router.route('/materials')
@@ -22,5 +26,8 @@ router.route('/requests/:id')
 
 
 router.post('/notifications/slots', createSlotNotification);
+
+router.get('/semesters', getAllSemesters);
+router.get('/majors', getAllMajors);
 
 module.exports = router;

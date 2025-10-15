@@ -157,6 +157,7 @@ export default function StaffLayout() {
         { text: 'Hỗ trợ', icon: <SupportAgentIcon />, path: '/staff/supports' },
         { text: 'Quản lý thời khóa biểu', icon: <EventNoteIcon />, path: '/staff/schedule' },
         { text: 'Quản lý tài liệu', icon: <MenuBookIcon />, path: '/staff/material' },
+        { text: 'Tạo Lịch học, Lịch dạy tự động', icon: <EventNoteIcon />, path: '/staff/scheduling' }
     ];
 
     return (
