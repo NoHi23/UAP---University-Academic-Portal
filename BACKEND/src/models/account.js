@@ -15,6 +15,11 @@ const accountSchema = new mongoose.Schema({
     enum: ['student', 'lecture', 'staff', 'admin'],
     default: 'student'
   },
+  personalEmail: {
+    type: String,
+    required: true,
+    unique: true
+  },
   status: {
     type: Boolean,
     default: true

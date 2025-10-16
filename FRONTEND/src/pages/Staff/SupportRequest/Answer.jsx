@@ -33,6 +33,7 @@ export default function AnswerSupport() {
     const [detail, setDetail] = useState(null);
     const [answer, setAnswer] = useState("");
     const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
 
     // Editor soạn câu trả lời (memo để tránh re-init)
     const editorConfig = useMemo(
@@ -114,11 +115,29 @@ export default function AnswerSupport() {
         if (!ok.isConfirmed) return;
 
         try {
+            setSubmitting(true);
+            // Gửi trả lời (BE nên tự chuyển trạng thái sang in_progress)
             await supportAPI.answer(id, answer);
+
             notifySuccess("Gửi câu trả lời thành công và cập nhật trạng thái.");
-            await loadDetail();
+
+            // 🔔 Bắn sự kiện để StaffLayout và các tab khác cập nhật badge
+            try {
+                window.dispatchEvent(new CustomEvent("support:changed", { detail: { id, action: "answered" } }));
+                const bc = new BroadcastChannel("support_channel");
+                bc.postMessage({ id, action: "answered", source: "AnswerSupport" });
+                bc.close();
+            } catch {
+                // bỏ qua nếu môi trường không hỗ trợ BroadcastChannel
+            }
+
+            // ⤴️ Điều hướng về danh sách
+            navigate("/staff/supports", { replace: true });
         } catch (e) {
             notifyError(e?.response?.data?.message || "Gửi câu trả lời thất bại.");
+        } finally {
+            setSubmitting(false);
+            // Không cần loadDetail nữa vì đã điều hướng về list
         }
     };
 
@@ -226,8 +245,12 @@ export default function AnswerSupport() {
                 />
 
                 <Stack direction="row" justifyContent="flex-end" sx={{ mt: 2 }}>
-                    <Button variant="contained" onClick={onSubmit}>
-                        Gửi
+                    <Button
+                        variant="contained"
+                        onClick={onSubmit}
+                        disabled={submitting}
+                    >
+                        {submitting ? "Đang gửi..." : "Gửi"}
                     </Button>
                 </Stack>
             </Paper>
