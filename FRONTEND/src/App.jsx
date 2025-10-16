@@ -16,7 +16,6 @@ import ProtectedRoute from './components/Routing/ProtectedRoute';
 import BackToTopButton from './components/Common/BackToTopButton';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import StudentDashboard from './components/Student/Dashboard';
-import StudentDashboard from './components/Student/Dashboard';
 import MaterialsPage from './components/Student/MaterialsPage';
 import Timetable from './components/Student/Timetable';
 import CurriculumsPage from './components/Student/CurriculumsPage';
@@ -104,7 +103,7 @@ function App() {
                   <Route path="support/:id" element={<AnswerSupport />} />
                   <Route path="scheduling" element={<SchedulingPage />} />
                 </Route>
-                <Route path="/lecture/" element={<LecturerLayout />}>
+                <Route path="/lecturer/" element={<LecturerLayout />}>
                   <Route path="dashboard" element={<LecturerDashboard />} />
                   <Route path="dashboard" element={<LecturerDashboard />} />
                   <Route path='view-teaching-schedule' element={<ScheduleLecturePages />} />

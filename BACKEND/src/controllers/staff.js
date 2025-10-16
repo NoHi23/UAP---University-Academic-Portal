@@ -2,7 +2,8 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const XLSX = require('xlsx');
 const fs = require('fs');
-
+const { sendWelcomeEmail } = require('../services/emailService');
+const validator = require('validator');
 const Account = require('../models/account');
 const Student = require('../models/student');
 const Lecturer = require('../models/lecturer');
@@ -23,19 +24,33 @@ const {
 // create account
 const createStudentAccount = async (req, res) => {
     try {
-        const { firstName, lastName, citizenID, gender, phone, majorId, curriculumId, avatarBase64 } = req.body;
+        const {
+            firstName, lastName, citizenID, gender, phone,
+            majorId, curriculumId, avatarBase64,
+            personalEmail          // <- THÊM: email cá nhân để nhận thông tin
+        } = req.body;
 
         // Validate cơ bản
-        if (!firstName || !lastName || !citizenID || typeof gender === 'undefined' || !phone || !majorId || !curriculumId || !avatarBase64) {
+        if (!firstName || !lastName || !citizenID || typeof gender === 'undefined' ||
+            !phone || !majorId || !curriculumId || !avatarBase64 || !personalEmail) {
             return res.status(400).json({ message: 'Thiếu dữ liệu đầu vào' });
         }
+
         if (!isValidImageDataUri(avatarBase64)) {
             return res.status(400).json({ message: 'studentAvatar phải là data URI base64 của ảnh (png/jpg/jpeg/gif/webp)' });
+        }
+
+        if (!validator.isEmail(personalEmail)) {
+            return res.status(400).json({ message: 'personalEmail không đúng định dạng email' });
         }
 
         // Check trùng citizenID
         const citizenTaken = await Student.exists({ citizenID });
         if (citizenTaken) return res.status(409).json({ message: 'CitizenID đã tồn tại cho Student' });
+
+        // Check trùng personalEmail (cho UX tốt, tránh đụng unique index mới)
+        const personalTaken = await Account.exists({ personalEmail });
+        if (personalTaken) return res.status(409).json({ message: 'personalEmail đã tồn tại trên hệ thống' });
 
         const major = await Major.findById(majorId).lean();
         if (!major) return res.status(404).json({ message: 'Major không tồn tại' });
@@ -47,11 +62,13 @@ const createStudentAccount = async (req, res) => {
             model: Student, field: 'studentCode'
         });
 
-        const email = makeStudentEmail({ firstName, lastName, studentCode });
-        let finalEmail = email;
-        if (await Account.exists({ email })) {
+        // Tạo email trường (school email)
+        const baseEmail = makeStudentEmail({ firstName, lastName, studentCode }); // ví dụ: hoang.anhs12345@edu.vn
+        let finalEmail = baseEmail;
+
+        if (await Account.exists({ email: finalEmail })) {
             const suffix = Math.floor(100 + Math.random() * 900);
-            finalEmail = email.replace('@edu.vn', `${suffix}@edu.vn`);
+            finalEmail = baseEmail.replace('@edu.vn', `${suffix}@edu.vn`);
             if (await Account.exists({ email: finalEmail })) {
                 return res.status(409).json({ message: 'Không thể tạo email duy nhất, vui lòng thử lại' });
             }
@@ -60,8 +77,10 @@ const createStudentAccount = async (req, res) => {
         const plainPassword = generateInitialPassword(12);
         const hashed = await bcrypt.hash(plainPassword, 10);
 
+        // Tạo Account kèm personalEmail
         const account = await Account.create({
             email: finalEmail,
+            personalEmail,   // <- LƯU personalEmail vào DB
             password: hashed,
             role: 'student',
             status: true
@@ -84,15 +103,33 @@ const createStudentAccount = async (req, res) => {
                 majorId
             });
         } catch (err) {
+            // rollback account nếu tạo student fail
             await Account.deleteOne({ _id: account._id }).catch(() => { });
             throw err;
         }
 
+        // Gửi email thông báo tới personalEmail
+        let emailSent = true;
+        try {
+            await sendWelcomeEmail({
+                to: personalEmail,
+                fullName: `${lastName} ${firstName}`,
+                schoolEmail: finalEmail,
+                initialPassword: plainPassword
+            });
+        } catch (mailErr) {
+            console.error('Gửi email thất bại:', mailErr);
+            emailSent = false;
+            // Không rollback DB — có thể cung cấp API resend sau
+        }
+
         return res.status(201).json({
             message: 'Tạo account student thành công',
+            emailSent,
             account: {
                 _id: account._id,
                 email: account.email,
+                personalEmail: account.personalEmail,
                 role: account.role,
                 status: account.status,
                 createdAt: account.createdAt
@@ -116,7 +153,7 @@ const createStudentAccount = async (req, res) => {
                 accountId: student.accountId,
                 createdAt: student.createdAt
             },
-            initialPassword: plainPassword
+            initialPassword: plainPassword // cân nhắc ẩn trên môi trường production
         });
 
     } catch (error) {
