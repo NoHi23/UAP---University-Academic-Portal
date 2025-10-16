@@ -1,143 +1,126 @@
-import React, { useEffect, useState } from "react";
+// src/pages/lecturer/LecturerAnnouncementDetail.jsx
+import React, { useEffect, useState, useCallback } from "react";
 import {
     Box,
-    Typography,
     Container,
+    Typography,
     CircularProgress,
-    Breadcrumbs,
-    Link,
-    Divider,
     Card,
-    Button,
+    CardContent,
+    Divider,
+    Button
 } from "@mui/material";
-import { AccessTime as AccessTimeIcon, ArrowBack as ArrowBackIcon } from "@mui/icons-material";
 import { useParams, useNavigate } from "react-router-dom";
-
 import announcementAPI from "../../../api/annoucementAPI";
+
+const fmtVN = (v) => {
+    if (!v) return "Không rõ thời gian";
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? "Không rõ thời gian" : d.toLocaleString("vi-VN");
+};
 
 const LecturerAnnouncementDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const [announcement, setAnnouncement] = useState(null);
+    const [item, setItem] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [err, setErr] = useState("");
 
-    useEffect(() => {
-        const fetchDetail = async () => {
-            setLoading(true);
-            try {
-                const res = await announcementAPI.getById(id);
-                setAnnouncement(res.data);
-            } catch (err) {
-                console.error("❌ Lỗi khi tải chi tiết thông báo:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchDetail();
+    const fetchDetail = useCallback(async () => {
+        setLoading(true);
+        setErr("");
+        try {
+            // Giả định có API getById(id) trả { data: {...} }
+            const res = await announcementAPI.getById(id);
+            const data = res?.data?.data ?? res?.data ?? null;
+            setItem(data);
+        } catch (e) {
+            console.error(e);
+            setErr("Không tải được chi tiết thông báo.");
+        } finally {
+            setLoading(false);
+        }
     }, [id]);
 
+    useEffect(() => {
+        fetchDetail();
+    }, [fetchDetail]);
+
     return (
-        <>
-          
-            {/* 🔹 Nội dung chi tiết */}
-            <Container maxWidth="md" sx={{ py: 4 }}>
-                {loading ? (
-                    <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
-                        <CircularProgress />
-                    </Box>
-                ) : !announcement ? (
-                    <Typography align="center" color="text.secondary" sx={{ py: 6 }}>
-                        Không tìm thấy thông báo.
+        <Container maxWidth="md" sx={{ py: 4 }}>
+            <Button variant="outlined" size="small" onClick={() => navigate(-1)} sx={{ mb: 2 }}>
+                ← Quay lại
+            </Button>
+
+            {loading ? (
+                <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+                    <CircularProgress />
+                </Box>
+            ) : err ? (
+                <Typography color="error" textAlign="center">{err}</Typography>
+            ) : !item ? (
+                <Typography color="text.secondary" textAlign="center">Không có dữ liệu.</Typography>
+            ) : (
+                <Card sx={{ p: { xs: 2, md: 3 }, borderRadius: 2, boxShadow: 1 }}>
+                    {/* Title căn giữa */}
+                    <Typography
+                        variant="h5"
+                        fontWeight={700}
+                        textAlign="center"
+                        sx={{ mb: 1, wordBreak: "break-word" }}
+                    >
+                        {item?.title || "Không có tiêu đề"}
                     </Typography>
-                ) : (
-                    <>
-                        {/* Breadcrumb */}
-                        <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-                            <Link
-                                underline="hover"
-                                color="inherit"
-                                onClick={() => navigate("/lecturer/announcements")}
-                                sx={{ cursor: "pointer" }}
-                            >
-                                Tin tức
-                            </Link>
-                            <Typography color="text.primary">
-                                {announcement.title || "Chi tiết thông báo"}
-                            </Typography>
-                        </Breadcrumbs>
 
-                        <Card sx={{ p: 3, borderRadius: 2, boxShadow: 1 }}>
-                            {/* Tiêu đề */}
-                            <Typography
-                                variant="h6"
-                                fontWeight={700}
-                                color="primary"
-                                sx={{ mb: 1 }}
-                            >
-                                {announcement.title}
-                            </Typography>
+                    {/* Meta: postBy + createdAt */}
+                    <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        textAlign="center"
+                        sx={{ mb: 2 }}
+                    >
+                        {item?.postBy ? `Người đăng: ${item.postBy}` : "Người đăng: Không rõ"} ·{" "}
+                        {item?.createdAt ? fmtVN(item.createdAt) : "Không rõ thời gian"}
+                    </Typography>
 
-                            {/* Meta info */}
-                            <Box
-                                sx={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 1,
-                                    mb: 3,
-                                    flexWrap: "wrap",
-                                }}
-                            >
-                                <Typography variant="body2" color="text.secondary">
-                                    {announcement.author || "Phòng Quản lý Đào tạo"}
-                                </Typography>
+                    <Divider sx={{ mb: 2 }} />
+
+                    <CardContent sx={{ p: 0 }}>
+                        {/* Ảnh (nếu có) */}
+                        {item?.picture ? (
+                            <Box sx={{ mb: 2 }}>
                                 <Box
+                                    component="img"
+                                    src={item.picture}
+                                    alt={item?.title || "announcement-image"}
                                     sx={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: 0.5,
-                                        color: "text.secondary",
+                                        width: "100%",
+                                        height: "auto",
+                                        borderRadius: 2,
+                                        display: "block",
+                                        objectFit: "cover"
                                     }}
-                                >
-                                    <AccessTimeIcon sx={{ fontSize: 16 }} />
-                                    <Typography variant="body2" color="text.secondary">
-                                        Đăng lúc {new Date(announcement.createdAt).toLocaleString("vi-VN")}
-                                    </Typography>
-                                </Box>
+                                    onError={(e) => {
+                                        e.currentTarget.style.display = "none";
+                                    }}
+                                />
                             </Box>
+                        ) : null}
 
-                            <Divider sx={{ mb: 3 }} />
-
-                            {/* Nội dung chính */}
-                            <Box
-                                sx={{
-                                    fontSize: "0.95rem",
-                                    color: "#1e293b",
-                                    lineHeight: 1.7,
-                                    "& p": { mb: 2 },
-                                    "& strong": { fontWeight: 600 },
-                                    "& ul": { pl: 3 },
-                                    "& li": { mb: 0.5 },
-                                }}
-                                dangerouslySetInnerHTML={{
-                                    __html: announcement.content || "<p>Không có nội dung.</p>",
-                                }}
-                            />
-
-                            <Divider sx={{ mt: 3, mb: 2 }} />
-
-                            {/* Nút quay lại */}
-                            <Button
-                                startIcon={<ArrowBackIcon />}
-                                variant="outlined"
-                                onClick={() => navigate("/lecturer/announcements")}
-                            >
-                                Quay lại tin tức
-                            </Button>
-                        </Card>
-                    </>
-                )}
-            </Container>
-        </>
+                        {/* Mô tả */}
+                        {item?.description ? (
+                            <Typography variant="body1" sx={{ whiteSpace: "pre-wrap" }}>
+                                {item.description}
+                            </Typography>
+                        ) : (
+                            <Typography variant="body2" color="text.secondary">
+                                Không có mô tả.
+                            </Typography>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
+        </Container>
     );
 };
 
