@@ -14,7 +14,7 @@ import {
   CheckCircle as AttendanceIcon,
   MenuBook as MaterialIcon,
   Feedback as SuggestionIcon,
-  Star as EvaluationIcon,
+  Star as StarIcon,
   Edit as GradeIcon,
   Image as ImageIcon,
   CalendarToday as CalendarIcon,
@@ -72,7 +72,7 @@ const LecturerDashboard = () => {
     },
     { 
       title: "Xem đánh giá từ sinh viên", 
-      icon: <EvaluationIcon sx={{ fontSize: { xs: 30, sm: 35, md: 40 } }} />,
+      icon: <StarIcon sx={{ fontSize: { xs: 30, sm: 35, md: 40 } }} />,
       route: "/lecture/view-student-evaluations"
     },
     { 

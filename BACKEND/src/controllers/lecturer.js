@@ -40,5 +40,31 @@ getStudentsByClass: async (req, res) => {
     res.status(500).json({ message: 'Lỗi server', error });
   }
 }
+
+,
+// GET /api/lecturer/evaluations - danh sách đánh giá cho giảng viên
+getEvaluationsForLecturer: async (req, res) => {
+  try {
+    const lecturerAccountId = req.user.id; // account id from token
+
+    // Try to find lecturer document by accountId
+    const lecturer = await Lecturer.findOne({ accountId: lecturerAccountId });
+    if (!lecturer) {
+      return res.status(404).json({ message: 'Không tìm thấy thông tin giảng viên.' });
+    }
+
+    // Do NOT return student-identifying information to lecturers.
+    // We project out `studentId` so the lecturer cannot see names or student codes.
+    const evaluations = await Evaluation.find({ lecturerId: lecturer._id })
+      .select('-studentId') // remove student reference from response
+      .populate('classId', 'className subjectId')
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({ success: true, count: evaluations.length, data: evaluations });
+  } catch (error) {
+    console.error('Lỗi getEvaluationsForLecturer:', error);
+    return res.status(500).json({ success: false, message: 'Lỗi server', error: error.message });
+  }
+}
 }
 module.exports = lecturerController;
