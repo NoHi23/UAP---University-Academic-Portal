@@ -19,7 +19,7 @@ import {
   Image as ImageIcon,
   CalendarToday as CalendarIcon,
   BarChart as ChartIcon,
-  Computer as ComputerIcon
+  Computer as ComputerIcon,
 } from '@mui/icons-material';
 
 const LecturerDashboard = () => {
@@ -40,53 +40,53 @@ const LecturerDashboard = () => {
   ];
 
   const menuItems = [
-    { 
-      title: "Chỉnh sửa thông tin cá nhân", 
+    {
+      title: "Chỉnh sửa thông tin cá nhân",
       icon: <PersonIcon sx={{ fontSize: { xs: 30, sm: 35, md: 40 } }} />,
       route: "/lecturer/edit-personal-info"
     },
-    { 
-      title: "Xem thông tin lớp học", 
+    {
+      title: "Xem thông tin lớp học",
       icon: <ImageIcon sx={{ fontSize: { xs: 30, sm: 35, md: 40 } }} />,
       route: "/lecturer/view-class-info"
     },
-    { 
-      title: "Xem thời khóa biểu giảng dạy", 
+    {
+      title: "Xem thời khóa biểu giảng dạy",
       icon: <CalendarIcon sx={{ fontSize: { xs: 30, sm: 35, md: 40 } }} />,
       route: "/lecturer/view-teaching-schedule"
     },
-    { 
-      title: "Điểm danh sinh viên", 
+    {
+      title: "Điểm danh sinh viên",
       icon: <AttendanceIcon sx={{ fontSize: { xs: 30, sm: 35, md: 40 } }} />,
       route: "/lecturer/take-attendance"
     },
-    { 
-      title: "Xem giáo trình & tài liệu", 
+    {
+      title: "Xem giáo trình & tài liệu",
       icon: <MaterialIcon sx={{ fontSize: { xs: 30, sm: 35, md: 40 } }} />,
       route: "/lecturer/access-course-materials"
     },
-    { 
-      title: "Gửi đóng góp ý kiến", 
+    {
+      title: "Gửi đơn hỗ trợ",
       icon: <SuggestionIcon sx={{ fontSize: { xs: 30, sm: 35, md: 40 } }} />,
-      route: "/lecturer/submit-suggestions"
+      route: "/lecturer/supports"
     },
-    { 
-      title: "Xem đánh giá từ sinh viên", 
+    {
+      title: "Xem đánh giá từ sinh viên",
       icon: <EvaluationIcon sx={{ fontSize: { xs: 30, sm: 35, md: 40 } }} />,
       route: "/lecturer/view-student-evaluations"
     },
-    { 
-      title: "Nhập điểm cho sinh viên", 
+    {
+      title: "Nhập điểm cho sinh viên",
       icon: <GradeIcon sx={{ fontSize: { xs: 30, sm: 35, md: 40 } }} />,
       route: "/lecturer/enter-student-grades"
     },
-    { 
-      title: "Xem điểm của sinh viên", 
+    {
+      title: "Xem điểm của sinh viên",
       icon: <ChartIcon sx={{ fontSize: { xs: 30, sm: 35, md: 40 } }} />,
       route: "/lecturer/view-student-grades"
     },
-    { 
-      title: "Xem danh sách điểm danh", 
+    {
+      title: "Xem danh sách điểm danh",
       icon: <ComputerIcon sx={{ fontSize: { xs: 30, sm: 35, md: 40 } }} />,
       route: "/lecturer/view-attendance-list"
     }
@@ -104,10 +104,10 @@ const LecturerDashboard = () => {
           <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: { xs: 2, sm: 3 } }}>
             {/* Lecturer Profile */}
             <Grid item xs={12} lg={6}>
-              <Paper 
-                elevation={3} 
-                sx={{ 
-                  p: { xs: 2, sm: 3 }, 
+              <Paper
+                elevation={3}
+                sx={{
+                  p: { xs: 2, sm: 3 },
                   height: { xs: 'auto', lg: '200px' },
                   display: 'flex',
                   flexDirection: { xs: 'column', sm: 'row' },
@@ -129,41 +129,41 @@ const LecturerDashboard = () => {
                   <SchoolIcon sx={{ fontSize: { xs: 35, sm: 40, md: 45 } }} />
                 </Avatar>
                 <Paper elevation={0} sx={{ flex: 1, backgroundColor: 'transparent' }}>
-                  <Typography 
-                    variant="h6" 
-                    fontWeight={600} 
+                  <Typography
+                    variant="h6"
+                    fontWeight={600}
                     mb={1}
                     sx={{ fontSize: { xs: '1rem', sm: '1.1rem', md: '1.25rem' } }}
                   >
                     Họ và tên: {lecturerInfo.name}
                   </Typography>
-                  <Typography 
-                    variant="body2" 
-                    color="text.secondary" 
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
                     mb={0.5}
                     sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
                   >
                     Ngày sinh: {lecturerInfo.birthDate}
                   </Typography>
-                  <Typography 
-                    variant="body2" 
-                    color="text.secondary" 
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
                     mb={0.5}
                     sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
                   >
                     Nơi Sinh: {lecturerInfo.birthPlace}
                   </Typography>
-                  <Typography 
-                    variant="body2" 
+                  <Typography
+                    variant="body2"
                     color="text.secondary"
                     sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
                   >
                     Chuyên Ngành: {lecturerInfo.major}
                   </Typography>
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
-                      color: '#4FC3F7', 
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: '#4FC3F7',
                       cursor: 'pointer',
                       mt: 1,
                       textDecoration: 'underline',
@@ -181,10 +181,10 @@ const LecturerDashboard = () => {
               <Grid container spacing={{ xs: 1, sm: 2 }} sx={{ height: { xs: 'auto', lg: '200px' } }}>
                 {stats.map((stat, index) => (
                   <Grid item xs={6} key={index}>
-                    <Paper 
-                      elevation={3} 
-                      sx={{ 
-                        p: { xs: 2, sm: 3 }, 
+                    <Paper
+                      elevation={3}
+                      sx={{
+                        p: { xs: 2, sm: 3 },
                         textAlign: 'center',
                         height: { xs: 'auto', lg: '100%' },
                         display: 'flex',
@@ -194,10 +194,10 @@ const LecturerDashboard = () => {
                         width: '100%'
                       }}
                     >
-                      <Typography 
-                        variant="h1" 
-                        sx={{ 
-                          fontSize: { xs: '2.5rem', sm: '3rem', md: '4rem' }, 
+                      <Typography
+                        variant="h1"
+                        sx={{
+                          fontSize: { xs: '2.5rem', sm: '3rem', md: '4rem' },
                           fontWeight: 'bold',
                           color: '#333',
                           mb: 1,
@@ -206,21 +206,21 @@ const LecturerDashboard = () => {
                       >
                         {stat.value}
                       </Typography>
-                      <Typography 
-                        variant="body2" 
-                        color="text.secondary" 
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
                         mb={1}
-                        sx={{ 
+                        sx={{
                           fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.875rem' },
                           lineHeight: 1.3
                         }}
                       >
                         {stat.label}
                       </Typography>
-                      <Typography 
-                        variant="body2" 
-                        sx={{ 
-                          color: stat.color, 
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: stat.color,
                           cursor: 'pointer',
                           textDecoration: 'underline',
                           fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.875rem' }
@@ -241,10 +241,10 @@ const LecturerDashboard = () => {
           <Grid container spacing={{ xs: 1, sm: 2 }}>
             {menuItems.map((item, index) => (
               <Grid item xs={6} sm={4} md={2.4} key={index}>
-                <Paper 
+                <Paper
                   onClick={() => handleMenuClick(item.route)}
                   elevation={2}
-                  sx={{ 
+                  sx={{
                     textAlign: 'center',
                     cursor: 'pointer',
                     transition: 'all 0.3s ease',
@@ -261,10 +261,10 @@ const LecturerDashboard = () => {
                     }
                   }}
                 >
-                  <Paper 
-                    elevation={0} 
-                    sx={{ 
-                      color: theme.palette.primary.main, 
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      color: theme.palette.primary.main,
                       mb: { xs: 0.5, sm: 1 },
                       backgroundColor: 'transparent',
                       width: '100%',
@@ -274,10 +274,10 @@ const LecturerDashboard = () => {
                   >
                     {item.icon}
                   </Paper>
-                  <Typography 
-                    variant="body2" 
+                  <Typography
+                    variant="body2"
                     fontWeight={500}
-                    sx={{ 
+                    sx={{
                       lineHeight: 1.2,
                       fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.875rem' },
                       width: '100%'
@@ -296,25 +296,25 @@ const LecturerDashboard = () => {
           <Grid container spacing={{ xs: 2, sm: 3 }}>
             {/* Academic Results Chart */}
             <Grid item xs={12} md={6}>
-              <Paper 
-                elevation={3} 
-                sx={{ 
-                  p: { xs: 2, sm: 3 }, 
+              <Paper
+                elevation={3}
+                sx={{
+                  p: { xs: 2, sm: 3 },
                   height: { xs: '250px', sm: '280px', md: '320px' },
                   width: '100%'
                 }}
               >
-                <Typography 
-                  variant="h6" 
-                  fontWeight={600} 
+                <Typography
+                  variant="h6"
+                  fontWeight={600}
                   mb={3}
                   sx={{ fontSize: { xs: '1rem', sm: '1.1rem', md: '1.25rem' } }}
                 >
                   Kết quả học tập
                 </Typography>
-                <Paper 
+                <Paper
                   elevation={0}
-                  sx={{ 
+                  sx={{
                     height: { xs: '180px', sm: '200px', md: '240px' },
                     display: 'flex',
                     alignItems: 'flex-end',
@@ -357,25 +357,25 @@ const LecturerDashboard = () => {
 
             {/* Academic Progress */}
             <Grid item xs={12} md={6}>
-              <Paper 
-                elevation={3} 
-                sx={{ 
-                  p: { xs: 2, sm: 3 }, 
+              <Paper
+                elevation={3}
+                sx={{
+                  p: { xs: 2, sm: 3 },
                   height: { xs: '250px', sm: '280px', md: '320px' },
                   width: '100%'
                 }}
               >
-                <Typography 
-                  variant="h6" 
-                  fontWeight={600} 
+                <Typography
+                  variant="h6"
+                  fontWeight={600}
                   mb={3}
                   sx={{ fontSize: { xs: '1rem', sm: '1.1rem', md: '1.25rem' } }}
                 >
                   Tiến độ học tập
                 </Typography>
-                <Paper 
+                <Paper
                   elevation={0}
-                  sx={{ 
+                  sx={{
                     height: { xs: '180px', sm: '200px', md: '240px' },
                     backgroundColor: '#f8f9fa',
                     display: 'flex',
@@ -384,8 +384,8 @@ const LecturerDashboard = () => {
                     borderRadius: 2
                   }}
                 >
-                  <Typography 
-                    variant="body2" 
+                  <Typography
+                    variant="body2"
                     color="text.secondary"
                     sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
                   >

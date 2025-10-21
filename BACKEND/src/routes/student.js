@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { verifyToken, authorize } = require('../middleware/authorization');
-
+const { getMyWeeklySchedule } = require('../controllers/student')
 const { getStudentMaterials } = require('../controllers/material');
 const { createPaymentUrl, getTransactionHistory, getTuitionInfo } = require('../controllers/paymentController');
 const { submitRequest, getMyRequests } = require('../controllers/requestController');
@@ -10,6 +10,7 @@ const { getMySlotNotifications } = require('../controllers/notificationControlle
 const { getProfile, updateProfile, getGradesReport, getTranscript } = require('../controllers/student');
 
 router.use(verifyToken, authorize('student'));
+router.get('/schedules/my-week', getMyWeeklySchedule);
 
 // Student profile endpoints (protected)
 router.get('/profile', getProfile);
@@ -32,7 +33,6 @@ router.get('/evaluations/classes-to-review', getEvaluableClasses);
 router.post('/evaluations', submitEvaluation);
 
 router.get('/notifications/slots', getMySlotNotifications);
-
 
 
 module.exports = router;
