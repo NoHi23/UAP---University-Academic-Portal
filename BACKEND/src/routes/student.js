@@ -7,7 +7,7 @@ const { createPaymentUrl, getTransactionHistory, getTuitionInfo } = require('../
 const { submitRequest, getMyRequests } = require('../controllers/requestController');
 const { getEvaluableClasses, submitEvaluation } = require('../controllers/evaluationController');
 const { getMySlotNotifications } = require('../controllers/notificationController');
-const { getProfile, updateProfile } = require('../controllers/student');
+const { getProfile, updateProfile, getGradesReport, getTranscript } = require('../controllers/student');
 
 router.use(verifyToken, authorize('student'));
 
@@ -16,6 +16,10 @@ router.get('/profile', getProfile);
 router.put('/profile', updateProfile);
 
 router.get('/materials/me', getStudentMaterials);
+
+// Student grades / transcript
+router.get('/grades', getGradesReport);
+router.get('/transcript', getTranscript);
 
 router.get('/tuition/me', getTuitionInfo);
 router.post('/tuition/create-payment-url', createPaymentUrl);
