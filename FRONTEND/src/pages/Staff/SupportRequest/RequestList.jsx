@@ -46,7 +46,26 @@ export default function SupportRequestList() {
             setLoading(true);
             setErr("");
             const res = await supportAPI.getAll(); // yêu cầu role=staff qua BE
-            setRows(res.data?.data || []);
+            const list = res.data?.data || [];
+            setRows(list);
+
+            // 🔔 Đồng bộ badge ở StaffLayout (same tab + multi tab)
+            const currentOpen = list.filter(
+                (r) => r.status === SUPPORT_STATUS.OPEN || r.status === "open"
+            ).length;
+
+            try {
+                // Cùng tab: CustomEvent
+                window.dispatchEvent(
+                    new CustomEvent("support:changed", { detail: { openCount: currentOpen } })
+                );
+                // Đa tab: BroadcastChannel
+                const bc = new BroadcastChannel("support_channel");
+                bc.postMessage({ openCount: currentOpen, source: "SupportRequestList" });
+                bc.close(); // đóng kênh vì chỉ post 1 lần sau load
+            } catch {
+                // môi trường không hỗ trợ BroadcastChannel -> bỏ qua
+            }
         } catch (e) {
             setErr(e?.response?.data?.message || "Không thể tải danh sách hỗ trợ.");
         } finally {
@@ -56,6 +75,7 @@ export default function SupportRequestList() {
 
     useEffect(() => {
         loadData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Lọc theo status
@@ -63,6 +83,13 @@ export default function SupportRequestList() {
         if (filterStatus === "all") return rows;
         return rows.filter((r) => r.status === filterStatus);
     }, [rows, filterStatus]);
+
+    // Đếm số yêu cầu đang OPEN (hiển thị banner)
+    const openCount = useMemo(() => {
+        return rows.filter(
+            (r) => r.status === SUPPORT_STATUS.OPEN || r.status === "open"
+        ).length;
+    }, [rows]);
 
     // Luôn sắp xếp ưu tiên Open → In Progress → Closed; phụ theo createdAt (mới trước)
     const sorted = useMemo(() => {
@@ -90,6 +117,14 @@ export default function SupportRequestList() {
         <Box>
             <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
                 Quản lý Support Request
+            </Typography>
+
+            {/* 🔴 Banner nhắc số lượng OPEN */}
+            <Typography
+                variant="body1"
+                sx={{ mb: 2, color: "error.main", fontWeight: 600 }}
+            >
+                Bạn còn {openCount} yêu cầu hỗ trợ
             </Typography>
 
             {/* Filter theo trạng thái */}
@@ -147,7 +182,6 @@ export default function SupportRequestList() {
                             <TableRow>
                                 <TableCell sx={{ fontWeight: 600, width: 120 }}>Request ID</TableCell>
                                 <TableCell sx={{ fontWeight: 600, width: 240 }}>Email</TableCell>
-                                {/* ✅ Cột mới: Created At */}
                                 <TableCell sx={{ fontWeight: 600, width: 210 }}>Tạo lúc</TableCell>
                                 <TableCell sx={{ fontWeight: 600, width: 170 }}>Status</TableCell>
                                 <TableCell align="center" sx={{ fontWeight: 600, width: 120 }}>
@@ -164,10 +198,14 @@ export default function SupportRequestList() {
                                     <TableRow key={id} hover>
                                         <TableCell sx={{ fontFamily: "ui-monospace, monospace" }}>{displayId}</TableCell>
                                         <TableCell>{it.accountId?.email || "N/A"}</TableCell>
-                                        {/* ✅ Hiển thị ngày tạo */}
                                         <TableCell>{fmtDate(it.createdAt)}</TableCell>
                                         <TableCell>
-                                            <Chip label={chip.label} color={chip.color} size="small" sx={{ fontWeight: 600 }} />
+                                            <Chip
+                                                label={chip.label}
+                                                color={chip.color}
+                                                size="small"
+                                                sx={{ fontWeight: 600 }}
+                                            />
                                         </TableCell>
                                         <TableCell align="center">
                                             <Tooltip title="Mở trang trả lời">

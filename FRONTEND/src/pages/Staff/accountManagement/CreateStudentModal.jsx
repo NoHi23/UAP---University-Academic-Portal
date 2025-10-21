@@ -18,6 +18,8 @@ import staffAPI from "../../../api/staffAPI";
 import majorAPI from "../../../api/majorAPI";
 import { notifySuccess, notifyError } from "../../../services/notificationService";
 
+const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/i;
+const isGmail = (v) => gmailRegex.test((v || "").trim());
 
 const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
     const [mode, setMode] = useState("manual"); // "manual" | "excel"
@@ -30,6 +32,7 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
         majorId: "",
         curriculumId: "",
         avatarBase64: "",
+        personalEmail: "", // 👈 NEW
     });
     const [file, setFile] = useState(null);
     const [majors, setMajors] = useState([]);
@@ -37,14 +40,13 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
     const [loadingMajors, setLoadingMajors] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
 
-    //  Lấy danh sách chuyên ngành
+    // Lấy danh sách chuyên ngành
     useEffect(() => {
         const fetchMajors = async () => {
             setLoadingMajors(true);
             try {
                 const res = await majorAPI.getAll();
-                const majorList =
-                    res?.data?.data || res?.data || (Array.isArray(res) ? res : []);
+                const majorList = res?.data?.data || res?.data || (Array.isArray(res) ? res : []);
                 setMajors(majorList);
             } catch (err) {
                 console.error("❌ Lỗi khi tải danh sách chuyên ngành:", err);
@@ -55,13 +57,12 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
         fetchMajors();
     }, []);
 
-    //  Đọc file ảnh sang base64
+    // Đọc file ảnh sang base64
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
-        reader.onloadend = () =>
-            setForm((prev) => ({ ...prev, avatarBase64: reader.result }));
+        reader.onloadend = () => setForm((prev) => ({ ...prev, avatarBase64: reader.result }));
         reader.readAsDataURL(file);
     };
 
@@ -80,61 +81,78 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
             if (value.length > 10) return; // tối đa 10 chữ số
         }
 
+        if (name === "personalEmail" && value.length > 100) {
+            return; // tránh quá dài
+        }
+
         setForm((prev) => ({ ...prev, [name]: value }));
     };
 
-    //  Gửi API tạo sinh viên thủ công
+    // Gửi API tạo sinh viên thủ công
     const handleSubmitManual = async (e) => {
         e.preventDefault();
+
+        // Validate gmail đuôi @gmail.com
+        if (!isGmail(form.personalEmail)) {
+            notifyError("Email cá nhân phải có đuôi @gmail.com");
+            return;
+        }
+
         setLoading(true);
         try {
-            const payload = { ...form, gender: form.gender === "true" };
+            const payload = {
+                ...form,
+                firstName: form.firstName.trim(),
+                lastName: form.lastName.trim(),
+                personalEmail: form.personalEmail.trim().toLowerCase(),
+                gender: form.gender === "true",
+            };
             await staffAPI.createStudentAccount(payload);
             notifySuccess("Tạo sinh viên thành công!");
             onSuccess?.();
             onClose();
         } catch (err) {
             console.error(" Lỗi tạo sinh viên:", err);
-            notifyError("Tạo sinh viên thất bại!");
+            notifyError(err?.response?.data?.message || "Tạo sinh viên thất bại!");
         } finally {
             setLoading(false);
         }
     };
+
     const handleDragOver = (e) => {
-        e.preventDefault(); // Ngăn hành vi mặc định của trình duyệt
+        e.preventDefault();
         e.stopPropagation();
     };
 
     const handleDragEnter = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        setIsDragging(true); // Bật trạng thái "đang kéo" để thay đổi UI
+        setIsDragging(true);
     };
 
     const handleDragLeave = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        setIsDragging(false); // Tắt trạng thái "đang kéo"
+        setIsDragging(false);
     };
 
     const handleDrop = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        setIsDragging(false); // Tắt trạng thái "đang kéo"
+        setIsDragging(false);
 
         const droppedFiles = e.dataTransfer.files;
         if (droppedFiles && droppedFiles.length > 0) {
-            // Lấy file đầu tiên và cập nhật state
             const excelFile = droppedFiles[0];
-            // Kiểm tra loại tệp nếu cần
-            if (excelFile.name.endsWith('.xlsx') || excelFile.name.endsWith('.xls')) {
+            if (excelFile.name.endsWith(".xlsx") || excelFile.name.endsWith(".xls")) {
                 setFile(excelFile);
             } else {
                 notifyError("Vui lòng chỉ chọn tệp .xls hoặc .xlsx");
             }
         }
     };
-    //  Gửi file Excel để import
+
+    // Gửi file Excel để import
     const handleSubmitExcel = async (e) => {
         e.preventDefault();
         if (!file) {
@@ -157,8 +175,7 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
         }
     };
 
-
-    //  Giao diện upload file Excel
+    // Giao diện upload file Excel
     const renderExcelUpload = () => (
         <Box
             onDragEnter={handleDragEnter}
@@ -170,7 +187,8 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
                 borderRadius: 3,
                 p: 5,
                 textAlign: "center",
-                backgroundColor: "#f8fafc",
+                backgroundColor: isDragging ? "#eef2ff" : "#f8fafc",
+                transition: "background-color .15s ease",
             }}
         >
             <CloudUploadIcon sx={{ fontSize: 60, color: "#64748b" }} />
@@ -186,8 +204,7 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
                 accept=".xls,.xlsx"
                 style={{ display: "none" }}
                 onChange={(e) => {
-                    console.log("Selected file:", e.target.files[0]);
-                    setFile(e.target.files[0]);
+                    if (e.target.files?.[0]) setFile(e.target.files[0]);
                 }}
             />
             <Button
@@ -225,7 +242,7 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
         </Box>
     );
 
-    //  Form tạo sinh viên thủ công (như cũ)
+    // Form tạo sinh viên thủ công
     const renderManualForm = () => (
         <form onSubmit={handleSubmitManual} className="create-student-form">
             <div className="form-grid">
@@ -254,6 +271,7 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
                     size="small"
                     helperText={`${form.citizenID.length}/12 chữ số`}
                 />
+
                 <FormControl fullWidth size="small" variant="outlined">
                     <InputLabel id="gender-label">Giới tính</InputLabel>
                     <Select
@@ -276,6 +294,7 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
                         <MenuItem value="false">Nữ</MenuItem>
                     </Select>
                 </FormControl>
+
                 <TextField
                     label="Số điện thoại"
                     name="phone"
@@ -285,6 +304,25 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
                     size="small"
                     helperText={`${form.phone.length}/10 chữ số`}
                 />
+
+                {/* NEW: Email cá nhân (chỉ chấp nhận @gmail.com) */}
+                <TextField
+                    label="Email cá nhân"
+                    name="personalEmail"
+                    type="email"
+                    value={form.personalEmail}
+                    onChange={handleChange}
+                    required
+                    size="small"
+                    placeholder="ten@gmail.com"
+                    error={!!form.personalEmail && !isGmail(form.personalEmail)}
+                    helperText={
+                        !!form.personalEmail && !isGmail(form.personalEmail)
+                            ? "Chỉ chấp nhận email đuôi @gmail.com"
+                            : ""
+                    }
+                />
+
                 <FormControl fullWidth size="small" variant="outlined">
                     <InputLabel id="major-label">Chuyên ngành</InputLabel>
                     <Select
@@ -314,6 +352,7 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
                         )}
                     </Select>
                 </FormControl>
+
                 <TextField
                     label="Curriculum ID"
                     name="curriculumId"
@@ -322,6 +361,7 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
                     required
                     size="small"
                 />
+
                 <div style={{ gridColumn: "1 / span 2" }}>
                     <label>Ảnh đại diện:</label>
                     <input type="file" accept="image/*" onChange={handleFileChange} />
@@ -341,6 +381,7 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
                     )}
                 </div>
             </div>
+
             <Button
                 type="submit"
                 variant="contained"

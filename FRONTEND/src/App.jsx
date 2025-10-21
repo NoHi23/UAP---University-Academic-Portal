@@ -46,6 +46,13 @@ import AttendancePage from './pages/Lecturer/AttendancePage';
 import StaffMaterialsPage from './pages/Staff/StaffMaterialsPage';
 import StudentTimetablePage from './components/Student/StudentTimetablePage'
 
+import RequestAbsenceList from "./pages/Student/RequestAbsenceList";
+import RequestAbsenceCreate from "./pages/Student/RequestAbsenceCreate";
+
+import AbsenceList from "./pages/Staff/AbsenceList";
+import AbsenceReview from "./pages/Staff/AbsenceReview";
+
+
 function App() {
   const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
@@ -94,6 +101,8 @@ function App() {
                   <Route path="/student/evaluation" element={<EvaluationPage />} />
                   <Route path="/student/notifications" element={<SlotNotificationsPage />} />
                   <Route path="/student/schedule" element={<StudentTimetablePage />} />
+                  <Route path="/student/absence" element={<RequestAbsenceList />} />
+                  <Route path="/student/absence/new" element={<RequestAbsenceCreate />} />
                 </Route>
                 <Route path="/staff/" element={<StaffLayout />}>
                   <Route path="dashboard" element={<StaffLayout />} />
@@ -102,8 +111,11 @@ function App() {
                   <Route path="supports" element={<SupportRequestList />} />
                   <Route path="support/:id" element={<AnswerSupport />} />
                   <Route path="scheduling" element={<SchedulingPage />} />
+                  
+                  <Route path="/staff/absence" element={<AbsenceList />} />
+                  <Route path="/staff/absence/:id" element={<AbsenceReview />} />
                 </Route>
-                <Route path="/lecture/" element={<LecturerLayout />}>
+                <Route path="/lecturer/" element={<LecturerLayout />}>
                   <Route path="dashboard" element={<LecturerDashboard />} />
                   <Route path="dashboard" element={<LecturerDashboard />} />
                   <Route path='view-teaching-schedule' element={<ScheduleLecturePages />} />
@@ -112,6 +124,7 @@ function App() {
                   <Route path="supports" element={<SupportListLecturer />} />
                   <Route path="schedule" element={<LecturerTimetablePage />} />
                   <Route path="attendance/:scheduleId" element={<AttendancePage />} />
+
                 </Route>
               </Routes>
               <BackToTopButton />
