@@ -112,6 +112,7 @@ function App() {
                   <Route path="supports" element={<SupportListLecturer />} />
                   <Route path="schedule" element={<LecturerTimetablePage />} />
                   <Route path="attendance/:scheduleId" element={<AttendancePage />} />
+
                 </Route>
               </Routes>
               <BackToTopButton />
