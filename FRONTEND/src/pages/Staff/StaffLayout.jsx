@@ -16,6 +16,7 @@ import Container from '@mui/material/Container';
 import Avatar from '@mui/material/Avatar';
 import Chip from '@mui/material/Chip';
 import Tooltip from '@mui/material/Tooltip';
+import Badge from '@mui/material/Badge';
 
 import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
@@ -25,12 +26,16 @@ import SchoolIcon from '@mui/icons-material/School';
 import GroupsIcon from '@mui/icons-material/Groups';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import EventNoteIcon from '@mui/icons-material/EventNote';
-import LibraryBooksIcon from '@mui/icons-material/LibraryBooks'; // ✅ dùng cho "Class Management"
+import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
+import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import LogoutIcon from '@mui/icons-material/Logout';
-import { notifySuccess, showConfirmDialog } from '../../services/notificationService';
 
+import { notifySuccess, showConfirmDialog } from '../../services/notificationService';
 import { Outlet, useNavigate } from 'react-router-dom';
+
+// ✅ API & hằng số trạng thái
+import supportAPI, { SUPPORT_STATUS } from '../../api/supportAPI';
 
 const drawerWidth = 260;
 
@@ -61,7 +66,7 @@ const AppBar = styled(MuiAppBar, {
     }),
     ...(open && {
         marginLeft: drawerWidth,
-        width: `calc(100% - ${drawerWidth}px)`, // ✅ đẩy header sang bên phải khi menu mở
+        width: `calc(100% - ${drawerWidth}px)`,
         transition: theme.transitions.create(['width', 'margin'], {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.enteringScreen,
@@ -103,17 +108,17 @@ const StyledListItemButton = styled(ListItemButton)(({ selected }) => ({
     }),
 }));
 
-
-
 export default function StaffLayout() {
     const [open, setOpen] = React.useState(true);
     const navigate = useNavigate();
     const [active, setActive] = React.useState('/staff/dashboard');
     const [user, setUser] = React.useState(null);
 
-    // 🔹 Giả lập gọi API lấy thông tin user
+    // ✅ Đếm ticket OPEN để hiển thị badge ở menu "Hỗ trợ"
+    const [openSupportCount, setOpenSupportCount] = React.useState(0);
+
+    // Giả lập API lấy user
     React.useEffect(() => {
-        // Ví dụ API thực tế: axios.get('/api/user/profile')
         setTimeout(() => {
             setUser({
                 fullName: 'Nguyễn Văn A',
@@ -133,7 +138,7 @@ export default function StaffLayout() {
             text: 'Bạn chắc chắn muốn đăng xuất?',
             icon: 'warning',
             confirmButtonText: 'Đăng xuất',
-            cancelButtonText: 'Hủy'
+            cancelButtonText: 'Hủy',
         });
 
         if (result.isConfirmed) {
@@ -153,9 +158,58 @@ export default function StaffLayout() {
         { text: 'Quản lý Giảng viên', icon: <GroupsIcon />, path: '/staff/lectures' },
         { text: 'Quản lý lớp học', icon: <LibraryBooksIcon />, path: '/staff/class' },
         { text: 'Quản lý thông báo', icon: <NotificationsIcon />, path: '/staff/notification' },
+        { text: 'Hỗ trợ', icon: <SupportAgentIcon />, path: '/staff/supports' },
         { text: 'Quản lý thời khóa biểu', icon: <EventNoteIcon />, path: '/staff/schedule' },
         { text: 'Quản lý tài liệu', icon: <MenuBookIcon />, path: '/staff/material' },
+        { text: 'Tạo Lịch tự động', icon: <EventNoteIcon />, path: '/staff/scheduling' },
     ];
+
+    // =========================
+    // 🔁 REAL-TIME BADGE LOGIC
+    // =========================
+
+    // Refetch số lượng OPEN
+    const fetchOpenCount = React.useCallback(async () => {
+        try {
+            const res = await supportAPI.getAll(); // BE nên filter theo role=staff
+            const list = res?.data?.data || [];
+            const openCount = list.filter(
+                (x) => x.status === SUPPORT_STATUS.OPEN || x.status === 'open'
+            ).length;
+            setOpenSupportCount(openCount);
+        } catch (e) {
+            setOpenSupportCount(0);
+        }
+    }, []);
+
+    // Lần đầu vào layout -> load đếm
+    React.useEffect(() => {
+        fetchOpenCount();
+    }, [fetchOpenCount]);
+
+    // Nghe sự kiện trong cùng tab (CustomEvent: 'support:changed')
+    React.useEffect(() => {
+        const onSupportChanged = () => {
+            fetchOpenCount();
+        };
+        window.addEventListener('support:changed', onSupportChanged);
+        return () => window.removeEventListener('support:changed', onSupportChanged);
+    }, [fetchOpenCount]);
+
+    // Nghe đa-tab bằng BroadcastChannel
+    React.useEffect(() => {
+        const channel = new BroadcastChannel('support_channel');
+        const onMessage = () => fetchOpenCount();
+        channel.addEventListener('message', onMessage);
+        return () => {
+            channel.removeEventListener('message', onMessage);
+            channel.close();
+        };
+    }, [fetchOpenCount]);
+
+    // 👉 Ở trang chi tiết sau khi update status nhớ:
+    // window.dispatchEvent(new CustomEvent('support:changed', { detail: { id, newStatus } }));
+    // new BroadcastChannel('support_channel').postMessage({ id, newStatus });
 
     return (
         <ThemeProvider theme={theme}>
@@ -179,10 +233,7 @@ export default function StaffLayout() {
                                 color="inherit"
                                 edge="start"
                                 onClick={() => setOpen(!open)}
-                                sx={{
-                                    mr: 1,
-                                    color: '#F4E3CF',
-                                }}
+                                sx={{ mr: 1, color: '#F4E3CF' }}
                             >
                                 <MenuIcon />
                             </IconButton>
@@ -193,11 +244,7 @@ export default function StaffLayout() {
                             />
                             <Typography
                                 variant="subtitle1"
-                                sx={{
-                                    color: '#F4E3CF',
-                                    fontWeight: 600,
-                                    fontSize: '0.95rem',
-                                }}
+                                sx={{ color: '#F4E3CF', fontWeight: 600, fontSize: '0.95rem' }}
                             >
                                 UAP - University Academic Portal
                             </Typography>
@@ -216,7 +263,7 @@ export default function StaffLayout() {
                                             fontSize: 12,
                                         }}
                                     >
-                                        {user.fullName.charAt(0)}
+                                        {user.fullName?.charAt(0)}
                                     </Avatar>
                                 }
                                 label={`${user.fullName} (${user.studentCode})`}
@@ -238,13 +285,7 @@ export default function StaffLayout() {
 
                 {/* 📁 SIDE MENU */}
                 <Drawer variant="permanent" open={open}>
-                    <Box
-                        sx={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            height: '100%',
-                        }}
-                    >
+                    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                         {/* Header Drawer */}
                         <Toolbar
                             sx={{
@@ -255,15 +296,9 @@ export default function StaffLayout() {
                                 px: 1,
                             }}
                         >
-                            {open && (
-                                <Typography sx={{ fontWeight: 600, color: '#282E4E' }}>Staff Menu</Typography>
-                            )}
+                            {open && <Typography sx={{ fontWeight: 600, color: '#282E4E' }}>Staff Menu</Typography>}
                             <IconButton onClick={() => setOpen(!open)}>
-                                {open ? (
-                                    <ChevronLeftIcon sx={{ color: '#282E4E' }} />
-                                ) : (
-                                    <MenuIcon sx={{ color: '#282E4E' }} />
-                                )}
+                                {open ? <ChevronLeftIcon sx={{ color: '#282E4E' }} /> : <MenuIcon sx={{ color: '#282E4E' }} />}
                             </IconButton>
                         </Toolbar>
                         <Divider />
@@ -276,7 +311,15 @@ export default function StaffLayout() {
                                     selected={active === item.path}
                                     onClick={() => handleNav(item.path)}
                                 >
-                                    <ListItemIcon sx={{ color: '#282E4E' }}>{item.icon}</ListItemIcon>
+                                    <ListItemIcon sx={{ color: '#282E4E' }}>
+                                        {item.text === 'Hỗ trợ' ? (
+                                            <Badge badgeContent={openSupportCount} color="error" max={99} overlap="circular">
+                                                {item.icon}
+                                            </Badge>
+                                        ) : (
+                                            item.icon
+                                        )}
+                                    </ListItemIcon>
                                     {open && <ListItemText primary={item.text} />}
                                 </StyledListItemButton>
                             ))}
@@ -296,26 +339,16 @@ export default function StaffLayout() {
                                         py: 0.8,
                                         transition: '0.2s',
                                         color: 'error.main',
-                                        '&:hover': {
-                                            bgcolor: 'rgba(244, 67, 54, 0.1)',
-                                        },
+                                        '&:hover': { bgcolor: 'rgba(244, 67, 54, 0.1)' },
                                     }}
                                 >
-                                    <ListItemIcon
-                                        sx={{
-                                            color: 'error.main',
-                                            minWidth: open ? 36 : 0,
-                                        }}
-                                    >
+                                    <ListItemIcon sx={{ color: 'error.main', minWidth: open ? 36 : 0 }}>
                                         <LogoutIcon fontSize="small" />
                                     </ListItemIcon>
                                     {open && (
                                         <ListItemText
                                             primary="Sign Out"
-                                            primaryTypographyProps={{
-                                                fontSize: '0.85rem',
-                                                fontWeight: 600,
-                                            }}
+                                            primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 600 }}
                                         />
                                     )}
                                 </ListItemButton>
@@ -327,23 +360,11 @@ export default function StaffLayout() {
                 {/* 📄 MAIN CONTENT */}
                 <Box
                     component="main"
-                    sx={{
-                        backgroundColor: '#f9fafb',
-                        flexGrow: 1,
-                        height: '100vh',
-                        overflow: 'auto',
-                    }}
+                    sx={{ backgroundColor: '#f9fafb', flexGrow: 1, height: '100vh', overflow: 'auto' }}
                 >
                     <Toolbar sx={{ minHeight: 55 }} />
                     <Container sx={{ mt: 4, mb: 4 }}>
-                        <Box
-                            sx={{
-                                bgcolor: 'white',
-                                borderRadius: 2,
-                                boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
-                                p: 3,
-                            }}
-                        >
+                        <Box sx={{ bgcolor: 'white', borderRadius: 2, boxShadow: '0 2px 6px rgba(0,0,0,0.05)', p: 3 }}>
                             <Outlet />
                         </Box>
                     </Container>

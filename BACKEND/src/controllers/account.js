@@ -1,7 +1,7 @@
-const User = require('../models/account'); 
+const User = require('../models/account');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { OAuth2Client } = require('google-auth-library'); 
+const { OAuth2Client } = require('google-auth-library');
 require('dotenv').config();
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -40,7 +40,7 @@ const register = async (req, res) => {
       password: hashedPassword,
       phone,
       address,
-      avatar 
+      avatar
     });
 
     const userData = { ...newUser._doc };
@@ -93,7 +93,7 @@ const login = async (req, res) => {
 }
 const loginWithGoogle = async (req, res) => {
   try {
-    const { credential } = req.body; 
+    const { credential } = req.body;
 
     const ticket = await client.verifyIdToken({
       idToken: credential,
@@ -159,7 +159,7 @@ const updateProfile = async (req, res) => {
       user.avatar = avatar || user.avatar;
 
       const updatedUser = await user.save();
-      const token = generateToken(updatedUser); 
+      const token = generateToken(updatedUser);
 
       const userData = { ...updatedUser._doc };
       delete userData.password;

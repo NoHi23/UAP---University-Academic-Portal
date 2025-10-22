@@ -15,14 +15,17 @@ import RegisterPage from './components/Auth/RegisterPage';
 import ProtectedRoute from './components/Routing/ProtectedRoute';
 import BackToTopButton from './components/Common/BackToTopButton';
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import StudentDashboard from './pages/Student/StudentDashboard';
+import StudentDashboard from './components/Student/Dashboard';
 import MaterialsPage from './components/Student/MaterialsPage';
 import Timetable from './components/Student/Timetable';
-import StudentLayout from './pages/Student';
+import CurriculumsPage from './components/Student/CurriculumsPage';
+import CurriculumDetailsPage from './components/Student/CurriculumDetailsPage';
+
+import StudentLayout from './components/Student';
 import LecturerLayout from './pages/Lecturer/LectureLayout';
 import LecturerDashboard from './pages/Lecturer/LecturerDashBoard/index';
 import ScheduleLecturePages from './pages/Lecturer/ScheduleLecturePages';
-import ClassInfo from './pages/Lecturer/ClassInfo';
+import DetailSlotPage from './pages/Lecturer/DetailSlotPage/index';
 import Attendance from './pages/Lecturer/Attendance';
 import Feedback from './pages/Lecturer/Feedback';
 import Evaluations from './pages/Lecturer/Evaluations';
@@ -39,6 +42,17 @@ import LecturerAnnouncementDetail from './pages/Lecturer/ViewAnoucement/Annoucem
 import StaffLayout from './pages/Staff/StaffLayout';
 import StudentAccount from './pages/Staff/accountManagement/StudentAccount';
 import LectureAccount from './pages/Staff/accountManagement/LectureAccount';
+import SupportRequestList from './pages/Staff/SupportRequest/RequestList';
+import AnswerSupport from './pages/Staff/SupportRequest/Answer';
+import SupportListLecturer from './pages/Lecturer/SupportRequest/SupportList';
+import SchedulingPage from './pages/Staff/SchedulingPage/SchedulingPage';
+
+import LecturerTimetablePage from './pages/Lecturer/LecturerTimetablePage';
+import AttendancePage from './pages/Lecturer/AttendancePage';
+
+import StaffMaterialsPage from './pages/Staff/StaffMaterialsPage';
+import StudentTimetablePage from './components/Student/StudentTimetablePage'
+
 function App() {
   const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
@@ -66,6 +80,19 @@ function App() {
                 <Route path='/' element={<LoginPage />} />
                 <Route path='/register' element={<RegisterPage />} />
                 <Route element={<ProtectedRoute />}>
+                  <Route path="/student" element={<StudentLayout />}>
+                    <Route path="dashboard" element={<StudentDashboard />} />
+                    <Route path="materials" element={<MaterialsPage />} />
+                    <Route path="payment" element={<PayTuitionPage />} />
+                    <Route path="transactions" element={<TransactionHistoryPage />} />
+                    <Route path="requests" element={<RequestsPage />} />
+                    <Route path="evaluation" element={<EvaluationPage />} />
+                    <Route path="notifications" element={<SlotNotificationsPage />} />
+
+                    <Route path="timetable" element={<Timetable />} />
+                    <Route path="curriculums" element={<CurriculumsPage />} />
+                    <Route path="curriculums/:id" element={<CurriculumDetailsPage />} />
+                  </Route>
                   <Route path="/student/dashboard" element={<StudentDashboard />} />
                   <Route path="/student/materials" element={<MaterialsPage />} />
                   <Route path="/student/payment" element={<PayTuitionPage />} />
@@ -73,17 +100,21 @@ function App() {
                   <Route path="/student/requests" element={<RequestsPage />} />
                   <Route path="/student/evaluation" element={<EvaluationPage />} />
                   <Route path="/student/notifications" element={<SlotNotificationsPage />} />
-                  <Route path="/student/timetable" element={<Timetable />} />
+                  <Route path="/student/schedule" element={<StudentTimetablePage />} />
                 </Route>
                 <Route path="/staff/" element={<StaffLayout />}>
                   <Route path="dashboard" element={<StaffLayout />} />
                   <Route path="students" element={<StudentAccount />} />
                   <Route path="lectures" element={<LectureAccount />} />
+                  <Route path="supports" element={<SupportRequestList />} />
+                  <Route path="support/:id" element={<AnswerSupport />} />
+                  <Route path="scheduling" element={<SchedulingPage />} />
                 </Route>
-                <Route path="/lecturer/" element={<LecturerLayout />}>
+
+                <Route path="/lecture/" element={<LecturerLayout />}>
                   <Route path="dashboard" element={<LecturerDashboard/>} />
                   <Route path='view-teaching-schedule' element={<ScheduleLecturePages />} />
-                  <Route path='class-info' element={<ClassInfo />} />
+                  <Route path='view-detail-schedule/:id' element={<DetailSlotPage/>} />
                   <Route path='attendance' element={<Attendance />} />
                   <Route path='feedback' element={<Feedback />} />
                   <Route path='evaluations' element={<Evaluations />} />
@@ -92,6 +123,9 @@ function App() {
                   <Route path='attendance-list' element={<AttendanceList />} />
                   <Route path="announcements" element={<LecturerAnnouncements />} />
                   <Route path="announcements/:id" element={<LecturerAnnouncementDetail />} />
+                  <Route path="supports" element={<SupportListLecturer />} />
+                  <Route path="schedule" element={<LecturerTimetablePage />} />
+                  <Route path="attendance/:scheduleId" element={<AttendancePage />} />
                 </Route>
               </Routes>
               <BackToTopButton />
