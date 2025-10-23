@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem('token');
       if (token) {
         try {
-          const response = await api.get('/users/profile');
+          const response = await api.get('/account/profile');
           setUser(response.data);
         } catch (error) {
           localStorage.removeItem('token');
