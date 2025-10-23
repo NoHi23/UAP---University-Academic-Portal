@@ -25,7 +25,7 @@ const LoginPage = () => {
         navigate('/student/dashboard');
         break;
       case 'lecture':
-        navigate('/lecturer/dashboard');
+        navigate('/lecture/dashboard');
         break;
       case 'staff':
         navigate('/staff/dashboard');

@@ -26,6 +26,13 @@ import StudentLayout from './components/Student';
 import LecturerLayout from './pages/Lecturer/LectureLayout';
 import LecturerDashboard from './pages/Lecturer/LecturerDashBoard/index';
 import ScheduleLecturePages from './pages/Lecturer/ScheduleLecturePages';
+import DetailSlotPage from './pages/Lecturer/DetailSlotPage/index';
+import Attendance from './pages/Lecturer/Attendance';
+import Feedback from './pages/Lecturer/Feedback';
+import Evaluations from './pages/Lecturer/Evaluations';
+import EnterGrades from './pages/Lecturer/EnterGrades';
+import StudentGrades from './pages/Lecturer/StudentGrades';
+import AttendanceList from './pages/Lecturer/AttendanceList';
 import PayTuitionPage from './components/Student/PayTuitionPage';
 import TransactionHistoryPage from './components/Student/TransactionHistoryPage';
 import RequestsPage from './components/Student/RequestsPage';
@@ -116,9 +123,18 @@ function App() {
                   <Route path="/staff/absence" element={<AbsenceList />} />
                   <Route path="/staff/absence/:id" element={<AbsenceReview />} />
                 </Route>
-                <Route path="/lecturer/" element={<LecturerLayout />}>
-                  <Route path="dashboard" element={<LecturerDashboard />} />
+               
+
+                <Route path="/lecture/" element={<LecturerLayout />}>
+                  <Route path="dashboard" element={<LecturerDashboard/>} />
                   <Route path='view-teaching-schedule' element={<ScheduleLecturePages />} />
+                  <Route path='view-detail-schedule/:id' element={<DetailSlotPage/>} />
+                  <Route path='attendance' element={<Attendance />} />
+                  <Route path='feedback' element={<Feedback />} />
+                  <Route path='evaluations' element={<Evaluations />} />
+                  <Route path='enter-grades' element={<EnterGrades />} />
+                  <Route path='student-grades' element={<StudentGrades />} />
+                  <Route path='attendance-list' element={<AttendanceList />} />
                   <Route path="announcements" element={<LecturerAnnouncements />} />
                   <Route path="announcements/:id" element={<LecturerAnnouncementDetail />} />
                   <Route path="supports" element={<SupportListLecturer />} />
