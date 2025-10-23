@@ -165,7 +165,7 @@ export default function StaffLayout() {
     ];
 
     // =========================
-    // 🔁 REAL-TIME BADGE LOGIC
+    // REAL-TIME BADGE LOGIC
     // =========================
 
     // Refetch số lượng OPEN
