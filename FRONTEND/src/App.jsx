@@ -123,6 +123,7 @@ function App() {
                   <Route path="/staff/absence" element={<AbsenceList />} />
                   <Route path="/staff/absence/:id" element={<AbsenceReview />} />
                 </Route>
+               
 
                 <Route path="/lecture/" element={<LecturerLayout />}>
                   <Route path="dashboard" element={<LecturerDashboard/>} />
