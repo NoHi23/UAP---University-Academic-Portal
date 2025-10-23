@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import './Dashboard.css';
 import {
   FaUser, FaCalendarAlt, FaChartBar, FaBook, FaMoneyBillWave,
-  FaHistory, FaBookOpen, FaPaperPlane, FaStar, FaBullhorn
+  FaHistory, FaBookOpen, FaPaperPlane, FaStar, FaBullhorn, FaFileAlt
 } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
@@ -207,6 +207,9 @@ const Dashboard = () => {
           </div>
           <div className="feature-card" onClick={() => navigate('/student/transactions')}>
             <FaHistory /><span>Lịch sử thanh toán</span>
+          </div>
+          <div className="feature-card" onClick={() => navigate('/student/absence')}>
+            <FaFileAlt /><span>Đơn học vụ</span>
           </div>
           <div className="feature-card" onClick={() => navigate('/student/requests')}><FaPaperPlane /><span>Đơn từ & Yêu cầu</span></div>
           <div className="feature-card" onClick={() => navigate('/student/evaluation')}><FaStar /><span>Đánh giá giảng viên</span></div>

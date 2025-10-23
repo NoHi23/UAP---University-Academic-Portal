@@ -12,7 +12,11 @@ const supportRouter = require('./support')
 const majorRouter = require('./major')
 const curriculumRouter = require('./curriculum');
 const schedulingRouter = require('./scheduling');
+const absenceRouter = require('./absenceRequest');
 
+
+router.use("/api/absence", absenceRouter);
+router.use('/api/absence', absenceRouter);
 router.use('/api/account', accountRouter);
 router.use('/api/announcements', announcementRouter);
 router.use('/api/student', studentRouter);
