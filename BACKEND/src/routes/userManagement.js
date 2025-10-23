@@ -6,7 +6,7 @@ const {
   // STUDENT
   createStudentAccount, importStudentsExcel, getStudentById, listStudents, updateStudent, deleteStudent,
   // LECTURER
-  createLecturerAccount, importLecturersExcel, getLecturerById, listLecturers, updateLecturer, deleteLecturer
+  createLecturerAccount, importLecturersExcel, getLecturerById, listLecturers, updateLecturer, deleteLecturer, resetPassword
 } = require('../controllers/staff');
 
 router.use(verifyToken, authorize('staff', 'admin'));
@@ -28,5 +28,7 @@ router.route('/lecturers/:id')
   .get(getLecturerById)
   .put(updateLecturer)
   .delete(deleteLecturer);
+// Reset password route
+router.post('/resetPassword/:id', resetPassword);
 
 module.exports = router;
