@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import  api  from '../../services/api';
-import FullScreenLoader from '../Common/FullScreenLoader';
+import FullScreenLoader from '../../components/Common/FullScreenLoader';
 import { FaPaperPlane, FaPlusCircle, FaTimesCircle, FaCheckCircle, FaHourglassHalf } from 'react-icons/fa';
 import './RequestsPage.css';
 import { notifySuccess, notifyError } from '../../services/notificationService';

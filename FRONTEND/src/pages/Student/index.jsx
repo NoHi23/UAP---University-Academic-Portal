@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box } from '@mui/material';
 import { Outlet } from 'react-router-dom';
-import NavbarStudent from '../NavBar/NavbarStudent';
+import NavbarStudent from '../../components/NavBar/NavbarStudent';
 
 const StudentLayout = () => {
     return (
