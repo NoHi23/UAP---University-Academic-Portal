@@ -80,6 +80,15 @@ const login = async (req, res) => {
     const userData = { ...user._doc };
     delete userData.password;
 
+    if (user.isFirstLogin) {
+      return res.status(200).json({
+        message: 'Đăng nhập lần đầu, yêu cầu đổi mật khẩu.',
+        token,
+        user: userData,
+        passwordChangeRequired: true 
+      });
+    }
+
     return res.status(200).json({
       message: 'Đăng nhập thành công!',
       token,
@@ -221,6 +230,34 @@ const updateUserRole = async (req, res) => {
 };
 
 
+const changePassword = async (req, res) => {
+    try {
+        const { newPassword } = req.body;
+        const userId = req.user.id; 
+        if (!newPassword || newPassword.length < 6) {
+            return res.status(400).json({ message: 'Mật khẩu mới phải có ít nhất 6 ký tự.' });
+        }
+
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+        const updatedUser = await User.findByIdAndUpdate(userId, {
+            password: hashedPassword,
+            isFirstLogin: false 
+        }, { new: true });
+
+        if (!updatedUser) {
+            return res.status(404).json({ message: 'Không tìm thấy người dùng.' });
+        }
+
+        res.status(200).json({ message: 'Đổi mật khẩu thành công!' });
+
+    } catch (error) {
+        console.error("Lỗi khi đổi mật khẩu:", error);
+        res.status(500).json({ message: 'Lỗi server khi đổi mật khẩu.' });
+    }
+};
+
 module.exports = {
   register,
   login,
@@ -228,5 +265,6 @@ module.exports = {
   getProfile,
   updateProfile,
   getAllUsers,
-  updateUserRole
+  updateUserRole,
+  changePassword
 };

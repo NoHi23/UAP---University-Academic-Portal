@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Paper,
   Typography,
@@ -26,73 +26,72 @@ import {
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
-
+import api from '../../../../services/api';
+import { getWeekRange, generateWeeksOfYearSimple, buildDaysOfWeek } from '../functionCreatWeek';
+import ClassActivityModal from './ClassActivityModal';
 dayjs.locale('vi');
 
-const WeekTimeTable = ({ scheduleData = [] }) => {
+const WeekTimeTable = () => {
+  // Hàm xác định thứ trong tuần từ ngày bất kỳ
+  const getDayOfWeek = (date) => {
+    // date: dayjs object hoặc string
+    const d = dayjs(date);
+    // JS: Chủ nhật = 0, Thứ 2 = 1, ... Thứ 7 = 6
+    // Trả về số thứ (0-6) và tên thứ tiếng Việt
+    const daysVN = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+    return { num: d.day(), name: daysVN[d.day()] };
+  };
+
+  // week helper functions moved to ../functionCreatWeek
+
+  // Log ngày hiện tại và thứ hiện tại
+  const today = dayjs();
+  const todayInfo = getDayOfWeek(today);
+  console.log('[WEEK TABLE] Hôm nay:', today.format('YYYY-MM-DD'), '| Thứ:', todayInfo.num, todayInfo.name);
   const theme = useTheme();
-  const [selectedYear, setSelectedYear] = useState('2025');
-  const [currentWeek, setCurrentWeek] = useState(dayjs());
+  const [selectedYear, setSelectedYear] = useState(dayjs().year().toString());
+  const [weeksOfYear, setWeeksOfYear] = useState([]);
+  const [selectedWeekIndex, setSelectedWeekIndex] = useState(0);
+  const [scheduleData, setScheduleData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Sample data for demo
-  const sampleScheduleData = [
-    {
-      id: 1,
-      courseCode: 'MLN111',
-      time: '2025-10-14T07:30:00',
-      endTime: '2025-10-14T09:50:00',
-      slot: 1,
-      room: 'BE-406',
-      status: 'completed'
-    },
-    {
-      id: 2,
-      courseCode: 'PRM392',
-      time: '2025-10-15T10:00:00',
-      endTime: '2025-10-15T12:20:00',
-      slot: 2,
-      room: 'DE-225',
-      status: 'upcoming'
-    },
-    {
-      id: 3,
-      courseCode: 'MLN111',
-      time: '2025-10-16T07:30:00',
-      endTime: '2025-10-16T09:50:00',
-      slot: 1,
-      room: 'BE-406',
-      status: 'upcoming'
-    },
-    {
-      id: 4,
-      courseCode: 'WDP301',
-      time: '2025-10-17T15:20:00',
-      endTime: '2025-10-17T17:40:00',
-      slot: 4,
-      room: 'DE-222',
-      status: 'absent'
-    },
-    {
-      id: 5,
-      courseCode: 'WDU203c',
-      time: '2025-10-18T10:50:00',
-      endTime: '2025-10-18T12:20:00',
-      slot: 3,
-      room: 'AL-R303',
-      status: 'absent'
-    },
-    {
-      id: 6,
-      courseCode: 'WDP301',
-      time: '2025-10-16T15:20:00',
-      endTime: '2025-10-16T17:40:00',
-      slot: 4,
-      room: 'DE-222',
-      status: 'upcoming'
-    }
-  ];
+  // Calculate week range
+  const getWeekRange = (date) => {
+    // Compute Monday..Sunday deterministically using numeric day to avoid locale-dependent startOf('week')
+    const d = dayjs(date);
+    const day = d.day(); // 0 = Sun, 1 = Mon, ...
+    const diffToMonday = day === 0 ? -6 : 1 - day; // if Sun -> go back 6 days, else 1 - day
+    const monday = d.add(diffToMonday, 'day').startOf('day');
+    const sunday = monday.add(6, 'day').endOf('day');
+    return {
+      from: monday.format('YYYY-MM-DD'),
+      to: sunday.format('YYYY-MM-DD'),
+      label: `${monday.format('DD/MM')} - ${sunday.format('DD/MM')}`
+    };
+  };
 
-  const dataToUse = scheduleData.length > 0 ? scheduleData : sampleScheduleData;
+  // Fetch schedule from API (POST, form-data)
+  useEffect(() => {
+    const fetchSchedule = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        if (!weeksOfYear || weeksOfYear.length === 0) return;
+        const week = weeksOfYear[selectedWeekIndex] || weeksOfYear[0];
+        console.log('[WEEK API CALL]', { from: week.from, to: week.to, label: week.label });
+        const res = await api.post('/lecturer/schedules/my-week', { from: week.from, to: week.to });
+        setScheduleData(res.data.data || []);
+      } catch (err) {
+        setError('Không thể tải thời khóa biểu');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSchedule();
+  }, [weeksOfYear, selectedWeekIndex]);
+
+  const dataToUse = scheduleData;
 
   // Time slots definition
   const timeSlots = [
@@ -104,40 +103,53 @@ const WeekTimeTable = ({ scheduleData = [] }) => {
     { slot: 5, time: '' },
     { slot: 6, time: '' },
     { slot: 7, time: '' },
-    { slot: 8, time: '' },
-    { slot: 9, time: '' },
-    { slot: 10, time: '' },
-    { slot: 11, time: '' },
-    { slot: 12, time: '' }
+    { slot: 8, time: 'test' }
   ];
 
-  // Days of week
-  const daysOfWeek = [
-    { key: 'MON', label: 'MON', date: '15/09' },
-    { key: 'TUE', label: 'TUE', date: '16/09' },
-    { key: 'WED', label: 'WED', date: '17/09' },
-    { key: 'THU', label: 'THU', date: '18/09' },
-    { key: 'FRI', label: 'FRI', date: '19/09' },
-    { key: 'SAT', label: 'SAT', date: '20/09' },
-    { key: 'SUN', label: 'SUN', date: '21/09' }
-  ];
+  // Prepare header days for the current week so JSX can render labels/dates
+  // build weeks list when selectedYear changes and pick default week (today's week if same year)
+  useEffect(() => {
+    const yearNum = parseInt(selectedYear, 10);
+    const weeks = generateWeeksOfYearSimple(yearNum);
+    setWeeksOfYear(weeks);
+    const today = dayjs();
+    if (today.year() === yearNum) {
+      const idx = weeks.findIndex(w => {
+        const from = dayjs(w.from);
+        const to = dayjs(w.to);
+        return (today.isSame(from, 'day') || (today.isAfter(from, 'day') && today.isBefore(to, 'day')) || today.isSame(to, 'day'));
+      });
+      setSelectedWeekIndex(idx >= 0 ? idx : 0);
+    } else {
+      setSelectedWeekIndex(0);
+    }
+  }, [selectedYear]);
+
+  // Determine weekRange and daysOfWeek from selected week
+  const weekRangeVar = (weeksOfYear && weeksOfYear.length) ? weeksOfYear[selectedWeekIndex] : getWeekRange(dayjs());
+  const daysOfWeek = buildDaysOfWeek(weekRangeVar.from);
+
 
   // Organize schedule data into grid
   const organizeScheduleByWeek = (data) => {
     const weekGrid = Array(13).fill(null).map(() => Array(7).fill(null));
     
     data.forEach(item => {
-      const date = dayjs(item.time);
+      // Sử dụng item.date (kiểu Date) thay vì item.time
+      const date = dayjs(item.date);
       let dayIndex = date.day() - 1; // Convert to 0-6 (Mon-Sun)
       if (dayIndex === -1) dayIndex = 6; // Sunday becomes 6
-      
+
       const slotIndex = item.slot;
-      
+
       if (slotIndex >= 0 && slotIndex < 13 && dayIndex >= 0 && dayIndex < 7) {
         weekGrid[slotIndex][dayIndex] = {
           ...item,
           dayName: date.format('dddd'),
-          timeDisplay: dayjs(item.time).format('HH:mm') + '-' + dayjs(item.endTime).format('HH:mm')
+          // Hiển thị giờ học từ startTime/endTime nếu có, fallback nếu thiếu
+          timeDisplay: (item.startTime && item.endTime)
+            ? `${item.startTime}-${item.endTime}`
+            : (date.isValid() ? date.format('HH:mm') : '')
         };
       }
     });
@@ -147,19 +159,7 @@ const WeekTimeTable = ({ scheduleData = [] }) => {
 
   const weekGrid = organizeScheduleByWeek(dataToUse);
 
-  // Status colors
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'completed':
-        return theme.palette.success.main;
-      case 'upcoming':
-        return theme.palette.info.main;
-      case 'absent':
-        return theme.palette.error.main;
-      default:
-        return theme.palette.grey[300];
-    }
-  };
+  // (removed unused getStatusColor helper)
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -171,6 +171,13 @@ const WeekTimeTable = ({ scheduleData = [] }) => {
         return '●';
     }
   };
+  const [selectedSchedule, setSelectedSchedule] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const chooseActionForClass = (schedule) => () => {
+    setSelectedSchedule(schedule);
+    setShowModal(true);
+  };
+
 
   return (
     <Paper elevation={3} sx={{ p: 3, width: '100%', overflow: 'auto' }}>
@@ -181,26 +188,16 @@ const WeekTimeTable = ({ scheduleData = [] }) => {
 
       {/* Controls */}
       <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-        <FormControl size="small" sx={{ minWidth: 80 }}>
-          <Select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(e.target.value)}
-            sx={{ backgroundColor: 'white' }}
-          >
-            <MenuItem value="2024">2024</MenuItem>
-            <MenuItem value="2025">2025</MenuItem>
-            <MenuItem value="2026">2026</MenuItem>
-          </Select>
-        </FormControl>
+      
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <IconButton size="small" onClick={() => setCurrentWeek(currentWeek.subtract(1, 'week'))}>
+          <IconButton size="small" onClick={() => setSelectedWeekIndex(i => Math.max(0, i - 1))}>
             <ChevronLeft />
           </IconButton>
-          <Typography variant="body1" sx={{ minWidth: 100, textAlign: 'center' }}>
-            15/09 - 21/09
+          <Typography variant="body1" sx={{ minWidth: 200, textAlign: 'center' }}>
+            {weekRangeVar.label}
           </Typography>
-          <IconButton size="small" onClick={() => setCurrentWeek(currentWeek.add(1, 'week'))}>
+          <IconButton size="small" onClick={() => setSelectedWeekIndex(i => Math.min(weeksOfYear.length - 1, i + 1))}>
             <ChevronRight />
           </IconButton>
         </Box>
@@ -209,6 +206,36 @@ const WeekTimeTable = ({ scheduleData = [] }) => {
           📥 Nhập vào lịch
         </Typography>
       </Box>
+
+      {/* Week selector */}
+      <Box sx={{ mb: 2, display: 'flex', gap: 2 }}>
+        <FormControl size="small" sx={{ minWidth: 140 }}>
+          <Select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
+            <MenuItem value="2024">2024</MenuItem>
+            <MenuItem value="2025">2025</MenuItem>
+            <MenuItem value="2026">2026</MenuItem>
+          </Select>
+        </FormControl>
+
+        <FormControl size="small" sx={{ minWidth: 320 }}>
+          <Select
+            value={selectedWeekIndex}
+            onChange={(e) => setSelectedWeekIndex(Number(e.target.value))}
+            displayEmpty
+          >
+            {(weeksOfYear || []).map((w, idx) => (
+              <MenuItem key={`${w.from}-${idx}`} value={idx}>{w.label}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
+
+      {loading && (
+        <Typography color="info.main" sx={{ mb: 2 }}>Đang tải thời khóa biểu...</Typography>
+      )}
+      {error && (
+        <Typography color="error.main" sx={{ mb: 2 }}>{error}</Typography>
+      )}
 
       {/* Schedule Table */}
       <TableContainer component={Paper} sx={{ border: 2, borderColor: 'primary.main', borderRadius: 1 }}>
@@ -283,11 +310,12 @@ const WeekTimeTable = ({ scheduleData = [] }) => {
                       <Card 
                         sx={{ 
                           height: 55,
-                          backgroundColor: getStatusColor(scheduleItem.status),
+                          backgroundColor: theme.palette.primary.main,
                           color: 'white',
                           border: scheduleItem.status === 'absent' ? 2 : 0,
                           borderColor: 'error.main'
                         }}
+                        onClick={chooseActionForClass(scheduleItem)}
                       >
                         <CardContent sx={{ p: 1, '&:last-child': { pb: 1 }, height: '100%' }}>
                           <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5, height: '100%' }}>
@@ -310,7 +338,7 @@ const WeekTimeTable = ({ scheduleData = [] }) => {
                                   lineHeight: 1.2
                                 }}
                               >
-                                {scheduleItem.courseCode}
+                                {scheduleItem.subjectId?.subjectCode || 'test'}
                               </Typography>
                               <Typography 
                                 variant="caption" 
@@ -336,7 +364,7 @@ const WeekTimeTable = ({ scheduleData = [] }) => {
                                 }}
                               >
                                 <LocationOn sx={{ fontSize: 6 }} />
-                                {scheduleItem.room}
+                                {scheduleItem.roomId?.roomName || 'Phòng TBD'}
                               </Typography>
                             </Box>
                             {scheduleItem.status === 'absent' && (
@@ -360,6 +388,9 @@ const WeekTimeTable = ({ scheduleData = [] }) => {
           </TableBody>
         </Table>
       </TableContainer>
+
+  {/* Class activity modal: opened when a schedule cell is clicked */}
+  <ClassActivityModal open={showModal} onClose={() => setShowModal(false)} schedule={selectedSchedule} />
 
       {/* Legend */}
       <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>

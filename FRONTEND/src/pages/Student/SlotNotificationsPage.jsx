@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import  api  from '../../services/api';
-import FullScreenLoader from '../Common/FullScreenLoader';
+import FullScreenLoader from '../../components/Common/FullScreenLoader';
 import { FaBullhorn, FaInfoCircle, FaCalendarDay, FaClock, FaBook } from 'react-icons/fa';
 import './SlotNotificationsPage.css';
 

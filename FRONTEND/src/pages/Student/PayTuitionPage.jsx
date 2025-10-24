@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api  from '../../services/api';
-import FullScreenLoader from '../Common/FullScreenLoader';
+import FullScreenLoader from '../../components/Common/FullScreenLoader';
 import { FaMoneyBillWave, FaCheckCircle, FaExclamationCircle, FaCalendarAlt, FaHashtag, FaFileInvoiceDollar } from 'react-icons/fa';
 import './PayTuitionPage.css';
 import { notifyError } from '../../services/notificationService';
