@@ -39,18 +39,38 @@ const getStudentsByClass = async (req, res) => {
 
 
 const getMyWeeklySchedule = async (req, res) => {
+    // Hàm xác định thứ trong tuần từ ngày bất kỳ
+    function getDayOfWeek(dateString) {
+  const d = new Date(dateString);
+  d.setHours(d.getHours() + 7); // Chuyển sang giờ VN
+  const daysVN = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+  return { num: d.getDay(), name: daysVN[d.getDay()] };
+    }
   try {
+    console.log('DEBUG getMyWeeklySchedule: req.user =', req.user);
     const lecturer = await Lecturer.findOne({ accountId: req.user.id });
+    console.log('DEBUG getMyWeeklySchedule: lecturer =', lecturer);
     if (!lecturer) {
+      console.log('DEBUG getMyWeeklySchedule: Không tìm thấy giảng viên với accountId', req.user.id);
       return res.status(404).json({ message: "Không tìm thấy thông tin giảng viên." });
     }
 
-    // Xác định ngày bắt đầu và kết thúc của tuần hiện tại
-    const now = new Date();
-    const firstDay = new Date(now.setDate(now.getDate() - now.getDay() + 1)); // Lấy ngày thứ Hai
-    const lastDay = new Date(now.setDate(now.getDate() - now.getDay() + 7)); // Lấy ngày Chủ Nhật
+    // Cho phép filter tuần bất kỳ qua body from/to (POST), nếu không có thì lấy tuần hiện tại
+  let { from, to } = req.body;
+  console.log('DEBUG getMyWeeklySchedule: from =', from, 'to =', to);
+ 
+    let firstDay, lastDay;
+    if (from && to) {
+      firstDay = new Date(from);
+      lastDay = new Date(to);
+    } else {
+      const now = new Date();
+      firstDay = new Date(now.setDate(now.getDate() - now.getDay() + 1)); // Thứ 2
+      lastDay = new Date(now.setDate(now.getDate() - now.getDay() + 7)); // Chủ nhật
+    }
     firstDay.setHours(0, 0, 0, 0);
     lastDay.setHours(23, 59, 59, 999);
+    console.log('DEBUG getMyWeeklySchedule: firstDay =', firstDay, 'lastDay =', lastDay);
 
     const schedules = await Schedule.find({
       lecturerId: lecturer._id,
@@ -58,8 +78,9 @@ const getMyWeeklySchedule = async (req, res) => {
     })
       .populate('subjectId', 'subjectName subjectCode')
       .populate('classId', 'className')
-      .populate('roomId', 'roomName')
+      .populate('roomId', 'roomName roomCode')
       .sort({ date: 1, slot: 1 });
+    console.log('DEBUG getMyWeeklySchedule: schedules.length =', schedules.length);
 
     // Map lại dữ liệu để trả về lecturer info (vì model Schedule không có)
     const responseData = schedules.map(s => ({
@@ -70,7 +91,7 @@ const getMyWeeklySchedule = async (req, res) => {
         lastName: lecturer.lastName
       }
     }));
-
+    console.log('API /lecturer/schedules/my-week trả về:', { success: true, data: responseData });
     res.status(200).json({ success: true, data: responseData });
 
   } catch (error) {
@@ -78,87 +99,36 @@ const getMyWeeklySchedule = async (req, res) => {
   }
 };
 
-const getAttendanceForSchedule = async (req, res) => {
-  try {
-    const { scheduleId } = req.params;
-
-    const schedule = await Schedule.findById(scheduleId)
-      .populate('subjectId', 'subjectName')
-      .populate('classId', 'className');
-
-    if (!schedule) {
-      return res.status(404).json({ message: 'Không tìm thấy buổi học.' });
-    }
-
-    const studentEnrollments = await ScheduleOfStudent.find({ classId: schedule.classId })
-      .populate('studentId', 'firstName lastName studentCode');
-
-    const studentsWithStatus = studentEnrollments.map(enrollment => {
-      const attendanceRecord = enrollment.attendance.find(att => att.scheduleId.equals(scheduleId));
-      return {
-        _id: enrollment.studentId._id,
-        firstName: enrollment.studentId.firstName,
-        lastName: enrollment.studentId.lastName,
-        studentCode: enrollment.studentId.studentCode,
-        status: attendanceRecord ? attendanceRecord.status : 'Not Yet'
-      };
-    });
-
-    res.status(200).json({
-      success: true,
-      scheduleInfo: schedule,
-      students: studentsWithStatus
-    });
-
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Lỗi máy chủ', error: error.message });
-  }
-};
 
 
-const updateAttendance = async (req, res) => {
-  try {
-    const { scheduleId } = req.params;
-    const { attendance } = req.body; // attendance is an array: [{ studentId, status }, ...]
 
-    if (!attendance || !Array.isArray(attendance)) {
-      return res.status(400).json({ message: 'Dữ liệu điểm danh không hợp lệ.' });
-    }
-
-    const bulkOperations = attendance.map(item => ({
-      updateOne: {
-        filter: {
-          studentId: item.studentId,
-          'attendance.scheduleId': scheduleId
-        },
-        update: {
-          $set: { 'attendance.$.status': item.status }
-        }
-      }
-    }));
-
-    // Thực hiện nhiều cập nhật cùng lúc
-    await ScheduleOfStudent.bulkWrite(bulkOperations);
-
-    // Tự động điểm danh cho giảng viên
-    const lecturer = await Lecturer.findOne({ accountId: req.user.id });
-    await ScheduleOfLecture.updateOne(
-      { lecturerId: lecturer._id, scheduleId: scheduleId },
-      { $set: { attendance: true } }
-    );
-
-    res.status(200).json({ success: true, message: 'Cập nhật điểm danh thành công.' });
-
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Lỗi máy chủ', error: error.message });
-  }
-};
 
 module.exports = {
   getMyWeeklySchedule,
-  getAttendanceForSchedule,
-  updateAttendance,
+  
   getStudentsByClass,
-  getClasses
+  getClasses,
 };
+
+// Add getScheduleById if not already present (safe to add at file end)
+const getScheduleById = async (req, res) => {
+  try {
+    const scheduleId = req.params.id;
+    const schedule = await Schedule.findById(scheduleId)
+      .populate('subjectId', 'subjectName subjectCode')
+      .populate({ path: 'classId', populate: { path: 'subjectId', model: 'Subject' } })
+      .populate('roomId', 'roomName roomCode')
+      .populate('lecturerId', 'firstName lastName email');
+
+    if (!schedule) return res.status(404).json({ success: false, message: 'Schedule not found' });
+
+    res.status(200).json({ success: true, data: schedule });
+  } catch (error) {
+    console.error('Error getScheduleById:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Attach to exports (extend existing exports object)
+module.exports.getScheduleById = getScheduleById;
 

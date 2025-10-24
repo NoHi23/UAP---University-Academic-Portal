@@ -3,23 +3,51 @@ import { AuthContext } from '../../context/AuthContext';
 import {
   Paper, Typography, Box, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Container, CircularProgress,
-  IconButton, Card, CardContent, useTheme
+  IconButton, Card, CardContent, FormControl, InputLabel, Select, MenuItem
 } from '@mui/material';
 import { ChevronLeft, ChevronRight, LocationOn, Schedule as ScheduleIcon } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
 import './StudentTimetablePage.css'; // File CSS mới
 import api from '../../services/api'; // Đảm bảo import api service của bạn
+import { generateWeeksOfYearSimple } from '../../pages/Lecturer/ScheduleLecturePages/functionCreatWeek';
 
 dayjs.locale('vi');
 
 const StudentTimetablePage = () => {
-  const theme = useTheme();
   const [timetable, setTimetable] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [currentDate, setCurrentDate] = useState(dayjs());
+  const [year, setYear] = useState(dayjs().year());
+  const [weeks, setWeeks] = useState(() => generateWeeksOfYearSimple(dayjs().year()));
+  const [selectedWeek, setSelectedWeek] = useState(() => {
+    const wks = generateWeeksOfYearSimple(dayjs().year());
+    return wks.find(w => {
+      const now = dayjs().valueOf();
+      return now >= w.fromTs && now <= w.toTs;
+    }) || wks[0];
+  });
+  const [firstDayInWeek, setFirstDayInWeek] = useState('');
+  const [lastDayInWeek, setLastDayInWeek] = useState('');
   const { user } = useContext(AuthContext);
+
+  // When year changes, regenerate weeks and pick a sensible default week
+  useEffect(() => {
+    const wks = generateWeeksOfYearSimple(year);
+    setWeeks(wks);
+    const curTs = dayjs(currentDate).valueOf();
+    const found = wks.find(w => curTs >= w.fromTs && curTs <= w.toTs) || wks[0];
+    setSelectedWeek(found);
+  }, [year, currentDate]);
+
+  // Keep first/last day variables in sync with selectedWeek
+  useEffect(() => {
+    if (selectedWeek) {
+      setFirstDayInWeek(selectedWeek.from);
+      setLastDayInWeek(selectedWeek.to);
+    }
+  }, [selectedWeek]);
 
   useEffect(() => {
     const fetchTimetable = async () => {
@@ -70,15 +98,61 @@ const StudentTimetablePage = () => {
   if (error) return <Container sx={{ textAlign: 'center', mt: 5 }}><Typography color="error">{error}</Typography></Container>;
 
   return (
-    <Container maxWidth="xl" sx={{ py: 3 }}>
+    <Container maxWidth="xl" sx={{ py: 3 }} data-firstday={firstDayInWeek} data-lastday={lastDayInWeek}>
       <Paper elevation={3} sx={{ p: 3 }}>
         <Typography variant="h4" fontWeight={600} mb={3}>Thời khóa biểu theo tuần</Typography>
-        <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <IconButton onClick={() => setCurrentDate(currentDate.subtract(1, 'week'))}><ChevronLeft /></IconButton>
-          <Typography variant="h6" sx={{ minWidth: 180, textAlign: 'center' }}>
-            {startOfWeek.format('DD/MM')} - {startOfWeek.add(6, 'day').format('DD/MM/YYYY')}
-          </Typography>
-          <IconButton onClick={() => setCurrentDate(currentDate.add(1, 'week'))}><ChevronRight /></IconButton>
+        <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', justifyContent: 'space-between' }}>
+          
+
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <FormControl size="small" sx={{ minWidth: 110 }}>
+              <InputLabel id="year-select-label">Năm</InputLabel>
+              <Select
+                labelId="year-select-label"
+                label="Năm"
+                value={year}
+                onChange={(e) => setYear(Number(e.target.value))}
+              >
+                {Array.from({ length: 5 }).map((_, i) => {
+                  const y = dayjs().year() - 2 + i;
+                  return <MenuItem key={y} value={y}>{y}</MenuItem>;
+                })}
+              </Select>
+            </FormControl>
+
+            <IconButton onClick={() => {
+              if (!weeks || !selectedWeek) return;
+              const idx = weeks.findIndex(w => w.week === selectedWeek.week);
+              if (idx > 0) setSelectedWeek(weeks[idx - 1]);
+            }}>
+              <ChevronLeft />
+            </IconButton>
+
+            <FormControl size="small" sx={{ minWidth: 320 }}>
+              <InputLabel id="week-select-label">Tuần</InputLabel>
+              <Select
+                labelId="week-select-label"
+                label="Tuần"
+                value={selectedWeek ? selectedWeek.week : ''}
+                onChange={(e) => {
+                  const wk = weeks.find(w => w.week === e.target.value);
+                  if (wk) setSelectedWeek(wk);
+                }}
+              >
+                {weeks.map(w => (
+                  <MenuItem key={w.week} value={w.week}>{w.label}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <IconButton onClick={() => {
+              if (!weeks || !selectedWeek) return;
+              const idx = weeks.findIndex(w => w.week === selectedWeek.week);
+              if (idx < weeks.length - 1) setSelectedWeek(weeks[idx + 1]);
+            }}>
+              <ChevronRight />
+            </IconButton>
+          </Box>
         </Box>
         <TableContainer component={Paper} sx={{ border: 1, borderColor: 'divider' }}>
           <Table sx={{ minWidth: 1000 }} size="small">
