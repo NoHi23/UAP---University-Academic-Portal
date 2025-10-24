@@ -10,7 +10,7 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
 import './StudentTimetablePage.css'; // File CSS mới
 import api from '../../services/api'; // Đảm bảo import api service của bạn
-import { generateWeeksOfYearSimple } from '../../pages/Lecturer/ScheduleLecturePages/functionCreatWeek';
+import { generateWeeksOfYearSimple } from '../Lecturer/ScheduleLecturePages/functionCreatWeek';
 
 dayjs.locale('vi');
 

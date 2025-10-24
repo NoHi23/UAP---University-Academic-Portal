@@ -16,13 +16,13 @@ import RegisterPage from './components/Auth/RegisterPage';
 import ProtectedRoute from './components/Routing/ProtectedRoute';
 import BackToTopButton from './components/Common/BackToTopButton';
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import StudentDashboard from './components/Student/Dashboard';
-import MaterialsPage from './components/Student/MaterialsPage';
-import Timetable from './components/Student/Timetable';
-import CurriculumsPage from './components/Student/CurriculumsPage';
-import CurriculumDetailsPage from './components/Student/CurriculumDetailsPage';
+import StudentDashboard from './pages/Student/Dashboard';
+import MaterialsPage from './pages/Student/MaterialsPage';
+import Timetable from './pages/Student/Timetable';
+import CurriculumsPage from './pages/Student/CurriculumsPage';
+import CurriculumDetailsPage from './pages/Student/CurriculumDetailsPage';
 
-import StudentLayout from './components/Student';
+import StudentLayout from './pages/Student';
 import LecturerLayout from './pages/Lecturer/LectureLayout';
 import LecturerDashboard from './pages/Lecturer/LecturerDashBoard/index';
 import ScheduleLecturePages from './pages/Lecturer/ScheduleLecturePages';
@@ -33,11 +33,11 @@ import Evaluations from './pages/Lecturer/Evaluations';
 import EnterGrades from './pages/Lecturer/EnterGrades';
 import StudentGrades from './pages/Lecturer/StudentGrades';
 import AttendanceList from './pages/Lecturer/AttendanceList';
-import PayTuitionPage from './components/Student/PayTuitionPage';
-import TransactionHistoryPage from './components/Student/TransactionHistoryPage';
-import RequestsPage from './components/Student/RequestsPage';
-import EvaluationPage from './components/Student/EvaluationPage';
-import SlotNotificationsPage from './components/Student/SlotNotificationsPage';
+import PayTuitionPage from './pages/Student/PayTuitionPage';
+import TransactionHistoryPage from './pages/Student/TransactionHistoryPage';
+import RequestsPage from './pages/Student/RequestsPage';
+import EvaluationPage from './pages/Student/EvaluationPage';
+import SlotNotificationsPage from './pages/Student/SlotNotificationsPage';
 import LecturerAnnouncements from './pages/Lecturer/ViewAnoucement/AnnoucementList';
 import LecturerAnnouncementDetail from './pages/Lecturer/ViewAnoucement/AnnoucementDetail';
 import StaffLayout from './pages/Staff/StaffLayout';
@@ -52,7 +52,7 @@ import LecturerTimetablePage from './pages/Lecturer/LecturerTimetablePage';
 import AttendancePage from './pages/Lecturer/AttendancePage';
 
 import StaffMaterialsPage from './pages/Staff/StaffMaterialsPage';
-import StudentTimetablePage from './components/Student/StudentTimetablePage'
+import StudentTimetablePage from './pages/Student/StudentTimetablePage'
 
 import RequestAbsenceList from "./pages/Student/RequestAbsenceList";
 import RequestAbsenceCreate from "./pages/Student/RequestAbsenceCreate";
