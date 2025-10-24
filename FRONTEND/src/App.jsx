@@ -21,6 +21,8 @@ import MaterialsPage from './pages/Student/MaterialsPage';
 import Timetable from './pages/Student/Timetable';
 import CurriculumsPage from './pages/Student/CurriculumsPage';
 import CurriculumDetailsPage from './pages/Student/CurriculumDetailsPage';
+import StudentAnnouncements from './pages/Student/StudentAnnouncements';
+import StudentAnnouncementDetail from './pages/Student/StudentAnnouncementDetail';
 
 import StudentLayout from './pages/Student';
 import LecturerLayout from './pages/Lecturer/LectureLayout';
@@ -51,7 +53,6 @@ import SchedulingPage from './pages/Staff/SchedulingPage/SchedulingPage';
 import LecturerTimetablePage from './pages/Lecturer/LecturerTimetablePage';
 import AttendancePage from './pages/Lecturer/AttendancePage';
 
-import StaffMaterialsPage from './pages/Staff/StaffMaterialsPage';
 import StudentTimetablePage from './pages/Student/StudentTimetablePage'
 
 import RequestAbsenceList from "./pages/Student/RequestAbsenceList";
@@ -100,6 +101,8 @@ function App() {
                     <Route path="timetable" element={<Timetable />} />
                     <Route path="curriculums" element={<CurriculumsPage />} />
                     <Route path="curriculums/:id" element={<CurriculumDetailsPage />} />
+                    <Route path="announcements" element={<StudentAnnouncements />} />
+                    <Route path="announcements/:id" element={<StudentAnnouncementDetail />} />
                   </Route>
                   <Route path="/student/dashboard" element={<StudentDashboard />} />
                   <Route path="/student/materials" element={<MaterialsPage />} />
@@ -109,6 +112,8 @@ function App() {
                   <Route path="/student/evaluation" element={<EvaluationPage />} />
                   <Route path="/student/notifications" element={<SlotNotificationsPage />} />
                   <Route path="/student/schedule" element={<StudentTimetablePage />} />
+                  <Route path="/student/announcements" element={<StudentAnnouncements />} />
+                  <Route path="/student/announcements/:id" element={<StudentAnnouncementDetail />} />
                   <Route path="/student/absence" element={<RequestAbsenceList />} />
                   <Route path="/student/absence/new" element={<RequestAbsenceCreate />} />
                 </Route>
@@ -119,16 +124,16 @@ function App() {
                   <Route path="supports" element={<SupportRequestList />} />
                   <Route path="support/:id" element={<AnswerSupport />} />
                   <Route path="scheduling" element={<SchedulingPage />} />
-                  
+
                   <Route path="/staff/absence" element={<AbsenceList />} />
                   <Route path="/staff/absence/:id" element={<AbsenceReview />} />
                 </Route>
-               
+
 
                 <Route path="/lecture/" element={<LecturerLayout />}>
-                  <Route path="dashboard" element={<LecturerDashboard/>} />
+                  <Route path="dashboard" element={<LecturerDashboard />} />
                   <Route path='view-teaching-schedule' element={<ScheduleLecturePages />} />
-                  <Route path='view-detail-schedule/:id' element={<DetailSlotPage/>} />
+                  <Route path='view-detail-schedule/:id' element={<DetailSlotPage />} />
                   <Route path='attendance' element={<Attendance />} />
                   <Route path='feedback' element={<Feedback />} />
                   <Route path='evaluations' element={<Evaluations />} />
