@@ -11,6 +11,7 @@ const { getProfile, updateProfile, getGradesReport, getTranscript } = require('.
 
 router.use(verifyToken, authorize('student'));
 router.get('/schedules/my-week', getMyWeeklySchedule);
+router.get('/exams', require('../controllers/student').getExamSchedule);
 
 // Student profile endpoints (protected)
 router.get('/profile', getProfile);

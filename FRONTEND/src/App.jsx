@@ -19,6 +19,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import StudentDashboard from './pages/Student/Dashboard';
 import MaterialsPage from './pages/Student/MaterialsPage';
 import Timetable from './pages/Student/Timetable';
+import ExamSchedule from './pages/Student/ExamSchedule';
 import CurriculumsPage from './pages/Student/CurriculumsPage';
 import CurriculumDetailsPage from './pages/Student/CurriculumDetailsPage';
 import StudentAnnouncements from './pages/Student/StudentAnnouncements';
@@ -53,6 +54,7 @@ import SchedulingPage from './pages/Staff/SchedulingPage/SchedulingPage';
 import LecturerTimetablePage from './pages/Lecturer/LecturerTimetablePage';
 import AttendancePage from './pages/Lecturer/AttendancePage';
 
+// import StaffMaterialsPage from './pages/Staff/StaffMaterialsPage'; // unused
 import StudentTimetablePage from './pages/Student/StudentTimetablePage'
 
 import RequestAbsenceList from "./pages/Student/RequestAbsenceList";
@@ -99,6 +101,7 @@ function App() {
                     <Route path="notifications" element={<SlotNotificationsPage />} />
 
                     <Route path="timetable" element={<Timetable />} />
+                    <Route path="exams" element={<ExamSchedule />} />
                     <Route path="curriculums" element={<CurriculumsPage />} />
                     <Route path="curriculums/:id" element={<CurriculumDetailsPage />} />
                     <Route path="announcements" element={<StudentAnnouncements />} />
