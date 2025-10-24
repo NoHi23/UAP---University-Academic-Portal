@@ -4,7 +4,7 @@ const AttendanceList = () => {
   return (
     <div>
       <h2>Danh sách điểm danh</h2>
-      <p>Danh sách điểm danh theo buổi/học phần.</p>
+      <p>Danh sách điểm danh theo buổi/học phần</p>
     </div>
   );
 };
