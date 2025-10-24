@@ -125,7 +125,7 @@ const WeekTimeTable = () => {
     }
   }, [selectedYear]);
 
-  // Determine weekRange and daysOfWeek from selected week
+  // dòng này có nghĩa là nếu mà weeksOfYear tồn tại và có độ dài > 0 thì gán weekRangeVar bằng weeksOfYear[selectedWeekIndex], nếu không thì gán bằng kết quả của getWeekRange(dayjs())
   const weekRangeVar = (weeksOfYear && weeksOfYear.length) ? weeksOfYear[selectedWeekIndex] : getWeekRange(dayjs());
   const daysOfWeek = buildDaysOfWeek(weekRangeVar.from);
 
@@ -214,6 +214,9 @@ const WeekTimeTable = () => {
             <MenuItem value="2024">2024</MenuItem>
             <MenuItem value="2025">2025</MenuItem>
             <MenuItem value="2026">2026</MenuItem>
+            <MenuItem value="2027">2027</MenuItem>
+            <MenuItem value="2028">2028</MenuItem>
+
           </Select>
         </FormControl>
 
