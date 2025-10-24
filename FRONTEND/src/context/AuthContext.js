@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
     switch (role) {
       case 'admin': navigate('/admin/dashboard'); break;
       case 'student': navigate('/student/dashboard'); break;
-      case 'lecturer': navigate('/lecturer/dashboard'); break;
+      case 'lecture': navigate('/lecturer/dashboard'); break;
       case 'staff': navigate('/staff/dashboard'); break;
       default: navigate('/'); break;
     }
