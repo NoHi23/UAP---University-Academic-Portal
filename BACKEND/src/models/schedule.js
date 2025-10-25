@@ -12,9 +12,6 @@ const scheduleSchema = new Schema({
   slot: { type: Number, required: true, min: 1, max: 6 },
   startTime: { type: String, required: true }, // Ví dụ: "07:30"
   endTime: { type: String, required: true }
-  ,
-  // whether attendance for this schedule has been completed (all students marked)
-  attendanceCompleted: { type: Boolean, default: false }
 }, { timestamps: true });
 
 scheduleSchema.index({ date: 1, slot: 1, lecturerId: 1 }, { unique: true });
