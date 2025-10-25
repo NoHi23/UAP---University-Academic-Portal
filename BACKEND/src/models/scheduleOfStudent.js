@@ -18,4 +18,4 @@ const scheduleOfStudentSchema = new Schema({
 
 scheduleOfStudentSchema.index({ studentId: 1, classId: 1 }, { unique: true });
 
-module.exports = mongoose.model("ScheduleOfStudent", scheduleOfStudentSchema);
+module.exports = mongoose.models.ScheduleOfStudent || mongoose.model("ScheduleOfStudent", scheduleOfStudentSchema);

@@ -27,7 +27,7 @@ import {
 import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
 import api from '../../../../services/api';
-import { getWeekRange, generateWeeksOfYearSimple, buildDaysOfWeek } from '../functionCreatWeek';
+import { generateWeeksOfYearSimple, buildDaysOfWeek } from '../functionCreatWeek';
 import ClassActivityModal from './ClassActivityModal';
 dayjs.locale('vi');
 
@@ -180,7 +180,7 @@ const WeekTimeTable = () => {
 
 
   return (
-    <Paper elevation={3} sx={{ p: 3, width: '100%', overflow: 'auto' }}>
+    <Paper elevation={3} sx={{ p: 3, width: '100%' }}>
       {/* Header */}
       <Typography variant="h5" fontWeight={600} mb={3} color="primary">
         Thời khóa biểu theo tuần

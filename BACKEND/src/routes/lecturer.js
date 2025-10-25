@@ -7,12 +7,16 @@ const {
   getScheduleById
 } = require('../controllers/lecturer');
 
+const { markAttendance } = require('../controllers/lecturer');
+
 lecturerRouter.get('/classes', verifyToken, lecturerController.getClasses);
 lecturerRouter.get('/studentsbyclass/:classId', verifyToken, lecturerController.getStudentsByClass);
 // API lấy lịch giảng dạy theo khoảng ngày bất kỳ
 lecturerRouter.post('/schedules/my-week', verifyToken, getMyWeeklySchedule);
 // Get schedule detail by id
 lecturerRouter.get('/schedules/:id', verifyToken, getScheduleById);
+// Mark attendance (single or bulk)
+lecturerRouter.post('/attendance/mark', verifyToken, markAttendance);
 // Lecturers: get evaluations for themselves
 
 
