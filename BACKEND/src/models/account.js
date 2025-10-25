@@ -23,6 +23,10 @@ const accountSchema = new mongoose.Schema({
   status: {
     type: Boolean,
     default: true
+  },
+  isFirstLogin: {
+    type: Boolean,
+    default: true 
   }
 }, {
   timestamps: true

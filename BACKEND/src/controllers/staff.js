@@ -813,6 +813,82 @@ const deleteLecturer = async (req, res) => {
     }
 };
 
+// reset password
+const resetPassword = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { personalEmail } = req.body;
+
+        // Validate email
+        if (!validator.isEmail(personalEmail)) {
+            return res.status(400).json({ message: 'Email cá nhân không hợp lệ' });
+        }
+
+        // Generate random password
+        const newPassword = generateInitialPassword(12);
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Find Account by accountId
+        const account = await Account.findById(id);
+        if (!account) {
+            return res.status(404).json({ message: 'Account không tồn tại' });
+        }
+
+        // Update password for the account
+        account.password = hashedPassword;
+        await account.save();
+
+        // Get the user associated with this account (Student or Lecturer)
+        let user;
+        if (account.role === 'student') {
+            user = await Student.findOne({ id }).lean();
+        } else if (account.role === 'lecturer') {
+            user = await Lecturer.findOne({ id }).lean();
+        }
+
+        if (!user) {
+            return res.status(404).json({ message: 'User không tồn tại' });
+        }
+
+        // Send the new password to the user's personal email
+        let emailSent = true;
+        try {
+            await sendWelcomeEmail({
+                to: personalEmail,
+                fullName: `${user.firstName} ${user.lastName}`,
+                initialPassword: newPassword,
+                subject: `Mật khẩu mới cho tài khoản ${account.role === 'student' ? 'học viên' : 'giảng viên'}`
+            });
+        } catch (mailErr) {
+            console.error('Gửi email thất bại:', mailErr);
+            emailSent = false;
+        }
+
+        return res.status(200).json({
+            message: `${account.role === 'student' ? 'Student' : 'Lecturer'} mật khẩu đã được reset thành công`,
+            emailSent,
+            account: {
+                _id: account._id,
+                email: account.email,
+                role: account.role,
+                status: account.status,
+                createdAt: account.createdAt
+            },
+            user: {
+                _id: user._id,
+                fullName: `${user.firstName} ${user.lastName}`,
+                role: account.role
+            }
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'server error' });
+    }
+};
+
+
+
 
 module.exports = {
     //STUDENT
@@ -828,5 +904,6 @@ module.exports = {
     getLecturerById,
     listLecturers,
     updateLecturer,
-    deleteLecturer
+    deleteLecturer,
+    resetPassword
 };

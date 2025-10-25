@@ -25,7 +25,7 @@ const LoginPage = () => {
         navigate('/student/dashboard');
         break;
       case 'lecture':
-        navigate('/lecturer/dashboard');
+        navigate('/lecture/dashboard');
         break;
       case 'staff':
         navigate('/staff/dashboard');
@@ -40,8 +40,7 @@ const LoginPage = () => {
     e.preventDefault();
     setIsProcessing(true);
     try {
-      const response = await login(email, password);
-      handleLoginSuccess(response.data.user);
+      await login(email, password);
     } catch (err) {
       const message = err.response?.data?.message || 'Email hoặc mật khẩu không chính xác.';
       notifyError(message);

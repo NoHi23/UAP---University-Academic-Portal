@@ -23,7 +23,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
 import staffAPI from "../../../api/staffAPI";
 import majorAPI from "../../../api/majorAPI";
-import CreateLecturerModal from "./CreateLectureModal"; // ✅ modal riêng cho giảng viên
+import CreateLecturerModal from "./CreateLectureModal";
 
 export default function LectureAccount() {
     const [lecturers, setLecturers] = useState([]);
