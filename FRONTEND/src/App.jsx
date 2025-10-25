@@ -52,6 +52,7 @@ import RequestAbsenceCreate from "./pages/Student/RequestAbsenceCreate";
 
 import AbsenceList from "./pages/Staff/AbsenceList";
 import AbsenceReview from "./pages/Staff/AbsenceReview";
+import AnnouncementList from "./pages/Staff/AnnouncementList";
 
 
 function App() {
@@ -112,9 +113,11 @@ function App() {
                   <Route path="supports" element={<SupportRequestList />} />
                   <Route path="support/:id" element={<AnswerSupport />} />
                   <Route path="scheduling" element={<SchedulingPage />} />
-                  
+
                   <Route path="/staff/absence" element={<AbsenceList />} />
                   <Route path="/staff/absence/:id" element={<AbsenceReview />} />
+                  <Route path="announcements" element={<AnnouncementList />} />
+                  
                 </Route>
                 <Route path="/lecturer/" element={<LecturerLayout />}>
                   <Route path="dashboard" element={<LecturerDashboard />} />

@@ -1,91 +1,93 @@
+const Announcement = require("../models/annoucement");
 
-let Announcement;
-try {
-  Announcement = require('../models/announcement'); 
-} catch (e) {
-  Announcement = require('../models/annoucement'); // tên trong repo hiện tại
-}
+// 📌 Lấy danh sách thông báo
+exports.listAnnouncements = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, status, q } = req.query;
+
+    const filter = {};
+    if (status) filter.status = status;
+    if (q) filter.title = { $regex: q, $options: "i" };
+
+    const total = await Announcement.countDocuments(filter);
+    const data = await Announcement.find(filter)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
+
+    res.status(200).json({
+      meta: { total, page: Number(page), limit: Number(limit) },
+      data,
+    });
+  } catch (error) {
+    console.error("❌ Error getting announcements:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// 📌 Lấy chi tiết thông báo
+exports.getAnnouncement = async (req, res) => {
+  try {
+    const announcement = await Announcement.findById(req.params.id);
+    if (!announcement) return res.status(404).json({ message: "Not found" });
+    res.status(200).json({ data: announcement });
+  } catch (error) {
+    res.status(400).json({ message: "Invalid ID", error: error.message });
+  }
+};
 
 exports.createAnnouncement = async (req, res) => {
   try {
-    const payload = {
-      title: req.body.title,
-      content: req.body.content,
-      audience: req.body.audience || 'all', // all | student | lecturer | staff
-      major: req.body.major || null,        // optional filter theo chuyên ngành
-      classId: req.body.classId || null,    // optional filter theo lớp
-      attachments: req.body.attachments || [],
-      scheduledAt: req.body.scheduledAt || null,
-      createdBy: req.user?._id,
-    };
-    const doc = await Announcement.create(payload);
-    res.status(201).json(doc);
-  } catch (err) {
-    res.status(400).json({ message: 'Create announcement failed', error: err.message });
-  }
-};
+    const { title, content, audience, scheduledAt, status } = req.body;
 
-exports.listAnnouncements = async (req, res) => {
-  try {
-    const { q = '', audience = '', major = '', classId = '', page = 1, limit = 20, sort = '-createdAt' } = req.query;
+    if (!title || !content)
+      return res.status(400).json({ message: "Thiếu tiêu đề hoặc nội dung" });
 
-    const where = {};
-    if (q) where.$or = [{ title: { $regex: q, $options: 'i' } }, { content: { $regex: q, $options: 'i' } }];
-    if (audience) where.audience = audience;
-    if (major) where.major = major;
-    if (classId) where.classId = classId;
+    const postBy = req.user?.email || "unknown"; // lấy email staff từ token
 
-    const skip = (Number(page) - 1) * Number(limit);
-
-    const [items, total] = await Promise.all([
-      Announcement.find(where).sort(sort).skip(skip).limit(Number(limit)),
-      Announcement.countDocuments(where),
-    ]);
-
-    res.json({
-      data: items,
-      meta: { page: Number(page), limit: Number(limit), total, totalPages: Math.ceil(total / Number(limit)) },
+    const announcement = await Announcement.create({
+      title,
+      content,
+      postBy,
+      audience: audience || "all",
+      scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
+      status: status || "published",
     });
-  } catch (err) {
-    res.status(500).json({ message: 'List announcements failed', error: err.message });
+
+    res.status(201).json({
+      message: "Tạo thông báo thành công!",
+      data: announcement,
+    });
+  } catch (error) {
+    console.error("❌ Lỗi khi tạo thông báo:", error);
+    res.status(400).json({
+      message: "Không thể tạo thông báo.",
+      error: error.message,
+    });
   }
 };
 
-exports.getAnnouncement = async (req, res) => {
-  try {
-    const doc = await Announcement.findById(req.params.id);
-    if (!doc) return res.status(404).json({ message: 'Announcement not found' });
-    res.json(doc);
-  } catch (err) {
-    res.status(400).json({ message: 'Get announcement failed', error: err.message });
-  }
-};
 
+// 📌 Cập nhật thông báo
 exports.updateAnnouncement = async (req, res) => {
   try {
-    const update = {
-      title: req.body.title,
-      content: req.body.content,
-      audience: req.body.audience,
-      major: req.body.major,
-      classId: req.body.classId,
-      attachments: req.body.attachments,
-      scheduledAt: req.body.scheduledAt,
-    };
-    const doc = await Announcement.findByIdAndUpdate(req.params.id, update, { new: true });
-    if (!doc) return res.status(404).json({ message: 'Announcement not found' });
-    res.json(doc);
-  } catch (err) {
-    res.status(400).json({ message: 'Update announcement failed', error: err.message });
+    const { id } = req.params;
+    const updated = await Announcement.findByIdAndUpdate(id, req.body, { new: true });
+    if (!updated) return res.status(404).json({ message: "Không tìm thấy thông báo." });
+    res.status(200).json({ message: "Cập nhật thành công!", data: updated });
+  } catch (error) {
+    res.status(400).json({ message: "Lỗi khi cập nhật.", error: error.message });
   }
 };
 
+// 📌 Xóa thông báo
 exports.deleteAnnouncement = async (req, res) => {
   try {
-    const doc = await Announcement.findByIdAndDelete(req.params.id);
-    if (!doc) return res.status(404).json({ message: 'Announcement not found' });
-    res.json({ message: 'Deleted', id: doc._id });
-  } catch (err) {
-    res.status(400).json({ message: 'Delete announcement failed', error: err.message });
+    const { id } = req.params;
+    const deleted = await Announcement.findByIdAndDelete(id);
+    if (!deleted) return res.status(404).json({ message: "Không tìm thấy thông báo." });
+    res.status(200).json({ message: "Xóa thông báo thành công!" });
+  } catch (error) {
+    res.status(400).json({ message: "Lỗi khi xóa thông báo.", error: error.message });
   }
 };

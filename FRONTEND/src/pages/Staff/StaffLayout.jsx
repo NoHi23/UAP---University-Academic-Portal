@@ -159,7 +159,7 @@ export default function StaffLayout() {
         { text: 'Quản lý Sinh viên', icon: <SchoolIcon />, path: '/staff/students' },
         { text: 'Quản lý Giảng viên', icon: <GroupsIcon />, path: '/staff/lectures' },
         { text: 'Quản lý lớp học', icon: <LibraryBooksIcon />, path: '/staff/class' },
-        { text: 'Quản lý thông báo', icon: <NotificationsIcon />, path: '/staff/notification' },
+        { text: "Quản lý thông báo", icon: <NotificationsIcon />, path: "/staff/announcements" },
         { text: 'Hỗ trợ', icon: <SupportAgentIcon />, path: '/staff/supports' },
         { text: 'Quản lý thời khóa biểu', icon: <EventNoteIcon />, path: '/staff/schedule' },
         { text: 'Quản lý tài liệu', icon: <MenuBookIcon />, path: '/staff/material' },
