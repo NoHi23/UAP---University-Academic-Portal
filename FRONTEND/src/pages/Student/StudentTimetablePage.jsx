@@ -1,211 +1,177 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import {
-  Paper, Typography, Box, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, Container, CircularProgress,
-  IconButton, Card, CardContent, FormControl, Select, MenuItem
+    Paper, Typography, Box, Table, TableBody, TableCell,
+    TableContainer, TableHead, TableRow, Container, CircularProgress,
+    IconButton, Card, CardContent, FormControl, InputLabel, Select, MenuItem, useTheme
 } from '@mui/material';
 import { ChevronLeft, ChevronRight, LocationOn, Schedule as ScheduleIcon } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
+import isBetween from 'dayjs/plugin/isBetween';
+import './StudentTimetablePage.css';
 import api from '../../services/api';
-import { generateWeeksOfYearSimple, buildDaysOfWeek } from '../Lecturer/ScheduleLecturePages/functionCreatWeek';
+import { generateWeeksOfYearSimple } from '../Lecturer/ScheduleLecturePages/functionCreatWeek'; // Giả sử hàm này đúng
 
 dayjs.locale('vi');
+dayjs.extend(isBetween);
 
 const StudentTimetablePage = () => {
-  const { user } = useContext(AuthContext);
+    const theme = useTheme();
+    const [timetable, setTimetable] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    
+    const [currentDate, setCurrentDate] = useState(dayjs()); 
+    
+    const [year, setYear] = useState(dayjs().year());
+    const [weeks, setWeeks] = useState(() => generateWeeksOfYearSimple(dayjs().year()));
+    const { user } = useContext(AuthContext);
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+    useEffect(() => {
+        setWeeks(generateWeeksOfYearSimple(year));
+    }, [year]);
 
-  const [selectedYear, setSelectedYear] = useState(dayjs().year().toString());
-  const [weeksOfYear, setWeeksOfYear] = useState([]);
-  const [selectedWeekIndex, setSelectedWeekIndex] = useState(0);
-  const [timetable, setTimetable] = useState([]);
+    useEffect(() => {
+        const fetchTimetable = async () => {
+            setLoading(true);
+            setError('');
+            try {
+                const response = await api.get('/student/schedules/my-week', {
+                    params: { date: currentDate.format('YYYY-MM-DD') }
+                });
+                setTimetable(response.data.data || []);
+            } catch (err) {
+                setError('Không thể tải thời khóa biểu.');
+            } finally {
+                setLoading(false);
+            }
+        };
 
-  // --- khi đổi năm thì sinh lại list tuần ---
-  useEffect(() => {
-    const yearNum = parseInt(selectedYear, 10);
-    const weeks = generateWeeksOfYearSimple(yearNum);
-    setWeeksOfYear(weeks);
+        if (user) {
+            fetchTimetable();
+        }
+    }, [user, currentDate]);
 
-    const today = dayjs();
-    if (today.year() === yearNum) {
-      const idx = weeks.findIndex(w => {
-        const from = dayjs(w.from);
-        const to = dayjs(w.to);
-        return today.isAfter(from, 'day') && today.isBefore(to, 'day');
-      });
-      setSelectedWeekIndex(idx >= 0 ? idx : 0);
-    } else {
-      setSelectedWeekIndex(0);
-    }
-  }, [selectedYear]);
+    const timeSlots = [
+        { slot: 1, time: '7:30-9:50' }, { slot: 2, time: '10:00-12:20' },
+        { slot: 3, time: '12:50-15:10' }, { slot: 4, time: '15:20-17:40' },
+        { slot: 5, time: '18:00-20:20' }, { slot: 6, time: '20:30-22:50' }
+    ];
+    
+    const startOfWeek = currentDate.startOf('week');
+    const daysOfWeek = Array.from({ length: 7 }, (_, i) => startOfWeek.add(i, 'day'));
+    
+    const currentWeekInfo = weeks.find(w => 
+        currentDate.isBetween(dayjs(w.from, 'DD/MM/YYYY'), dayjs(w.to, 'DD/MM/YYYY'), 'day', '[]')
+    );
 
-  // --- tuần đang chọn ---
-  const weekRangeVar = (weeksOfYear && weeksOfYear.length)
-    ? weeksOfYear[selectedWeekIndex]
-    : { from: dayjs().startOf('week').add(1, 'day').format('YYYY-MM-DD'), to: dayjs().endOf('week').format('YYYY-MM-DD'), label: '...' };
-
-  const daysOfWeek = buildDaysOfWeek(weekRangeVar.from);
-
-  // --- gọi API lấy thời khóa biểu ---
-  useEffect(() => {
-    const fetchTimetable = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        if (!user || !weekRangeVar?.from || !weekRangeVar?.to) return;
-        const res = await api.post('/student/schedules/my-week', {
-          from: weekRangeVar.from,
-          to: weekRangeVar.to,
+    const organizeScheduleGrid = (data) => {
+        const grid = Array(timeSlots.length).fill(null).map(() => Array(7).fill(null));
+        data.forEach(item => {
+            const itemDate = dayjs(item.date);
+            const dayIndex = daysOfWeek.findIndex(day => day.isSame(itemDate, 'day'));
+            const slotIndex = timeSlots.findIndex(ts => ts.slot === item.slot);
+            if (dayIndex !== -1 && slotIndex !== -1) {
+                grid[slotIndex][dayIndex] = item;
+            }
         });
-        setTimetable(res.data.data || []);
-      } catch (err) {
-        setError('Không thể tải thời khóa biểu.');
-      } finally {
-        setLoading(false);
-      }
+        return grid;
     };
-    fetchTimetable();
-  }, [user, weekRangeVar]);
 
-  // --- slot thời gian cố định ---
-  const timeSlots = [
-    { slot: 1, time: '7:30-9:50' },
-    { slot: 2, time: '10:00-12:20' },
-    { slot: 3, time: '12:50-15:10' },
-    { slot: 4, time: '15:20-17:40' },
-    { slot: 5, time: '18:00-20:20' },
-    { slot: 6, time: '20:30-22:50' },
-  ];
+    const scheduleGrid = organizeScheduleGrid(timetable);
 
-  // --- sắp xếp thời khóa biểu thành lưới [slot][ngày] ---
-  const organizeScheduleGrid = (data) => {
-    const grid = Array(timeSlots.length).fill(null).map(() => Array(7).fill(null));
-    data.forEach(item => {
-      const date = dayjs(item.date);
-      let dayIndex = date.day() - 1;
-      if (dayIndex === -1) dayIndex = 6;
-      const slotIndex = timeSlots.findIndex(ts => ts.slot === item.slot);
-      if (dayIndex >= 0 && slotIndex >= 0) grid[slotIndex][dayIndex] = item;
-    });
-    return grid;
-  };
+    if (loading) return <Container sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}><CircularProgress /></Container>;
+    if (error) return <Container sx={{ textAlign: 'center', mt: 5 }}><Typography color="error">{error}</Typography></Container>;
 
-  const scheduleGrid = organizeScheduleGrid(timetable);
+    return (
+        <Container maxWidth="xl" sx={{ py: 3 }}>
+            <Paper elevation={3} sx={{ p: 3 }}>
+                <Typography variant="h4" fontWeight={600} mb={3}>Thời khóa biểu theo tuần</Typography>
+                
+                {/* --- KHỐI ĐIỀU KHIỂN --- */}
+                <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <FormControl size="small" sx={{ minWidth: 110 }}>
+                        <InputLabel>Năm</InputLabel>
+                        <Select
+                            label="Năm"
+                            value={year}
+                            onChange={(e) => {
+                                const newYear = Number(e.target.value);
+                                setYear(newYear);
+                                setCurrentDate(dayjs().year(newYear).startOf('year')); // Cập nhật currentDate về đầu năm mới
+                            }}
+                        >
+                            {Array.from({ length: 5 }).map((_, i) => {
+                                const y = dayjs().year() - 2 + i;
+                                return <MenuItem key={y} value={y}>{y}</MenuItem>;
+                            })}
+                        </Select>
+                    </FormControl>
+                    <IconButton onClick={() => setCurrentDate(currentDate.subtract(1, 'week'))}><ChevronLeft /></IconButton>
+                    <FormControl size="small" sx={{ minWidth: 320 }}>
+                        <InputLabel>Tuần</InputLabel>
+                        <Select
+                            label="Tuần"
+                            value={currentWeekInfo ? currentWeekInfo.week : ''}
+                            onChange={(e) => {
+                                const selectedWk = weeks.find(w => w.week === e.target.value);
+                                if (selectedWk) {
+                                    // Cập nhật `currentDate` để trigger useEffect gọi lại API
+                                    setCurrentDate(dayjs(selectedWk.from, 'DD/MM/YYYY'));
+                                }
+                            }}
+                        >
+                            {weeks.map(w => <MenuItem key={w.week} value={w.week}>{w.label}</MenuItem>)}
+                        </Select>
+                    </FormControl>
+                    <IconButton onClick={() => setCurrentDate(currentDate.add(1, 'week'))}><ChevronRight /></IconButton>
+                </Box>
 
-  if (loading)
-    return <Container sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}><CircularProgress /></Container>;
-  if (error)
-    return <Container sx={{ textAlign: 'center', mt: 5 }}><Typography color="error">{error}</Typography></Container>;
-
-  return (
-    <Container maxWidth="xl" sx={{ py: 3 }}>
-      <Paper elevation={3} sx={{ p: 3 }}>
-        <Typography variant="h5" fontWeight={600} mb={3} color="primary">
-          Thời khóa biểu theo tuần
-        </Typography>
-
-        {/* Bộ lọc chọn năm và tuần */}
-        <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-          <FormControl size="small" sx={{ minWidth: 140 }}>
-            <Select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
-              <MenuItem value="2024">2024</MenuItem>
-              <MenuItem value="2025">2025</MenuItem>
-              <MenuItem value="2026">2026</MenuItem>
-              <MenuItem value="2027">2027</MenuItem>
-              <MenuItem value="2028">2028</MenuItem>
-            </Select>
-          </FormControl>
-
-          <FormControl size="small" sx={{ minWidth: 320 }}>
-            <Select
-              value={selectedWeekIndex}
-              onChange={(e) => setSelectedWeekIndex(Number(e.target.value))}
-              displayEmpty
-            >
-              {(weeksOfYear || []).map((w, idx) => (
-                <MenuItem key={`${w.from}-${idx}`} value={idx}>
-                  {w.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <IconButton size="small" onClick={() => setSelectedWeekIndex(i => Math.max(0, i - 1))}>
-              <ChevronLeft />
-            </IconButton>
-            <Typography variant="body1" sx={{ minWidth: 180, textAlign: 'center' }}>
-              {weekRangeVar.label}
-            </Typography>
-            <IconButton size="small" onClick={() => setSelectedWeekIndex(i => Math.min(weeksOfYear.length - 1, i + 1))}>
-              <ChevronRight />
-            </IconButton>
-          </Box>
-        </Box>
-
-        {/* Bảng thời khóa biểu */}
-        <TableContainer component={Paper} sx={{ border: 1, borderColor: 'divider' }}>
-          <Table sx={{ minWidth: 1000 }} size="small">
-            <TableHead>
-              <TableRow sx={{ backgroundColor: 'grey.100' }}>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>SLOT</TableCell>
-                {daysOfWeek.map((day, idx) => (
-                  <TableCell key={idx} sx={{ fontWeight: 600, textAlign: 'center' }}>
-                    {day.label}<br />
-                    <Typography variant="caption" color="text.secondary">{day.date}</Typography>
-                  </TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {timeSlots.map((slotInfo, slotIndex) => (
-                <TableRow key={slotInfo.slot}>
-                  <TableCell sx={{ fontWeight: 600, textAlign: 'center', borderRight: 1, borderColor: 'divider' }}>
-                    Slot {slotInfo.slot}<br />
-                    <Typography variant="caption">{slotInfo.time}</Typography>
-                  </TableCell>
-                  {daysOfWeek.map((_, dayIndex) => {
-                    const scheduleItem = scheduleGrid[slotIndex][dayIndex];
-                    return (
-                      <TableCell key={dayIndex} sx={{ p: 0.5, textAlign: 'center', verticalAlign: 'top' }}>
-                        {scheduleItem && (
-                          <Card sx={{
-                            height: 60,
-                            backgroundColor: 'primary.main',
-                            color: 'white',
-                            cursor: 'pointer',
-                            '&:hover': { opacity: 0.9 }
-                          }}>
-                            <CardContent sx={{ p: 1 }}>
-                              <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
-                                {scheduleItem.subjectId?.subjectCode || '---'}
-                              </Typography>
-                              <Typography sx={{ fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <ScheduleIcon sx={{ fontSize: 10, mr: 0.5 }} />
-                                {scheduleItem.startTime} - {scheduleItem.endTime}
-                              </Typography>
-                              <Typography sx={{ fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <LocationOn sx={{ fontSize: 10, mr: 0.5 }} />
-                                {scheduleItem.roomId?.roomName || 'Phòng TBD'}
-                              </Typography>
-                            </CardContent>
-                          </Card>
-                        )}
-                      </TableCell>
-                    );
-                  })}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
-    </Container>
-  );
+                {/* --- BẢNG THỜI KHÓA BIỂU --- */}
+                <TableContainer component={Paper} sx={{ border: 1, borderColor: 'divider' }}>
+                    <Table sx={{ minWidth: 1000 }} size="small">
+                        <TableHead>
+                            <TableRow sx={{ backgroundColor: 'grey.100' }}>
+                                <TableCell sx={{ fontWeight: 'bold', width: '10%', textAlign: 'center' }}>SLOT</TableCell>
+                                {daysOfWeek.map(day => (
+                                    <TableCell key={day.format('ddd')} sx={{ fontWeight: 'bold', textAlign: 'center' }}>
+                                        {day.format('ddd').toUpperCase()}<br/>{day.format('DD/MM')}
+                                    </TableCell>
+                                ))}
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {timeSlots.map((slotInfo, slotIndex) => (
+                                <TableRow key={slotInfo.slot}>
+                                    <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', borderRight: 1, borderColor: 'divider' }}>
+                                        Slot {slotInfo.slot}<br/>
+                                        <Typography variant="caption">{slotInfo.time}</Typography>
+                                    </TableCell>
+                                    {daysOfWeek.map((day, dayIndex) => {
+                                        const scheduleItem = scheduleGrid[slotIndex][dayIndex];
+                                        return (
+                                            <TableCell key={dayIndex} className="schedule-cell">
+                                                {scheduleItem && (
+                                                    <Card className="schedule-card success">
+                                                        <CardContent>
+                                                            <Typography className="card-code">{scheduleItem.subjectId.subjectCode}</Typography>
+                                                            <Typography className="card-time"><ScheduleIcon /> {scheduleItem.startTime} - {scheduleItem.endTime}</Typography>
+                                                            <Typography className="card-room"><LocationOn /> {scheduleItem.roomId.roomName}</Typography>
+                                                        </CardContent>
+                                                    </Card>
+                                                )}
+                                            </TableCell>
+                                        );
+                                    })}
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            </Paper>
+        </Container>
+    );
 };
 
 export default StudentTimetablePage;

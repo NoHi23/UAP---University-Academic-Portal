@@ -45,52 +45,52 @@ const LecturerDashboard = () => {
     {
       title: "Chỉnh sửa thông tin cá nhân",
       icon: <PersonIcon sx={{ fontSize: { xs: 30, sm: 35, md: 40 } }} />,
-      route: "/lecture/edit-personal-info"
+      route: "/lecturer/edit-personal-info"
     },
     {
       title: "Xem thông tin lớp học",
       icon: <ImageIcon sx={{ fontSize: { xs: 30, sm: 35, md: 40 } }} />,
-      route: "/lecture/view-class-info"
+      route: "/lecturer/view-class-info"
     },
     {
       title: "Xem thời khóa biểu giảng dạy",
       icon: <CalendarIcon sx={{ fontSize: { xs: 30, sm: 35, md: 40 } }} />,
-      route: "/lecture/view-teaching-schedule"
+      route: "/lecturer/view-teaching-schedule"
     },
     {
       title: "Điểm danh sinh viên",
       icon: <AttendanceIcon sx={{ fontSize: { xs: 30, sm: 35, md: 40 } }} />,
-      route: "/lecture/take-attendance"
+      route: "/lecturer/take-attendance"
     },
     {
       title: "Xem giáo trình & tài liệu",
       icon: <MaterialIcon sx={{ fontSize: { xs: 30, sm: 35, md: 40 } }} />,
-      route: "/lecture/access-course-materials"
+      route: "/lecturer/access-course-materials"
     },
     {
       title: "Gửi đơn hỗ trợ",
       icon: <SuggestionIcon sx={{ fontSize: { xs: 30, sm: 35, md: 40 } }} />,
-      route: "/lecturer/supports"
+      route: "/lecturerr/supports"
     },
     {
       title: "Xem đánh giá từ sinh viên",
       icon: <AssessmentIcon sx={{ fontSize: { xs: 30, sm: 35, md: 40 } }} />,
-      route: "/lecturer/view-student-evaluations"
+      route: "/lecturerr/view-student-evaluations"
     },
     {
       title: "Nhập điểm cho sinh viên",
       icon: <GradeIcon sx={{ fontSize: { xs: 30, sm: 35, md: 40 } }} />,
-      route: "/lecture/enter-student-grades"
+      route: "/lecturer/enter-student-grades"
     },
     {
       title: "Xem điểm của sinh viên",
       icon: <ChartIcon sx={{ fontSize: { xs: 30, sm: 35, md: 40 } }} />,
-      route: "/lecture/view-student-grades"
+      route: "/lecturer/view-student-grades"
     },
     {
       title: "Xem danh sách điểm danh",
       icon: <ComputerIcon sx={{ fontSize: { xs: 30, sm: 35, md: 40 } }} />,
-      route: "/lecture/view-attendance-list"
+      route: "/lecturer/view-attendance-list"
     }
   ];
 
