@@ -12,6 +12,7 @@ const scheduleSchema = new Schema({
   slot: { type: Number, required: true, min: 1, max: 6 },
   startTime: { type: String, required: true }, // Ví dụ: "07:30"
   endTime: { type: String, required: true }
+  
 }, { timestamps: true });
 
 scheduleSchema.index({ date: 1, slot: 1, lecturerId: 1 }, { unique: true });

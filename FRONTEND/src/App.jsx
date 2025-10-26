@@ -132,8 +132,7 @@ function App() {
                   <Route path="/staff/absence/:id" element={<AbsenceReview />} />
                 </Route>
 
-
-                <Route path="/lecture/" element={<LecturerLayout />}>
+                <Route path="/lecturer/" element={<LecturerLayout />}>
                   <Route path="dashboard" element={<LecturerDashboard />} />
                   <Route path='view-teaching-schedule' element={<ScheduleLecturePages />} />
                   <Route path='view-detail-schedule/:id' element={<DetailSlotPage />} />

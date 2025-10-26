@@ -289,7 +289,7 @@ const getMyWeeklySchedule = async (req, res) => {
             date: { $gte: firstDay, $lte: lastDay } // Điều kiện date vẫn giữ nguyên
         })
             .populate('subjectId', 'subjectName subjectCode')
-            .populate('lecturerId', 'firstName lastName')
+            .populate('lecturerId', 'firstName lastName email lecturerCode')
             .populate('roomId', 'roomName')
             .populate('classId', 'className')
             .sort({ date: 1, slot: 1 });
