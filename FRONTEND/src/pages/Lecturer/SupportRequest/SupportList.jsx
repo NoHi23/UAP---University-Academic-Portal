@@ -8,7 +8,6 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import CloseIcon from "@mui/icons-material/Close";
-import { useNavigate } from "react-router-dom";
 import JoditEditor from "jodit-react";
 import supportAPI, { SUPPORT_STATUS } from "../../../api/supportAPI";
 import { AuthContext } from "../../../context/AuthContext";
@@ -24,7 +23,6 @@ const STATUS_BG = {
 const STATUS_ORDER = { open: 0, in_progress: 1, closed: 2 };
 
 export default function SupportListLecturer() {
-    const navigate = useNavigate();
     const { user } = useContext(AuthContext);
 
     const [items, setItems] = useState([]);
@@ -50,7 +48,14 @@ export default function SupportListLecturer() {
             setLoading(true);
             setErr("");
             if (!accountId) throw new Error("Không tìm thấy accountId từ AuthContext. Vui lòng đăng nhập lại.");
-            const res = await supportAPI.getByAccount(accountId);
+            // prefer lecturer-scoped endpoint if available
+            let res;
+            try {
+                res = await supportAPI.getMySupports();
+            } catch (e) {
+                // fallback to account-based endpoint
+                res = await supportAPI.getByAccount(accountId);
+            }
             setItems(res.data?.data || []);
         } catch (e) {
             setErr(e?.response?.data?.message || e?.message || "Không thể tải danh sách hỗ trợ.");
@@ -81,21 +86,7 @@ export default function SupportListLecturer() {
     }, [items, sortBy]);
 
     // Config Jodit viewer (readonly)
-    const viewerConfig = useMemo(
-        () => ({
-            readonly: true,
-            toolbar: false,
-            statusbar: false,
-            minHeight: 80,
-            iframe: false,
-            showCharsCounter: false,
-            showWordsCounter: false,
-            askBeforePasteHTML: false,
-            askBeforePasteFromWord: false,
-            defaultActionOnPaste: "insert_clear_html",
-        }),
-        []
-    );
+    
 
     const openAnswerModal = async (id) => {
         try {

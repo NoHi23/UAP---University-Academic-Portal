@@ -12,6 +12,9 @@ const DetailSlotModal = ({ open, onClose, scheduleId }) => {
   const [error, setError] = useState(null);
   const [schedule, setSchedule] = useState(null);
   const [students, setStudents] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [notifLoading, setNotifLoading] = useState(false);
+  const [notifError, setNotifError] = useState(null);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -42,6 +45,21 @@ const DetailSlotModal = ({ open, onClose, scheduleId }) => {
                 : s?.studentAvatar || null
             }));
         setStudents(normalized);
+        // fetch notifications for this schedule (staff endpoint)
+        try {
+          setNotifLoading(true);
+          setNotifError(null);
+          // Use lecturer-scoped endpoint so lecturers don't hit staff-only auth checks
+          const notRes = await api.get('/lecturer/notifications/slots', { params: { scheduleId: sch._id } });
+          const rawNot = notRes.data?.data ?? [];
+          setNotifications(Array.isArray(rawNot) ? rawNot : []);
+        } catch (nerr) {
+          console.error('load notifications', nerr);
+          setNotifError(nerr.response?.data?.message || 'Không thể tải thông báo');
+          setNotifications([]);
+        } finally {
+          setNotifLoading(false);
+        }
         } else {
           setStudents([]);
         }
@@ -95,7 +113,13 @@ const DetailSlotModal = ({ open, onClose, scheduleId }) => {
                   </Grid>
                   <Grid item xs={12} md={4}>
                     <Box display="flex" alignItems="center" gap={2}>
-                      <Avatar sx={{ width: 72, height: 72 }}>{(schedule.lecturerId?.firstName?.[0] || '') + (schedule.lecturerId?.lastName?.[0] || '')}</Avatar>
+                      <Avatar
+                        src={schedule?.lecturerId?.lecturerAvatar || undefined}
+                        sx={{ width: 72, height: 72, bgcolor: !schedule?.lecturerId?.lecturerAvatar ? 'grey.300' : 'transparent' }}
+                        imgProps={{ style: { objectFit: 'cover', width: '100%', height: '100%' }, onError: (e) => { e.currentTarget.src = ''; } }}
+                      >
+                        {(schedule.lecturerId?.firstName?.[0] || '') + (schedule.lecturerId?.lastName?.[0] || '')}
+                      </Avatar>
                       <Box>
                         <Typography variant="subtitle1">{schedule.lecturerId ? `${schedule.lecturerId.firstName || ''} ${schedule.lecturerId.lastName || ''}` : '—'}</Typography>
                         <Typography color="textSecondary">{schedule.lecturerId?.email || ''}</Typography>
@@ -105,6 +129,40 @@ const DetailSlotModal = ({ open, onClose, scheduleId }) => {
                     </Box>
                   </Grid>
                 </Grid>
+
+                <Divider sx={{ my: 2 }} />
+
+                {/* Thông báo liên quan đến buổi học */}
+                <Typography variant="h6" gutterBottom>Thông báo buổi học</Typography>
+                {notifLoading ? (
+                  <Box display="flex" alignItems="center" gap={1}><CircularProgress size={18} /> <Typography>Đang tải thông báo...</Typography></Box>
+                ) : notifError ? (
+                  <Typography color="error">{notifError}</Typography>
+                ) : notifications.length === 0 ? (
+                  <Typography color="textSecondary">Chưa có thông báo cho buổi học này.</Typography>
+                ) : (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2 }}>
+                    {notifications.map(n => {
+                      const created = new Date(n.createdAt).getTime();
+                      const updated = new Date(n.updatedAt).getTime();
+                      const isUpdated = updated && updated !== created;
+                      return (
+                        <Card key={n._id} variant="outlined">
+                          <CardContent>
+                            <Box display="flex" justifyContent="space-between" alignItems="center">
+                              <Box>
+                                <Typography sx={{ fontWeight: 700 }}>{n.title}</Typography>
+                                <Typography color="textSecondary" sx={{ whiteSpace: 'pre-wrap' }}>{n.content}</Typography>
+                                <Typography variant="caption" color="textSecondary">Gửi bởi: {n.senderId?.email || '—'} • {new Date(n.createdAt).toLocaleString()}</Typography>
+                              </Box>
+                              {isUpdated && <Typography color="warning.main" sx={{ fontWeight: 700 }}>Đã cập nhật</Typography>}
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </Box>
+                )}
 
                 <Divider sx={{ my: 2 }} />
 

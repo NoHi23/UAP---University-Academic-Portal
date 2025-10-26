@@ -25,7 +25,7 @@ import EventNoteIcon from '@mui/icons-material/EventNote';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import ImageIcon from '@mui/icons-material/Image';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+// CheckCircleIcon removed (attendance sidebar item deleted)
 import FeedbackIcon from '@mui/icons-material/Feedback';
 import StarIcon from '@mui/icons-material/Star';
 import CreateIcon from '@mui/icons-material/Create';
@@ -151,7 +151,7 @@ export default function LecturerLayout() {
     { text: 'Hồ sơ', icon: <AccountBoxIcon />, path: '/lecturer/profile' },
     { text: 'Lớp', icon: <ImageIcon />, path: '/lecturer/class-info' },
     { text: 'TKB', icon: <EventNoteIcon />, path: '/lecturer/view-teaching-schedule' },
-    { text: 'Điểm danh', icon: <CheckCircleIcon />, path: '/lecturer/attendance' },
+    // 'Điểm danh' removed from sidebar (attendance is accessible from attendance-list)
 
     { text: 'Tài liệu', icon: <MenuBookIcon />, path: '/lecturer/material' },
     { text: 'Góp ý', icon: <FeedbackIcon />, path: '/lecturer/feedback' },
