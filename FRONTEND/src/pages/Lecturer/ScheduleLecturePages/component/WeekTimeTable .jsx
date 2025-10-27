@@ -27,7 +27,7 @@ import {
 import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
 import api from '../../../../services/api';
-import { getWeekRange, generateWeeksOfYearSimple, buildDaysOfWeek } from '../functionCreatWeek';
+import { generateWeeksOfYearSimple, buildDaysOfWeek } from '../functionCreatWeek';
 import ClassActivityModal from './ClassActivityModal';
 dayjs.locale('vi');
 
@@ -125,7 +125,7 @@ const WeekTimeTable = () => {
     }
   }, [selectedYear]);
 
-  // Determine weekRange and daysOfWeek from selected week
+  // dòng này có nghĩa là nếu mà weeksOfYear tồn tại và có độ dài > 0 thì gán weekRangeVar bằng weeksOfYear[selectedWeekIndex], nếu không thì gán bằng kết quả của getWeekRange(dayjs())
   const weekRangeVar = (weeksOfYear && weeksOfYear.length) ? weeksOfYear[selectedWeekIndex] : getWeekRange(dayjs());
   const daysOfWeek = buildDaysOfWeek(weekRangeVar.from);
 
@@ -180,7 +180,7 @@ const WeekTimeTable = () => {
 
 
   return (
-    <Paper elevation={3} sx={{ p: 3, width: '100%', overflow: 'auto' }}>
+    <Paper elevation={3} sx={{ p: 3, width: '100%' }}>
       {/* Header */}
       <Typography variant="h5" fontWeight={600} mb={3} color="primary">
         Thời khóa biểu theo tuần
@@ -215,6 +215,7 @@ const WeekTimeTable = () => {
             <MenuItem value="2025">2025</MenuItem>
             <MenuItem value="2026">2026</MenuItem>
             <MenuItem value="2027">2027</MenuItem>
+            <MenuItem value="2028">2028</MenuItem>
 
           </Select>
         </FormControl>

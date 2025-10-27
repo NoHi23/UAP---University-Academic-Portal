@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import { Grid, Box, Typography, Select, MenuItem, FormControl, InputLabel, Button, Table, TableHead, TableRow, TableCell, TableBody, CircularProgress, TableContainer, Paper, Card, CardContent, CardActions, Dialog, DialogTitle, DialogContent, List, ListItem, ListItemText, ListItemSecondaryAction, Chip } from '@mui/material';
-import api from '../../services/api';
-import DetailSlotModal from './ScheduleLecturePages/component/DetailSlotModal';
+import { Grid, Box, Typography, Select, MenuItem, FormControl, InputLabel, Button, Table, TableHead, TableRow, TableCell, TableBody, CircularProgress, TableContainer, Paper, Card, CardContent, CardActions } from '@mui/material';
+import ScheduleListModal from './component/ScheduleListModal';
+import SlotAttendanceModal from './component/SlotAttendanceModal';
+import api from '../../../services/api';
 
 const AttendanceList = () => {
   const [semesters, setSemesters] = useState([]);
@@ -95,12 +96,6 @@ const AttendanceList = () => {
   }, [selectedSemester]);
 
   return (
-<<<<<<< HEAD
-    <div>
-      <h2>Danh sách điểm danh</h2>
-      <p>Danh sách điểm danh theo buổi/học phần</p>
-    </div>
-=======
     <Box sx={{ p: 3 }}>
       <Typography variant="h5" sx={{ mb: 2 }}>Danh sách điểm danh (theo học kỳ)</Typography>
 
@@ -254,46 +249,22 @@ const AttendanceList = () => {
         </TableContainer>
       )}
 
-      <DetailSlotModal open={openDetail} onClose={() => setOpenDetail(false)} scheduleId={detailScheduleId} />
-      <Dialog open={scheduleListOpen} onClose={() => setScheduleListOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>{scheduleListTitle}</DialogTitle>
-        <DialogContent dividers>
-          {(!scheduleListSchedules || scheduleListSchedules.length === 0) && (
-            <Typography>Không có buổi nào để hiển thị.</Typography>
-          )}
-          {Array.isArray(scheduleListSchedules) && scheduleListSchedules.length > 0 && (
-            <List>
-              {scheduleListSchedules.map(s => {
-                const sid = s.scheduleId || s._id || '';
-                const dateStr = s.date ? new Date(s.date).toLocaleDateString() : '';
-                const taught = !!(s.taught === true || s.attendance === true);
-                return (
-                  <ListItem key={sid} divider button onClick={() => {
-                    // open detail for this schedule
-                    setDetailScheduleId(sid);
-                    setOpenDetail(true);
-                    setScheduleListOpen(false);
-                  }}>
-                    <ListItemText primary={`${dateStr} — Tiết ${s.slot || ''}`} secondary={s.room || ''} />
-                    <ListItemSecondaryAction>
-                      <Chip label={taught ? 'Đã điểm danh' : 'Chưa điểm danh'} color={taught ? 'success' : 'default'} size="small" />
-                      <Button size="small" sx={{ ml: 1 }} onClick={(e) => {
-                        e.stopPropagation();
-                        const sid2 = s.scheduleId || s._id || '';
-                        setDetailScheduleId(sid2);
-                        setOpenDetail(true);
-                        setScheduleListOpen(false);
-                      }}>Xem</Button>
-                    </ListItemSecondaryAction>
-                  </ListItem>
-                );
-              })}
-            </List>
-          )}
-        </DialogContent>
-      </Dialog>
+      <ScheduleListModal
+        open={scheduleListOpen}
+        onClose={() => setScheduleListOpen(false)}
+        schedules={scheduleListSchedules}
+        title={scheduleListTitle}
+        onSelect={(sid) => {
+          setDetailScheduleId(sid);
+          setOpenDetail(true);
+        }}
+      />
+      <SlotAttendanceModal
+        open={openDetail}
+        onClose={() => setOpenDetail(false)}
+        scheduleId={detailScheduleId}
+      />
     </Box>
->>>>>>> 345a50dcfb1b50bbf4f6c3dba8ad796e44230aee
   );
 };
 

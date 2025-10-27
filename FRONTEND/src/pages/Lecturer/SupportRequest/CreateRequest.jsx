@@ -46,7 +46,12 @@ export default function SupportCreateModal({ open, onClose, onSuccess }) {
 
         try {
             setSubmitting(true);
-            await supportAPI.createRequest({ request: content }); // BE tự lấy accountId từ token
+            // prefer lecturer-scoped endpoint if available
+            try {
+                await supportAPI.createLecturerRequest({ request: content });
+            } catch (e) {
+                await supportAPI.createRequest({ request: content });
+            }
             notifySuccess("Tạo yêu cầu hỗ trợ hoàn tất. Vui lòng chờ phản hồi.");
             onClose?.();
             onSuccess?.(); // cho list reload
