@@ -43,6 +43,10 @@ const studentSchema = new Schema({
     type: String,
     required: true
   },
+  dateOfBirth: {
+    type: Date,
+    required: true
+  },
   semester: {
     type: String
   },
