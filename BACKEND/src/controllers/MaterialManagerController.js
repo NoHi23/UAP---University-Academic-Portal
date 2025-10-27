@@ -289,8 +289,9 @@ const bulkCreateMaterials = async (req, res) => {
       }
     });
 
-    let insertedCount = 0;
-    let modifiedCount = 0;
+  let insertedCount = 0;
+  let modifiedCount = 0;
+  let skippedCount = 0;
   // dedupe flag: if true, perform upsert (avoid duplicates); otherwise insert all rows (allow duplicates)
   const dedupe = (req.query && String(req.query.dedupe) === 'true');
   // replace flag: if true, delete existing materials for the subject(s) before inserting
@@ -333,8 +334,8 @@ const bulkCreateMaterials = async (req, res) => {
     }
 
       // Provide more diagnostic info if nothing changed so frontend can show details
-      const statusCode = (errors.length === 0 && (insertedCount > 0 || modifiedCount > 0)) ? 201 : 200;
-      return res.status(statusCode).json({ success: true, receivedCount: rows.length, validCount: docs.length, insertedCount, modifiedCount, dedupe, errors });
+  const statusCode = (errors.length === 0 && (insertedCount > 0 || modifiedCount > 0)) ? 201 : 200;
+  return res.status(statusCode).json({ success: true, receivedCount: rows.length, validCount: docs.length, insertedCount, modifiedCount, skippedCount, dedupe, errors });
   } catch (error) {
     console.error('bulkCreateMaterials error:', error);
     if (error && error.writeErrors) {
@@ -400,7 +401,7 @@ const bulkCreateMaterials = async (req, res) => {
 
       const replace = (req.query && String(req.query.replace) === 'true');
       const dedupe = (req.query && String(req.query.dedupe) === 'true');
-      let insertedCount = 0, modifiedCount = 0;
+      let insertedCount = 0, modifiedCount = 0, skippedCount = 0;
       if (docs.length > 0) {
         if (replace && subjectIds.length > 0) {
           await CLO.deleteMany({ subjectId: { $in: subjectIds } });
@@ -413,8 +414,42 @@ const bulkCreateMaterials = async (req, res) => {
           insertedCount = r.upsertedCount || 0;
           modifiedCount = r.modifiedCount || 0;
         } else {
-          const inserted = await CLO.insertMany(docs, { ordered: false });
-          insertedCount = Array.isArray(inserted) ? inserted.length : 0;
+          // To avoid global unique-index conflicts (and the E11000 error), pre-check existing CLOs for the same subject(s)
+          // and skip docs that already exist (same subjectId + cloDetails case-insensitive).
+          const toInsert = [];
+          const existingSet = new Set();
+          if (subjectIds.length > 0) {
+            try {
+            // Fetch existing CLOs for these subjects and normalize to lower-case to avoid case-sensitivity misses
+            const existing = await CLO.find({ subjectId: { $in: subjectIds } }).select('cloDetails subjectId');
+            (existing || []).forEach(e => existingSet.add(`${String(e.subjectId)}__${String(e.cloDetails || '').trim().toLowerCase()}`));
+            } catch (e) {
+              // ignore and proceed — we'll attempt insert and surface any DB errors
+            }
+          }
+
+          docs.forEach(d => {
+            const key = `${String(d.subjectId)}__${String(d.cloDetails).trim().toLowerCase()}`;
+            if (existingSet.has(key)) {
+              skippedCount += 1;
+            } else {
+              toInsert.push(d);
+            }
+          });
+
+          if (toInsert.length > 0) {
+            try {
+              const inserted = await CLO.insertMany(toInsert, { ordered: false });
+              insertedCount = Array.isArray(inserted) ? inserted.length : 0;
+            } catch (insertErr) {
+              // If duplicate key still occurs (race condition or leftover global index), capture and return a helpful error
+              if (insertErr && insertErr.code === 11000) {
+                console.error('bulkCreateCLOs duplicate key during insertMany:', insertErr);
+                return res.status(400).json({ success: false, message: 'Duplicate CLO detected during insert', detail: insertErr.message });
+              }
+              throw insertErr;
+            }
+          }
         }
       }
       const statusCode = (errors.length === 0 && (insertedCount > 0 || modifiedCount > 0)) ? 201 : 200;

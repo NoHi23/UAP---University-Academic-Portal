@@ -35,12 +35,31 @@ export default function ExcelImport({ subjectId: presetSubjectId, onImported, mo
         notifyError('Không tìm thấy dữ liệu trong file');
         return;
       }
-  const hdrs = Object.keys(parsed[0]);
-  // Debug: log parsed headers and a small preview of rows
-  console.log('Excel parsed headers:', hdrs);
-  console.log('Excel preview rows (first 10):', parsed.slice(0, 10));
-  setHeaders(hdrs);
-  setRows(parsed.slice(0, 200)); // preview up to 200 rows
+
+      // Clean parsed rows: remove keys that are empty or auto-generated like '__EMPTY' produced by SheetJS
+      const cleaned = parsed.map(row => {
+        const newRow = {};
+        Object.entries(row).forEach(([k, v]) => {
+          const keyName = String(k || '').trim();
+          if (!keyName) return; // skip blank header
+          // skip SheetJS auto-empty column names like '__EMPTY', '__EMPTY_1', etc.
+          if (keyName.toLowerCase().startsWith('__empty')) return;
+          newRow[keyName] = v;
+        });
+        return newRow;
+      }).filter(r => Object.keys(r).length > 0);
+
+      if (cleaned.length === 0) {
+        notifyError('File có vẻ chỉ chứa cột trống. Vui lòng kiểm tra lại.');
+        return;
+      }
+
+      const hdrs = Object.keys(cleaned[0]);
+      // Debug: log parsed headers and a small preview of rows
+      console.log('Excel parsed headers (cleaned):', hdrs);
+      console.log('Excel preview rows (first 10, cleaned):', cleaned.slice(0, 10));
+      setHeaders(hdrs);
+      setRows(cleaned.slice(0, 200)); // preview up to 200 rows
   setResult(null);
     };
     

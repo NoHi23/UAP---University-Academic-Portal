@@ -24,19 +24,27 @@ import AddIcon from "@mui/icons-material/Add";
 import staffAPI from "../../../api/staffAPI";
 import majorAPI from "../../../api/majorAPI"; // ✅ thêm dòng này
 import CreateStudentModal from "./CreateStudentModal";
-
+import UpdateStudentModal from "./UpdateStudentModal"; // Import modal update
 
 export default function StudentAccount() {
     const [students, setStudents] = useState([]);
-    const [majors, setMajors] = useState([]); // ✅ lưu danh sách chuyên ngành
+    const [majors, setMajors] = useState([]);
     const [search, setSearch] = useState("");
     const [filterMajor, setFilterMajor] = useState("");
     const [filterCourse, setFilterCourse] = useState("");
     const [loading, setLoading] = useState(true);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+    const [selectedStudentId, setSelectedStudentId] = useState(null); // To store the ID of the student to update
 
-    const handleCreate = () => setIsModalOpen(true);
-    const handleCloseModal = () => setIsModalOpen(false);
+    const handleCreate = () => setIsCreateModalOpen(true);
+    const handleCloseCreateModal = () => setIsCreateModalOpen(false);
+
+    const handleUpdate = (studentId) => {
+        setSelectedStudentId(studentId); // Set studentId for update
+        setIsUpdateModalOpen(true); // Open the update modal
+    };
+    const handleCloseUpdateModal = () => setIsUpdateModalOpen(false); // Close the update modal
 
     const reloadStudents = async () => {
         try {
@@ -47,13 +55,11 @@ export default function StudentAccount() {
         }
     };
 
-
-    // 🧩 Lấy danh sách sinh viên
     useEffect(() => {
         const fetchStudents = async () => {
             try {
                 const res = await staffAPI.listStudents();
-                setStudents(res.data.data || []); // ✅ Lấy đúng mảng trong res.data.data
+                setStudents(res.data.data || []);
                 console.log("Danh sách sinh viên:", res.data.data);
             } catch (err) {
                 console.error("Lỗi khi tải danh sách sinh viên:", err);
@@ -64,8 +70,6 @@ export default function StudentAccount() {
         fetchStudents();
     }, []);
 
-
-    // 🎓 Lấy danh sách chuyên ngành từ API
     useEffect(() => {
         const fetchMajors = async () => {
             try {
@@ -78,7 +82,6 @@ export default function StudentAccount() {
         fetchMajors();
     }, []);
 
-    // 🔍 Lọc dữ liệu
     const filteredStudents = students.filter((s) => {
         const fullName = `${s.firstName} ${s.lastName}`.toLowerCase();
         const matchesName = fullName.includes(search.toLowerCase());
@@ -86,8 +89,6 @@ export default function StudentAccount() {
         const matchesCourse = filterCourse ? s.semester === filterCourse : true;
         return matchesName && matchesMajor && matchesCourse;
     });
-
-    const handleEdit = (id) => alert("Open Edit Form cho student ID: " + id);
 
     return (
         <Box>
@@ -194,7 +195,7 @@ export default function StudentAccount() {
                                         <IconButton
                                             color="primary"
                                             size="small"
-                                            onClick={() => handleEdit(s._id)}
+                                            onClick={() => handleUpdate(s._id)}
                                         >
                                             <EditIcon />
                                         </IconButton>
@@ -211,7 +212,7 @@ export default function StudentAccount() {
                 <Fab
                     color="primary"
                     aria-label="add"
-                    onClick={handleCreate}
+                    onClick={() => setIsCreateModalOpen(true)}
                     sx={{
                         position: "fixed",
                         bottom: 40,
@@ -222,9 +223,17 @@ export default function StudentAccount() {
                     <AddIcon />
                 </Fab>
             </Tooltip>
+
+            {/* Modals */}
             <CreateStudentModal
-                isOpen={isModalOpen}
-                onClose={handleCloseModal}
+                isOpen={isCreateModalOpen}
+                onClose={handleCloseCreateModal}
+                onSuccess={reloadStudents}
+            />
+            <UpdateStudentModal
+                isOpen={isUpdateModalOpen}
+                onClose={handleCloseUpdateModal}
+                studentId={selectedStudentId}
                 onSuccess={reloadStudents}
             />
         </Box>

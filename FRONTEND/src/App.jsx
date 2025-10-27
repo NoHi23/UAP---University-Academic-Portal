@@ -140,7 +140,7 @@ function App() {
                   <Route path='evaluations' element={<Evaluations />} />
                   <Route path='enter-grades' element={<EnterGrades />} />
                   <Route path='student-grades' element={<StudentGrades />} />
-                  <Route path='attendance-list' element={<AttendanceList />} />  /*chưa xóa */
+                  <Route path='attendance-list' element={<AttendanceList />} />  {/*chưa xóa */}
                   <Route path="announcements" element={<LecturerAnnouncements />} />
                   <Route path='my-list-class-charge' element={<ClassesBySemesterPage />} />
                   <Route path="announcements/:id" element={<LecturerAnnouncementDetail />} />
