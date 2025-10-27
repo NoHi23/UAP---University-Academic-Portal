@@ -8,6 +8,7 @@ const { createSlotNotification } = require('../controllers/notificationControlle
 
 const { getAllSemesters } = require('../controllers/semesterController');
 const { getAllMajors } = require('../controllers/majorController');
+const { createSubject, getSubjects, getSubjectById, bulkCreateMaterials, bulkCreateCLOs, bulkCreateSessionMaterials, getCLOs, getSessionMaterials ,updateSubject } = require('../controllers/MaterialManagerController');
 
 
 router.use(verifyToken, authorize('staff', 'admin', 'lecturer'));
@@ -15,6 +16,11 @@ router.use(verifyToken, authorize('staff', 'admin', 'lecturer'));
 router.route('/materials')
     .post(authorize('staff', 'admin'), createMaterial)
     .get(getAllMaterials);
+router.post('/materials/bulk', authorize('staff', 'admin'), bulkCreateMaterials);
+router.post('/clos/bulk', authorize('staff', 'admin'), bulkCreateCLOs);
+router.post('/session-materials/bulk', authorize('staff', 'admin'), bulkCreateSessionMaterials);
+router.get('/clos', getCLOs);
+router.get('/session-materials', getSessionMaterials);
 router.route('/materials/:id')
     .put(authorize('staff', 'admin'), updateMaterial)
     .delete(authorize('staff', 'admin'), deleteMaterial);
@@ -29,5 +35,10 @@ router.post('/notifications/slots', createSlotNotification);
 
 router.get('/semesters', getAllSemesters);
 router.get('/majors', getAllMajors);
+// Create subject (used by Material Manager UI) - staff only
+router.get('/subjects', authorize('staff', 'admin'), getSubjects);
+router.post('/subjects', authorize('staff', 'admin'), createSubject);
+router.put('/subjects/:id', authorize('staff', 'admin'), updateSubject);
+router.get('/subjects/:id', authorize('staff', 'admin'), getSubjectById);
 
 module.exports = router;

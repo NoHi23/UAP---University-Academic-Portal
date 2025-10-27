@@ -5,7 +5,7 @@ const cloSchema = new Schema({
   cloDetails: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
   },
   loDetails: {
     type: String,
