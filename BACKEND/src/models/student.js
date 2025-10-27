@@ -39,6 +39,10 @@ const studentSchema = new Schema({
     type: String,
     required: true
   },
+  address: {
+    type: String,
+    required: true
+  },
   semester: {
     type: String
   },

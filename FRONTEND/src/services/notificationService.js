@@ -25,6 +25,13 @@ export const notifyError = (text = 'Đã có lỗi xảy ra.', title = 'Oops...'
         icon: 'error',
         title: title,
         text: text,
+        // Thiết lập z-index để thông báo lỗi xuất hiện trên modal
+        customClass: {
+            popup: 'swal-popup-error'  // Tạo lớp tùy chỉnh cho modal
+        },
+        willOpen: () => {
+            document.querySelector('.swal-popup-error').style.zIndex = 1050; // Thêm z-index để nó chồng lên modal
+        }
     });
 };
 
