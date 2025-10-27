@@ -16,6 +16,7 @@ import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import Modal from "../../../components/Modal/Modal";
 import staffAPI from "../../../api/staffAPI";
 import majorAPI from "../../../api/majorAPI";
+import curriculumAPI from "../../../api/curriculumAPI";  // import curriculumAPI
 import { notifySuccess, notifyError } from "../../../services/notificationService";
 
 const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/i;
@@ -29,18 +30,22 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
         citizenID: "",
         gender: "true",
         phone: "",
-        majorId: "",
-        curriculumId: "",
+        majorId: "",  // Ensure this is available
+        curriculumId: "",   // renamed curriculumId to Khung chương trình
         avatarBase64: "",
-        personalEmail: "", // 👈 NEW
+        personalEmail: "",
+        address: "",         // added address
+        dateOfBirth: ""
     });
     const [file, setFile] = useState(null);
     const [majors, setMajors] = useState([]);
+    const [curriculums, setCurriculums] = useState([]);  // state for curriculum data
     const [loading, setLoading] = useState(false);
     const [loadingMajors, setLoadingMajors] = useState(false);
+    const [loadingCurriculums, setLoadingCurriculums] = useState(false);  // loading for curriculum
     const [isDragging, setIsDragging] = useState(false);
 
-    // Lấy danh sách chuyên ngành
+    // Fetch Majors
     useEffect(() => {
         const fetchMajors = async () => {
             setLoadingMajors(true);
@@ -57,7 +62,24 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
         fetchMajors();
     }, []);
 
-    // Đọc file ảnh sang base64
+    // Fetch Curriculum
+    useEffect(() => {
+        const fetchCurriculums = async () => {
+            setLoadingCurriculums(true);
+            try {
+                const res = await curriculumAPI.getAll();
+                const curriculumList = res?.data?.data || res?.data || [];
+                setCurriculums(curriculumList);
+            } catch (err) {
+                console.error("❌ Lỗi khi tải danh sách khung chương trình:", err);
+            } finally {
+                setLoadingCurriculums(false);
+            }
+        };
+        fetchCurriculums();
+    }, []);
+
+    // Handle File Change (for avatar)
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -66,33 +88,34 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
         reader.readAsDataURL(file);
     };
 
+    // Handle form field changes
     const handleChange = (e) => {
         const { name, value } = e.target;
 
         if (name === "citizenID") {
             const regex = /^[0-9]*$/;
-            if (!regex.test(value)) return; // chỉ cho phép số
-            if (value.length > 12) return; // tối đa 12 số
+            if (!regex.test(value)) return;
+            if (value.length > 12) return;
         }
 
         if (name === "phone") {
             const regex = /^[0-9]*$/;
             if (!regex.test(value)) return;
-            if (value.length > 10) return; // tối đa 10 chữ số
+            if (value.length > 10) return;
         }
 
         if (name === "personalEmail" && value.length > 100) {
-            return; // tránh quá dài
+            return;
         }
 
         setForm((prev) => ({ ...prev, [name]: value }));
     };
 
-    // Gửi API tạo sinh viên thủ công
+    // Submit form manually (without Excel)
     const handleSubmitManual = async (e) => {
         e.preventDefault();
 
-        // Validate gmail đuôi @gmail.com
+        // Validate gmail format
         if (!isGmail(form.personalEmail)) {
             notifyError("Email cá nhân phải có đuôi @gmail.com");
             return;
@@ -106,6 +129,7 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
                 lastName: form.lastName.trim(),
                 personalEmail: form.personalEmail.trim().toLowerCase(),
                 gender: form.gender === "true",
+                dateOfBirth: form.dateOfBirth,
             };
             await staffAPI.createStudentAccount(payload);
             notifySuccess("Tạo sinh viên thành công!");
@@ -119,6 +143,7 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
         }
     };
 
+    // Drag & Drop handlers for Excel
     const handleDragOver = (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -152,7 +177,7 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
         }
     };
 
-    // Gửi file Excel để import
+    // Submit Excel file
     const handleSubmitExcel = async (e) => {
         e.preventDefault();
         if (!file) {
@@ -175,7 +200,7 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
         }
     };
 
-    // Giao diện upload file Excel
+    // Render Excel upload section
     const renderExcelUpload = () => (
         <Box
             onDragEnter={handleDragEnter}
@@ -242,7 +267,7 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
         </Box>
     );
 
-    // Form tạo sinh viên thủ công
+    // Render manual form
     const renderManualForm = () => (
         <form onSubmit={handleSubmitManual} className="create-student-form">
             <div className="form-grid">
@@ -305,6 +330,47 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
                     helperText={`${form.phone.length}/10 chữ số`}
                 />
 
+                <TextField
+                    label="Ngày sinh"
+                    name="dateOfBirth"
+                    type="date"
+                    value={form.dateOfBirth}
+                    onChange={handleChange}
+                    required
+                    size="small"
+                    InputLabelProps={{ shrink: true }}
+                />
+
+                {/* Chọn chuyên ngành (Major) */}
+                <FormControl fullWidth size="small" variant="outlined">
+                    <InputLabel id="major-label">Chuyên ngành</InputLabel>
+                    <Select
+                        labelId="major-label"
+                        name="majorId"
+                        value={form.majorId}
+                        label="Chuyên ngành"
+                        onChange={handleChange}
+                        MenuProps={{
+                            disableEnforceFocus: true,
+                            disablePortal: true,
+                        }}
+                    >
+                        {loadingMajors ? (
+                            <MenuItem disabled>
+                                <CircularProgress size={20} sx={{ mr: 1 }} /> Đang tải...
+                            </MenuItem>
+                        ) : majors && majors.length > 0 ? (
+                            majors.map((m) => (
+                                <MenuItem key={m._id || m.id} value={m._id || m.id}>
+                                    {m.name || m.title || m.majorName || "Untitled"}
+                                </MenuItem>
+                            ))
+                        ) : (
+                            <MenuItem disabled>Không có dữ liệu</MenuItem>
+                        )}
+                    </Select>
+                </FormControl>
+
                 {/* NEW: Email cá nhân (chỉ chấp nhận @gmail.com) */}
                 <TextField
                     label="Email cá nhân"
@@ -323,28 +389,28 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
                     }
                 />
 
+                {/* Chọn khung chương trình */}
                 <FormControl fullWidth size="small" variant="outlined">
-                    <InputLabel id="major-label">Chuyên ngành</InputLabel>
+                    <InputLabel id="curriculum-label">Khung chương trình</InputLabel>
                     <Select
-                        labelId="major-label"
-                        name="majorId"
-                        value={form.majorId}
-                        label="Chuyên ngành"
+                        labelId="curriculum-label"
+                        name="curriculumId"
+                        value={form.curriculumId}
+                        label="Khung chương trình"
                         onChange={handleChange}
-                        disabled={loadingMajors}
                         MenuProps={{
                             disableEnforceFocus: true,
                             disablePortal: true,
                         }}
                     >
-                        {loadingMajors ? (
+                        {loadingCurriculums ? (
                             <MenuItem disabled>
                                 <CircularProgress size={20} sx={{ mr: 1 }} /> Đang tải...
                             </MenuItem>
-                        ) : majors.length > 0 ? (
-                            majors.map((m) => (
-                                <MenuItem key={m._id} value={m._id}>
-                                    {m.majorName}
+                        ) : curriculums.length > 0 ? (
+                            curriculums.map((c) => (
+                                <MenuItem key={c._id || c.curriculumId || c.id} value={c._id || c.curriculumId || c.id}>
+                                    {c.curriculumName || c.name || c.title || c.curriculumName || "Untitled"}
                                 </MenuItem>
                             ))
                         ) : (
@@ -353,13 +419,16 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
                     </Select>
                 </FormControl>
 
+                {/* Thêm địa chỉ */}
                 <TextField
-                    label="Curriculum ID"
-                    name="curriculumId"
-                    value={form.curriculumId}
+                    label="Địa chỉ"
+                    name="address"
+                    value={form.address}
                     onChange={handleChange}
                     required
                     size="small"
+                    multiline
+                    rows={3}
                 />
 
                 <div style={{ gridColumn: "1 / span 2" }}>

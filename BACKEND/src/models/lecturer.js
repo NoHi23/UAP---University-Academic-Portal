@@ -38,6 +38,14 @@ const lecturerSchema = new Schema({
     type: String,
     required: true
   },
+  address: {
+    type: String,
+    required: true
+  },
+  dateOfBirth: {
+    type: Date,
+    required: true
+  },
   semester: {
     type: String
   },

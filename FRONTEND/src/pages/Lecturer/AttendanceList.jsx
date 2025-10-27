@@ -95,6 +95,12 @@ const AttendanceList = () => {
   }, [selectedSemester]);
 
   return (
+<<<<<<< HEAD
+    <div>
+      <h2>Danh sách điểm danh</h2>
+      <p>Danh sách điểm danh theo buổi/học phần</p>
+    </div>
+=======
     <Box sx={{ p: 3 }}>
       <Typography variant="h5" sx={{ mb: 2 }}>Danh sách điểm danh (theo học kỳ)</Typography>
 
@@ -287,6 +293,7 @@ const AttendanceList = () => {
         </DialogContent>
       </Dialog>
     </Box>
+>>>>>>> 345a50dcfb1b50bbf4f6c3dba8ad796e44230aee
   );
 };
 
