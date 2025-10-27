@@ -2,6 +2,10 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const sessionMaterialSchema = new Schema({
+  session:{
+    type: Number,
+    required: true
+  },
   topic: {
     type: String,
     required: true,
@@ -11,15 +15,13 @@ const sessionMaterialSchema = new Schema({
     type: String 
   },
   itu: {
-    type: Number
+    type: String
   },
   studentMaterial: {
-    type: Boolean,
-    default: true
+    type: String
   },
   downloadable: {
-    type: Boolean,
-    default: false
+    type: String
   },
   studentTask: {
     type: String
@@ -27,10 +29,10 @@ const sessionMaterialSchema = new Schema({
   urls: {
     type: [String] 
   },
-  cloId: {
-    type: Schema.Types.ObjectId,
-    ref: 'CLO', 
-    required: true
+  learningOutcomes: {
+    type: [String],
+    required: true,
+    default: []
   },
   subjectId: {
     type: Schema.Types.ObjectId,

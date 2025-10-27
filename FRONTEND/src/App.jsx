@@ -46,6 +46,8 @@ import LectureAccount from './pages/Staff/accountManagement/LectureAccount';
 import SupportRequestList from './pages/Staff/SupportRequest/RequestList';
 import AnswerSupport from './pages/Staff/SupportRequest/Answer';
 import SchedulingPage from './pages/Staff/SchedulingPage/SchedulingPage';
+import MaterialManager from './pages/Staff/MaterialManager';
+import SubjectDetail from './pages/Staff/MaterialManager/SubjectDetail';
 
 import LecturerTimetablePage from './pages/Lecturer/LecturerTimetablePage';
 import AttendancePage from './pages/Lecturer/AttendancePage';
@@ -122,6 +124,8 @@ function App() {
                   <Route path="supports" element={<SupportRequestList />} />
                   <Route path="support/:id" element={<AnswerSupport />} />
                   <Route path="scheduling" element={<SchedulingPage />} />
+                  <Route path="material" element={<MaterialManager />} />
+                    <Route path="material/:id" element={<SubjectDetail />} />
 
                   <Route path="/staff/absence" element={<AbsenceList />} />
                   <Route path="/staff/absence/:id" element={<AbsenceReview />} />

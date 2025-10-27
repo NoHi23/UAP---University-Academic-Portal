@@ -8,7 +8,7 @@ const materialSchema = new Schema({
   },
   author: {
     type: String,
-    required: true
+    trim: true
   },
   publisher: {
     type: String
