@@ -9,7 +9,7 @@ const scheduleOfStudentSchema = new Schema({
     scheduleId: { type: Schema.Types.ObjectId, ref: 'Schedule' },
     status: {
       type: String,
-      enum: ['Not Yet', 'Present', 'Absent', 'Excused'],
+      enum: ['Not Yet', 'Present', 'Absent'],
       default: 'Not Yet'
     },
     note: String

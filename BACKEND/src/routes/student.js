@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const { verifyToken, authorize } = require('../middleware/authorization');
-const { getMyWeeklySchedule } = require('../controllers/student')
+const { getMyWeeklySchedule, getMyClassmates } = require('../controllers/student')
 const { getStudentMaterials } = require('../controllers/material');
 const { createPaymentUrl, getTransactionHistory, getTuitionInfo } = require('../controllers/paymentController');
 const { submitRequest, getMyRequests } = require('../controllers/requestController');
 const { getEvaluableClasses, submitEvaluation } = require('../controllers/evaluationController');
-const { getMySlotNotifications } = require('../controllers/notificationController');
+const { getMySlotNotifications, getNotificationsForSlot } = require('../controllers/notificationController');
 const { getProfile, updateProfile } = require('../controllers/student');
 
 router.use(verifyToken, authorize('student'));
@@ -31,5 +31,8 @@ router.post('/evaluations', submitEvaluation);
 
 router.get('/notifications/slots', getMySlotNotifications);
 
+router.get('/classes/:classId/classmates', getMyClassmates);
+
+router.get('/notifications/slot/:scheduleId', getNotificationsForSlot);
 
 module.exports = router;

@@ -65,6 +65,9 @@ import ClassesBySemesterPage from './pages/Lecturer/ClassesBySemester/Index';
 import SupportRequestPage from './pages/Lecturer/SupportRequest';
 
 
+import ManualClassPage from './pages/Staff/ManualClassPage';
+import StudentClassmatesPage from './pages/Student/StudentClassmatesPage';
+import StudentSlotNotificationPage from './pages/Student/StudentSlotNotificationPage';
 function App() {
   const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
@@ -116,6 +119,8 @@ function App() {
                   <Route path="/student/schedule" element={<StudentTimetablePage />} />
                   <Route path="/student/absence" element={<RequestAbsenceList />} />
                   <Route path="/student/absence/new" element={<RequestAbsenceCreate />} />
+                  <Route path="/student/classmates/:classId" element={<StudentClassmatesPage />} />
+                  <Route path="/student/notifications/slot/:scheduleId" element={<StudentSlotNotificationPage />} />
                 </Route>
                 <Route path="/staff/" element={<StaffLayout />}>
                   <Route path="dashboard" element={<StaffLayout />} />
@@ -127,8 +132,9 @@ function App() {
                   <Route path="material" element={<MaterialManager />} />
                     <Route path="material/:id" element={<SubjectDetail />} />
 
-                  <Route path="/staff/absence" element={<AbsenceList />} />
-                  <Route path="/staff/absence/:id" element={<AbsenceReview />} />
+                  <Route path="absence" element={<AbsenceList />} />
+                  <Route path="absence/:id" element={<AbsenceReview />} />
+                  <Route path="manual-class" element={<ManualClassPage />} />
                 </Route>
 
                 <Route path="/lecturer/" element={<LecturerLayout />}>
