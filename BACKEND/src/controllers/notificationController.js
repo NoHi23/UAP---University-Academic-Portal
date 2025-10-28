@@ -1,7 +1,8 @@
+
 const SlotNotification = require('../models/slotNotificationModel');
-const ScheduleOfStudent = require('../models/scheduleOfStudent');
 const Student = require('../models/student');
 const Schedule = require('../models/schedule');
+const ScheduleOfStudent = require('../models/ScheduleOfStudent');
 
 const getMySlotNotifications = async (req, res) => {
     try {
