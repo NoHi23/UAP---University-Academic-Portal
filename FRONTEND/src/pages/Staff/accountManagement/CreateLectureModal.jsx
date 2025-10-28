@@ -29,6 +29,7 @@ const CreateLecturerModal = ({ isOpen, onClose, onSuccess }) => {
         majorId: "",
         curriculumId: "",
         lecturerAvatar: "",
+        dateOfBirth: "",
     });
 
     const [file, setFile] = useState(null);
@@ -79,7 +80,7 @@ const CreateLecturerModal = ({ isOpen, onClose, onSuccess }) => {
         e.preventDefault();
         setLoading(true);
         try {
-            const payload = { ...form, gender: form.gender === "true" };
+            const payload = { ...form, gender: form.gender === "true", dateOfBirth: form.dateOfBirth };
             await staffAPI.createLecturerAccount(payload);
             notifySuccess("Tạo giảng viên thành công!");
             onSuccess?.();
@@ -240,6 +241,17 @@ const CreateLecturerModal = ({ isOpen, onClose, onSuccess }) => {
                     required
                     size="small"
                     helperText={`${form.phone.length}/10 chữ số`}
+                />
+
+                <TextField
+                    label="Ngày sinh"
+                    name="dateOfBirth"
+                    type="date"
+                    value={form.dateOfBirth}
+                    onChange={handleChange}
+                    required
+                    size="small"
+                    InputLabelProps={{ shrink: true }}
                 />
 
                 <FormControl fullWidth size="small" variant="outlined">

@@ -12,9 +12,10 @@ code {
     monospace;
 }
 
+
 .swal2-container {
-  z-index: 1700 !important;
-  /* > Tooltip(1500), Snackbar(1400), Modal(1300) */
+  z-index: 2200 !important;
+  /* > Tooltip(1500), Snackbar(1400), Modal(1300), Modal overlay(2000) */
 }
 
 /* Dời toast xuống dưới AppBar 55px (có padding nhẹ) */
@@ -22,4 +23,10 @@ code {
 .swal2-container.swal2-top-right {
   top: 64px !important;
   /* 55px AppBar + ~9px đệm */
+}
+
+/* Đảm bảo rằng thông báo lỗi luôn nằm trên modal */
+.swal-popup-error {
+  z-index: 2300 !important;
+  /* Đảm bảo thông báo lỗi xuất hiện trên modal và overlay */
 }
