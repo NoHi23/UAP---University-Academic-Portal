@@ -3,7 +3,7 @@ import { AuthContext } from '../../context/AuthContext';
 import {
     Paper, Typography, Box, Table, TableBody, TableCell,
     TableContainer, TableHead, TableRow, Container, CircularProgress,
-    IconButton, Card, CardContent, FormControl, InputLabel, Select, MenuItem
+    IconButton, Card, CardContent, FormControl, InputLabel, Select, MenuItem, Chip
 } from '@mui/material';
 import { ChevronLeft, ChevronRight, LocationOn, Schedule as ScheduleIcon } from '@mui/icons-material';
 import dayjs from 'dayjs';
@@ -13,6 +13,8 @@ import './StudentTimetablePage.css';
 import api from '../../services/api';
 import { generateWeeksOfYearSimple } from '../Lecturer/ScheduleLecturePages/functionCreatWeek'; // Giả sử hàm này đúng
 import StudentActivityModal from './StudentActivityModal';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { Link } from 'react-router-dom';
 
 dayjs.locale('vi');
 dayjs.extend(isBetween);
@@ -22,9 +24,9 @@ const StudentTimetablePage = () => {
     const [timetable, setTimetable] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    
-    const [currentDate, setCurrentDate] = useState(dayjs()); 
-    
+
+    const [currentDate, setCurrentDate] = useState(dayjs());
+
     const [year, setYear] = useState(dayjs().year());
     const [weeks, setWeeks] = useState(() => generateWeeksOfYearSimple(dayjs().year()));
     const { user } = useContext(AuthContext);
@@ -62,11 +64,11 @@ const StudentTimetablePage = () => {
         { slot: 3, time: '12:50-15:10' }, { slot: 4, time: '15:20-17:40' },
         { slot: 5, time: '18:00-20:20' }, { slot: 6, time: '20:30-22:50' }
     ];
-    
+
     const startOfWeek = currentDate.startOf('week');
     const daysOfWeek = Array.from({ length: 7 }, (_, i) => startOfWeek.add(i, 'day'));
-    
-    const currentWeekInfo = weeks.find(w => 
+
+    const currentWeekInfo = weeks.find(w =>
         currentDate.isBetween(dayjs(w.from, 'DD/MM/YYYY'), dayjs(w.to, 'DD/MM/YYYY'), 'day', '[]')
     );
 
@@ -83,6 +85,20 @@ const StudentTimetablePage = () => {
         return grid;
     };
 
+    const getCardClass = (status) => {
+        switch (status) {
+            case 'Present':
+                return 'present';
+            case 'Absent':
+                return 'absent';
+            case 'Excused':
+                return 'excused';
+            case 'Not Yet':
+            default:
+                return 'not-yet';
+        }
+    };
+
     const scheduleGrid = organizeScheduleGrid(timetable);
 
     if (loading) return <Container sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}><CircularProgress /></Container>;
@@ -90,10 +106,18 @@ const StudentTimetablePage = () => {
 
     return (
         <Container maxWidth="xl" sx={{ py: 3 }}>
+
             <Paper elevation={3} sx={{ p: 3 }}>
+                <IconButton
+                    component={Link}
+                    to="/student/dashboard"
+                    sx={{ mb: 2, position: 'absolute', top: 26, left: 30 }}
+                >
+                    <ArrowBackIcon />
+                </IconButton>
+                <br />
                 <Typography variant="h4" fontWeight={600} mb={3}>Thời khóa biểu theo tuần</Typography>
-                
-                {/* --- KHỐI ĐIỀU KHIỂN --- */}
+
                 <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
                     <FormControl size="small" sx={{ minWidth: 110 }}>
                         <InputLabel>Năm</InputLabel>
@@ -140,7 +164,7 @@ const StudentTimetablePage = () => {
                                 <TableCell sx={{ fontWeight: 'bold', width: '10%', textAlign: 'center' }}>SLOT</TableCell>
                                 {daysOfWeek.map(day => (
                                     <TableCell key={day.format('ddd')} sx={{ fontWeight: 'bold', textAlign: 'center' }}>
-                                        {day.format('ddd').toUpperCase()}<br/>{day.format('DD/MM')}
+                                        {day.format('ddd').toUpperCase()}<br />{day.format('DD/MM')}
                                     </TableCell>
                                 ))}
                             </TableRow>
@@ -149,7 +173,7 @@ const StudentTimetablePage = () => {
                             {timeSlots.map((slotInfo, slotIndex) => (
                                 <TableRow key={slotInfo.slot}>
                                     <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', borderRight: 1, borderColor: 'divider' }}>
-                                        Slot {slotInfo.slot}<br/>
+                                        Slot {slotInfo.slot}<br />
                                         <Typography variant="caption">{slotInfo.time}</Typography>
                                     </TableCell>
                                     {daysOfWeek.map((day, dayIndex) => {
@@ -157,13 +181,13 @@ const StudentTimetablePage = () => {
                                         return (
                                             <TableCell key={dayIndex} className="schedule-cell">
                                                 {scheduleItem && (
-                                                            <Card className="schedule-card success" sx={{ cursor: 'pointer' }} onClick={() => { setSelectedSchedule(scheduleItem); setShowModal(true); }}>
-                                                                <CardContent>
-                                                                    <Typography className="card-code">{scheduleItem.subjectId.subjectCode}</Typography>
-                                                                    <Typography className="card-time"><ScheduleIcon /> {scheduleItem.startTime} - {scheduleItem.endTime}</Typography>
-                                                                    <Typography className="card-room"><LocationOn /> {scheduleItem.roomId.roomName}</Typography>
-                                                                </CardContent>
-                                                            </Card>
+                                                    <Card className={`schedule-card ${getCardClass(scheduleItem.attendanceStatus)}`} onClick={() => { setSelectedSchedule(scheduleItem); setShowModal(true); }}>
+                                                        <CardContent>
+                                                            <Typography className="card-code">{scheduleItem.subjectId.subjectCode}</Typography>
+                                                            <Typography className="card-time"><ScheduleIcon /> {scheduleItem.startTime} - {scheduleItem.endTime}</Typography>
+                                                            <Typography className="card-room"><LocationOn /> {scheduleItem.roomId.roomName}</Typography>
+                                                        </CardContent>
+                                                    </Card>
                                                 )}
                                             </TableCell>
                                         );
@@ -173,8 +197,14 @@ const StudentTimetablePage = () => {
                         </TableBody>
                     </Table>
                 </TableContainer>
-                        {/* Student activity modal - opens when a slot is clicked. */}
-                        <StudentActivityModal open={showModal} onClose={() => setShowModal(false)} schedule={selectedSchedule} />
+
+                <Box sx={{ mt: 2, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <Typography variant="caption" color="text.secondary">Trạng thái:</Typography>
+                    <Chip size="small" label="Có mặt" className="legend-chip present" />
+                    <Chip size="small" label="Vắng" className="legend-chip absent" />
+                    <Chip size="small" label="Chưa điểm danh / Sắp tới" className="legend-chip not-yet" />
+                </Box>
+                <StudentActivityModal open={showModal} onClose={() => setShowModal(false)} schedule={selectedSchedule} />
             </Paper>
         </Container>
     );

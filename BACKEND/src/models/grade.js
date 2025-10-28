@@ -20,7 +20,7 @@ const gradeSchema = new Schema({
   },
   componentId: {
     type: Schema.Types.ObjectId,
-    ref: 'Component', 
+    ref: 'GradeComponent', 
     required: true
   }
 }, {

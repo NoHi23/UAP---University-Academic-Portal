@@ -47,7 +47,8 @@ export const AuthProvider = ({ children }) => {
 
     localStorage.setItem('token', token);
     setUser(user);
-
+     console.log("h: ", user);
+     
     if (isRequired) {
       setPasswordChangeRequired(true);
     } else {

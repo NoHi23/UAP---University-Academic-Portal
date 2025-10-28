@@ -10,6 +10,11 @@ const { getAllSemesters } = require('../controllers/semesterController');
 const { getAllMajors } = require('../controllers/majorController');
 const { createSubject, getSubjects, getSubjectById, bulkCreateMaterials, bulkCreateCLOs, bulkCreateSessionMaterials, getCLOs, getSessionMaterials ,updateSubject } = require('../controllers/MaterialManagerController');
 
+const { getEligibleStudentsForManualEnroll, createManualClass, enrollStudentsManually } = require('../controllers/staff')
+const {
+    getAllSubjects,
+    getAllRooms
+} = require('../controllers/semesterController');
 
 router.use(verifyToken, authorize('staff', 'admin', 'lecturer'));
 
@@ -40,5 +45,12 @@ router.get('/subjects', authorize('staff', 'admin'), getSubjects);
 router.post('/subjects', authorize('staff', 'admin'), createSubject);
 router.put('/subjects/:id', authorize('staff', 'admin'), updateSubject);
 router.get('/subjects/:id', authorize('staff', 'admin'), getSubjectById);
+
+router.get('/eligible-students', getEligibleStudentsForManualEnroll);
+router.post('/classes/manual', createManualClass);
+router.post('/classes/:classId/enroll-manual', enrollStudentsManually);
+router.get('/subjects', getAllSubjects);   
+router.get('/rooms', getAllRooms);
+
 
 module.exports = router;
