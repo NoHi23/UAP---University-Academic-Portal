@@ -260,7 +260,6 @@ const getClassList = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
-
 const getMyWeeklySchedule = async (req, res) => {
     try {
         const student = await Student.findOne({ accountId: req.user.id });
@@ -270,35 +269,93 @@ const getMyWeeklySchedule = async (req, res) => {
 
         const targetDate = req.query.date ? new Date(req.query.date) : new Date();
 
-        const dayOfWeek = targetDate.getDay(); // 0=CN, 1=T2,...
+        const dayOfWeek = targetDate.getDay();
         const firstDay = new Date(targetDate);
-        firstDay.setDate(targetDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1)); // Lấy ngày Thứ Hai
-
+        firstDay.setDate(targetDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1));
         const lastDay = new Date(firstDay);
-        lastDay.setDate(firstDay.getDate() + 6); // Lấy ngày Chủ Nhật
+        lastDay.setDate(firstDay.getDate() + 6);
 
         firstDay.setHours(0, 0, 0, 0);
         lastDay.setHours(23, 59, 59, 999);
-        // ------------------------------------
 
         const studentEnrollments = await ScheduleOfStudent.find({ studentId: student._id });
+        if (!studentEnrollments || studentEnrollments.length === 0) {
+            return res.status(200).json({ success: true, data: [] });
+        }
+
         const enrolledClassIds = studentEnrollments.map(e => e.classId);
 
         const schedules = await Schedule.find({
             classId: { $in: enrolledClassIds },
-            date: { $gte: firstDay, $lte: lastDay } // Điều kiện date vẫn giữ nguyên
+            date: { $gte: firstDay, $lte: lastDay }
         })
             .populate('subjectId', 'subjectName subjectCode')
             .populate('lecturerId', 'firstName lastName email lecturerCode')
             .populate('roomId', 'roomName')
             .populate('classId', 'className')
-            .sort({ date: 1, slot: 1 });
+            .sort({ date: 1, slot: 1 })
+            .lean();
 
-        res.status(200).json({ success: true, data: schedules });
+        const schedulesWithAttendance = schedules.map(schedule => {
+            const enrollmentForThisClass = studentEnrollments.find(e => e.classId.equals(schedule.classId._id));
+
+            let attendanceStatus = 'Not Yet';
+            if (enrollmentForThisClass) {
+                const attendanceRecord = enrollmentForThisClass.attendance.find(att =>
+                    att.scheduleId && att.scheduleId.equals(schedule._id)
+                );
+                if (attendanceRecord) {
+                    attendanceStatus = attendanceRecord.status;
+                }
+            }
+
+            return {
+                ...schedule,
+                attendanceStatus: attendanceStatus
+            };
+        });
+        res.status(200).json({ success: true, data: schedulesWithAttendance });
 
     } catch (error) {
         console.error("Lỗi khi lấy lịch học của sinh viên:", error);
         res.status(500).json({ success: false, message: 'Lỗi máy chủ' });
+    }
+};
+
+const getMyClassmates = async (req, res) => {
+    try {
+        const { classId } = req.params;
+        const student = await Student.findOne({ accountId: req.user.id });
+        if (!student) return res.status(404).json({ message: "Không tìm thấy sinh viên." });
+
+        const targetClass = await Class.findById(classId).select('className');
+        if (!targetClass) {
+            return res.status(404).json({ message: "Không tìm thấy lớp học này." });
+        }
+
+        const isEnrolled = await ScheduleOfStudent.exists({ studentId: student._id, classId: classId });
+        if (!isEnrolled) {
+            return res.status(403).json({ message: "Bạn không thuộc lớp học này." });
+        }
+
+        const enrollments = await ScheduleOfStudent.find({ classId: classId })
+            .populate({
+                path: 'studentId',
+                select: 'studentCode firstName lastName studentAvatar'
+            });
+
+        const students = enrollments.map(e => e.studentId);
+
+        res.status(200).json({
+            success: true,
+            count: students.length,
+            data: students,
+            className: targetClass.className 
+        });
+
+    } catch (error) {
+        console.error("Lỗi khi lấy danh sách bạn học:", error);
+        res.status(500).json({ success: false, message: 'Lỗi server' });
     }
 };
 
@@ -310,5 +367,6 @@ module.exports = {
     getGradesReport,
     getTranscript,
     getClassList,
-    getMyWeeklySchedule
+    getMyWeeklySchedule,
+    getMyClassmates
 };

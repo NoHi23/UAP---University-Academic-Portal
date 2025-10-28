@@ -8,6 +8,13 @@ const Account = require('../models/account');
 const Student = require('../models/student');
 const Lecturer = require('../models/lecturer');
 const Major = require('../models/major');
+const Class = require('../models/class')
+const Curriculum = require('../models/curriculum')
+const Subject = require('../models/subject')
+const CurriculumDetail = require('../models/curriculumDetail');
+const Schedule = require('../models/schedule');
+const ScheduleOfStudent = require('../models/scheduleOfStudent');
+
 
 const {
     computeSemesterNo,
@@ -18,6 +25,7 @@ const {
     isValidImageDataUri,
     pick
 } = require('../helpers/staff.helpers');
+const subject = require('../models/subject');
 
 // ==========STUDENT=============
 
@@ -889,6 +897,135 @@ const resetPassword = async (req, res) => {
 
 
 
+const getEligibleStudentsForManualEnroll = async (req, res) => {
+    try {
+        const { subjectId, semesterId } = req.query;
+        if (!subjectId || !semesterId) {
+            return res.status(400).json({ message: 'Vui lòng cung cấp môn học và học kỳ.' });
+        }
+
+        const subject = await Subject.findById(subjectId);
+        if (!subject) return res.status(404).json({ message: 'Không tìm thấy môn học.' });
+        const curriculum = await Curriculum.findOne({ majorId: subject.majorId, status: 'active' });
+        if (!curriculum) return res.status(404).json({ message: 'Không tìm thấy chương trình học.' });
+        // Tìm kỳ học mục tiêu dựa trên môn học này
+        const detail = await CurriculumDetail.findOne({ curriculumId: curriculum._id, subjectId: subjectId });
+        if (!detail) return res.status(404).json({ message: 'Môn học không thuộc chương trình học.' });
+        const targetSemester = parseInt(detail.cdSemester);
+
+        // Tìm tất cả sinh viên trong chuyên ngành
+        const studentsInMajor = await Student.find({ majorId: subject.majorId });
+
+        // Lọc sinh viên đủ điều kiện tiên quyết
+        let eligibleStudents = [];
+        for (const student of studentsInMajor) {
+            const currentSemesterNo = student.semesterNo || 0;
+            if (currentSemesterNo + 1 === targetSemester) { // Chỉ xét SV đúng kỳ
+                const hasPassed = await checkPrerequisites(student._id, targetSemester, curriculum._id);
+                if (hasPassed) {
+                    eligibleStudents.push(student);
+                }
+            }
+        }
+
+        // Tìm những sinh viên đã có lịch học môn này trong kỳ này
+        const existingSchedules = await Schedule.find({ subjectId, semesterId }).select('classId');
+        const existingClassIds = existingSchedules.map(s => s.classId);
+        const alreadyEnrolledStudents = await ScheduleOfStudent.find({ classId: { $in: existingClassIds } }).select('studentId');
+        const alreadyEnrolledStudentIds = new Set(alreadyEnrolledStudents.map(e => e.studentId.toString()));
+
+        // Lọc ra những sinh viên chưa được ghi danh
+        const availableStudents = eligibleStudents.filter(student => !alreadyEnrolledStudentIds.has(student._id.toString()));
+
+        res.status(200).json({ success: true, data: availableStudents });
+
+    } catch (error) {
+        console.error("Lỗi khi tìm sinh viên đủ điều kiện:", error);
+        res.status(500).json({ success: false, message: 'Lỗi server.' });
+    }
+};
+
+
+const createManualClass = async (req, res) => {
+    try {
+        const { className, subjectId, roomId, lecturerId } = req.body;
+        if (!className || !subjectId || !roomId || !lecturerId) {
+            return res.status(400).json({ message: 'Vui lòng cung cấp đủ thông tin lớp học.' });
+        }
+
+        // Kiểm tra trùng tên lớp (có thể thêm kiểm tra cả subjectId)
+        const existingClass = await Class.findOne({ className });
+        if (existingClass) {
+            return res.status(400).json({ message: 'Tên lớp này đã tồn tại.' });
+        }
+
+        const newClass = new Class({
+            className,
+            subjectId,
+            roomId,
+            lecturerId,
+            // status có thể để mặc định là true
+        });
+        await newClass.save();
+
+        res.status(201).json({ success: true, message: 'Tạo lớp thủ công thành công.', data: newClass });
+
+    } catch (error) {
+        console.error("Lỗi khi tạo lớp thủ công:", error);
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({ message: 'Dữ liệu không hợp lệ.', errors: error.errors });
+        }
+        res.status(500).json({ success: false, message: 'Lỗi server.' });
+    }
+};
+
+const enrollStudentsManually = async (req, res) => {
+    try {
+        const { classId } = req.params;
+        const { studentIds } = req.body;
+
+        if (!studentIds || !Array.isArray(studentIds)) {
+            return res.status(400).json({ message: 'Vui lòng cung cấp danh sách ID sinh viên.' });
+        }
+        if (studentIds.length > 30) {
+            return res.status(400).json({ message: 'Số lượng sinh viên không được vượt quá 30.' });
+        }
+
+        const targetClass = await Class.findById(classId);
+        if (!targetClass) {
+            return res.status(404).json({ message: 'Không tìm thấy lớp học.' });
+        }
+
+        // Kiểm tra xem các sinh viên có hợp lệ không (có thể thêm kiểm tra đã enroll chưa)
+        const validStudents = await Student.find({ _id: { $in: studentIds } });
+        if (validStudents.length !== studentIds.length) {
+            return res.status(400).json({ message: 'Một hoặc nhiều ID sinh viên không hợp lệ.' });
+        }
+
+        // Tạo các bản ghi ScheduleOfStudent
+        const enrollmentPromises = studentIds.map(studentId => {
+            return ScheduleOfStudent.create({
+                studentId: studentId,
+                classId: classId,
+                attendance: [] // Mảng điểm danh ban đầu rỗng
+            });
+        });
+
+        await Promise.all(enrollmentPromises);
+
+        res.status(200).json({ success: true, message: `Đã ghi danh ${studentIds.length} sinh viên vào lớp ${targetClass.className}.` });
+
+    } catch (error) {
+        console.error("Lỗi khi ghi danh thủ công:", error);
+        // Bắt lỗi unique nếu sinh viên đã được ghi danh vào lớp này rồi
+        if (error.code === 11000) {
+            return res.status(400).json({ message: 'Một hoặc nhiều sinh viên đã tồn tại trong lớp này.' });
+        }
+        res.status(500).json({ success: false, message: 'Lỗi server.' });
+    }
+};
+
+
 
 module.exports = {
     //STUDENT
@@ -905,5 +1042,8 @@ module.exports = {
     listLecturers,
     updateLecturer,
     deleteLecturer,
-    resetPassword
+    resetPassword,
+    getEligibleStudentsForManualEnroll,
+    createManualClass,
+    enrollStudentsManually
 };

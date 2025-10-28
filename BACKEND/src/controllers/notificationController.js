@@ -17,14 +17,14 @@ const getMySlotNotifications = async (req, res) => {
             .populate({
                 path: 'scheduleId',
                 select: 'classId subjectId timeSlotId weekId',
-                populate: [ 
+                populate: [
                     { path: 'classId', select: 'className' },
                     { path: 'subjectId', select: 'subjectName subjectCode' },
                     { path: 'timeSlotId', select: 'slot startDate endDate' },
                     { path: 'weekId', select: 'startDate endDate' }
                 ]
             })
-            .populate('senderId', 'email role') 
+            .populate('senderId', 'email role')
             .sort({ createdAt: -1 });
 
         res.status(200).json({ success: true, count: notifications.length, data: notifications });
@@ -34,11 +34,42 @@ const getMySlotNotifications = async (req, res) => {
     }
 };
 
+const getNotificationsForSlot = async (req, res) => {
+    try {
+        const { scheduleId } = req.params;
+        const studentId = req.user.id;
+
+        const schedule = await Schedule.findById(scheduleId).select('classId').lean();
+        if (!schedule) {
+            return res.status(404).json({ message: 'Không tìm thấy buổi học.' });
+        }
+
+        const isEnrolled = await ScheduleOfStudent.exists({
+            studentId: studentId,
+            classId: schedule.classId
+        });
+
+        if (!isEnrolled) {
+            return res.status(403).json({ message: 'Bạn không có quyền xem thông báo của lớp này.' });
+        }
+
+        const notifications = await SlotNotification.find({ scheduleId: scheduleId })
+            .populate('senderId', 'email')
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({ success: true, count: notifications.length, data: notifications });
+
+    } catch (error) {
+        console.error("Lỗi khi lấy thông báo slot:", error);
+        res.status(500).json({ success: false, message: 'Lỗi server' });
+    }
+};
+
 
 const createSlotNotification = async (req, res) => {
     try {
         const { scheduleId, title, content } = req.body;
-        const senderId = req.user.id; 
+        const senderId = req.user.id;
 
         const schedule = await Schedule.findById(scheduleId);
         if (!schedule) {
@@ -51,7 +82,7 @@ const createSlotNotification = async (req, res) => {
             content,
             senderId
         });
-        
+
         res.status(201).json({ success: true, message: "Tạo thông báo thành công.", data: notification });
 
     } catch (error) {
@@ -61,5 +92,6 @@ const createSlotNotification = async (req, res) => {
 
 module.exports = {
     getMySlotNotifications,
-    createSlotNotification
+    createSlotNotification,
+    getNotificationsForSlot
 };

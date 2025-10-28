@@ -13,7 +13,6 @@ const scheduleSchema = new Schema({
   startTime: { type: String, required: true }, // Ví dụ: "07:30"
   endTime: { type: String, required: true }
   ,
-  // whether attendance for this schedule has been completed (all students marked)
   attendanceCompleted: { type: Boolean, default: false }
 }, { timestamps: true });
 

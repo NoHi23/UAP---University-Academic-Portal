@@ -8,7 +8,11 @@ const { createSlotNotification } = require('../controllers/notificationControlle
 
 const { getAllSemesters } = require('../controllers/semesterController');
 const { getAllMajors } = require('../controllers/majorController');
-
+const { getEligibleStudentsForManualEnroll, createManualClass, enrollStudentsManually } = require('../controllers/staff')
+const {
+    getAllSubjects,
+    getAllRooms
+} = require('../controllers/semesterController');
 
 router.use(verifyToken, authorize('staff', 'admin', 'lecturer'));
 
@@ -29,5 +33,12 @@ router.post('/notifications/slots', createSlotNotification);
 
 router.get('/semesters', getAllSemesters);
 router.get('/majors', getAllMajors);
+
+router.get('/eligible-students', getEligibleStudentsForManualEnroll);
+router.post('/classes/manual', createManualClass);
+router.post('/classes/:classId/enroll-manual', enrollStudentsManually);
+router.get('/subjects', getAllSubjects);   
+router.get('/rooms', getAllRooms);
+
 
 module.exports = router;
