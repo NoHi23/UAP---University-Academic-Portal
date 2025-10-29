@@ -28,14 +28,13 @@ import StudentAnnouncementDetail from './pages/Student/StudentAnnouncementDetail
 import StudentLayout from './pages/Student';
 import LecturerLayout from './pages/Lecturer/LectureLayout';
 import LecturerDashboard from './pages/Lecturer/LecturerDashBoard/index';
+import LecturerProfile from './pages/Lecturer/LecturerProfile';
 import ScheduleLecturePages from './pages/Lecturer/ScheduleLecturePages';
 import DetailSlotPage from './pages/Lecturer/DetailSlotPage/index';
-import Attendance from './pages/Lecturer/Attendance';
 import Feedback from './pages/Lecturer/Feedback';
 import Evaluations from './pages/Lecturer/Evaluations';
 import EnterGrades from './pages/Lecturer/EnterGrades';
 import StudentGrades from './pages/Lecturer/StudentGrades';
-import AttendanceList from './pages/Lecturer/AttendanceList';
 import PayTuitionPage from './pages/Student/PayTuitionPage';
 import TransactionHistoryPage from './pages/Student/TransactionHistoryPage';
 import RequestsPage from './pages/Student/RequestsPage';
@@ -48,8 +47,9 @@ import StudentAccount from './pages/Staff/accountManagement/StudentAccount';
 import LectureAccount from './pages/Staff/accountManagement/LectureAccount';
 import SupportRequestList from './pages/Staff/SupportRequest/RequestList';
 import AnswerSupport from './pages/Staff/SupportRequest/Answer';
-import SupportListLecturer from './pages/Lecturer/SupportRequest/SupportList';
 import SchedulingPage from './pages/Staff/SchedulingPage/SchedulingPage';
+import MaterialManager from './pages/Staff/MaterialManager';
+import SubjectDetail from './pages/Staff/MaterialManager/SubjectDetail';
 
 import LecturerTimetablePage from './pages/Lecturer/LecturerTimetablePage';
 import AttendancePage from './pages/Lecturer/AttendancePage';
@@ -62,8 +62,14 @@ import RequestAbsenceCreate from "./pages/Student/RequestAbsenceCreate";
 
 import AbsenceList from "./pages/Staff/AbsenceList";
 import AbsenceReview from "./pages/Staff/AbsenceReview";
+import AttendanceList from './pages/Lecturer/AttendanceListPages/AttendanceList';
+import ClassesBySemesterPage from './pages/Lecturer/ClassesBySemester/Index';
+import SupportRequestPage from './pages/Lecturer/SupportRequest';
 
 
+import ManualClassPage from './pages/Staff/ManualClassPage';
+import StudentClassmatesPage from './pages/Student/StudentClassmatesPage';
+import StudentSlotNotificationPage from './pages/Student/StudentSlotNotificationPage';
 function App() {
   const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
@@ -119,6 +125,8 @@ function App() {
                   <Route path="/student/announcements/:id" element={<StudentAnnouncementDetail />} />
                   <Route path="/student/absence" element={<RequestAbsenceList />} />
                   <Route path="/student/absence/new" element={<RequestAbsenceCreate />} />
+                  <Route path="/student/classmates/:classId" element={<StudentClassmatesPage />} />
+                  <Route path="/student/notifications/slot/:scheduleId" element={<StudentSlotNotificationPage />} />
                 </Route>
                 <Route path="/staff/" element={<StaffLayout />}>
                   <Route path="dashboard" element={<StaffLayout />} />
@@ -127,27 +135,31 @@ function App() {
                   <Route path="supports" element={<SupportRequestList />} />
                   <Route path="support/:id" element={<AnswerSupport />} />
                   <Route path="scheduling" element={<SchedulingPage />} />
+                  <Route path="material" element={<MaterialManager />} />
+                    <Route path="material/:id" element={<SubjectDetail />} />
 
-                  <Route path="/staff/absence" element={<AbsenceList />} />
-                  <Route path="/staff/absence/:id" element={<AbsenceReview />} />
+                  <Route path="absence" element={<AbsenceList />} />
+                  <Route path="absence/:id" element={<AbsenceReview />} />
+                  <Route path="manual-class" element={<ManualClassPage />} />
                 </Route>
 
                 <Route path="/lecturer/" element={<LecturerLayout />}>
                   <Route path="dashboard" element={<LecturerDashboard />} />
+                  <Route path="profile" element={<LecturerProfile />} />
                   <Route path='view-teaching-schedule' element={<ScheduleLecturePages />} />
                   <Route path='view-detail-schedule/:id' element={<DetailSlotPage />} />
-                  <Route path='attendance' element={<Attendance />} />
                   <Route path='feedback' element={<Feedback />} />
                   <Route path='evaluations' element={<Evaluations />} />
                   <Route path='enter-grades' element={<EnterGrades />} />
                   <Route path='student-grades' element={<StudentGrades />} />
-                  <Route path='attendance-list' element={<AttendanceList />} />
+                  <Route path='attendance-list' element={<AttendanceList />} />  {/*chưa xóa */}
                   <Route path="announcements" element={<LecturerAnnouncements />} />
+                  <Route path='my-list-class-charge' element={<ClassesBySemesterPage />} />
                   <Route path="announcements/:id" element={<LecturerAnnouncementDetail />} />
-                  <Route path="supports" element={<SupportListLecturer />} />
+                  <Route path="supports" element={<SupportRequestPage />} />
                   <Route path="schedule" element={<LecturerTimetablePage />} />
                   <Route path="attendance/:scheduleId" element={<AttendancePage />} />
-
+                  <Route path="view-attendance-list" element={<AttendanceList/>} />
                 </Route>
               </Routes>
               <BackToTopButton />

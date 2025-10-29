@@ -1,15 +1,15 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   AppBar,
   Toolbar,
   Typography,
   Box,
-  useTheme
+  useTheme,
+  Avatar
 } from '@mui/material';
 import {
   Home as HomeIcon,
-  Notifications as NotificationsIcon,
-  Person as PersonIcon
+  Notifications as NotificationsIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
@@ -17,9 +17,25 @@ const NavbarLecturer = () => {
   const theme = useTheme();
   const navigate = useNavigate();
 
+  const [profile, setProfile] = useState(null);
+
   const handleNavigate = (path) => {
     navigate(path);
   };
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const api = (await import('../../services/api')).default;
+        const res = await api.get('lecturer/profile');
+        if (mounted && res?.data?.success) setProfile(res.data.data);
+      } catch (err) {
+        // ignore
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   return (
     <AppBar
@@ -110,10 +126,11 @@ const NavbarLecturer = () => {
               cursor: 'pointer',
               '&:hover': { opacity: 0.8 }
             }}
+            onClick={() => handleNavigate('/lecturer/profile')}
           >
-            <PersonIcon sx={{ color: 'white', fontSize: 20 }} />
+            <Avatar src={profile?.lecturerAvatar || undefined} sx={{ width: 36, height: 36 }} imgProps={{ style: { objectFit: 'cover' } }} />
             <Typography sx={{ color: 'white', fontSize: '0.9rem' }}>
-              Nguyễn Văn A (HE123456)
+              {profile ? `${profile.firstName || ''} ${profile.lastName || ''} (${profile.lecturerCode || ''})` : '—'}
             </Typography>
           </Box>
         </Box>

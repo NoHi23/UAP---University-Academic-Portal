@@ -13,6 +13,9 @@ const supportAPI = {
     getByAccount: (accountId, params = {}) =>
         api.get(`/support/account/${accountId}`, { params }),
     createRequest: (payload) => api.post("/support/request", payload),
+    // Lecturer-scoped endpoints (optional): create and list supports for logged-in lecturer
+    createLecturerRequest: (payload) => api.post('/lecturer/supports', payload),
+    getMySupports: () => api.get('/lecturer/supports'),
     answer: (id, answer) => api.put(`/support/${id}/answer`, { answer }),
     updateStatus: (id, status) => api.put(`/support/${id}/status`, { status }),
 };

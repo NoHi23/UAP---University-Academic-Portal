@@ -74,7 +74,6 @@ const getMySlotNotificationsForLecturer = async (req, res) => {
 };
 
 // export lecturer helper
-module.exports.getMySlotNotificationsForLecturer = getMySlotNotificationsForLecturer;
 
 
 const createSlotNotification = async (req, res) => {
@@ -101,10 +100,30 @@ const createSlotNotification = async (req, res) => {
     }
 };
 
+// Get notifications for a specific schedule (used by student route)
+const getNotificationsForSlot = async (req, res) => {
+    try {
+        const { scheduleId } = req.params;
+        if (!scheduleId) return res.status(400).json({ message: 'scheduleId is required' });
+
+        const schedule = await Schedule.findById(scheduleId);
+        if (!schedule) return res.status(404).json({ message: 'Schedule not found' });
+
+        const notifications = await SlotNotification.find({ scheduleId })
+            .populate('senderId', 'email role')
+            .sort({ createdAt: -1 });
+
+        return res.status(200).json({ success: true, count: notifications.length, data: notifications });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
+// export all handlers
 module.exports = {
     getMySlotNotifications,
+    getNotificationsForSlot,
     createSlotNotification,
-    // new: get request-related notifications for student
     getMyRequestNotifications: async (req, res) => {
         try {
             const student = await Student.findOne({ accountId: req.user.id });
@@ -119,5 +138,6 @@ module.exports = {
         } catch (error) {
             return res.status(500).json({ success: false, message: 'Lỗi máy chủ', error: error.message });
         }
-    }
+    },
+    getMySlotNotificationsForLecturer
 };

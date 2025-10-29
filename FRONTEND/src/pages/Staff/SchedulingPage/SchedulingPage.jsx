@@ -40,17 +40,18 @@ const SchedulingPage = () => {
       notifyError('Vui lòng chọn cả học kỳ và chuyên ngành.');
       return;
     }
-
     setIsGenerating(true);
-    setLogs(['Bắt đầu quá trình xếp lịch...']);
+    setLogs(['[INFO] Bắt đầu gửi yêu cầu xếp lịch...']);
 
     try {
       const response = await api.post('/scheduling/generate', {
         semesterId: selectedSemester,
         majorId: selectedMajor
       });
+      if (response.data.logs) {
+        setLogs(response.data.logs); 
+      }
 
-      setLogs(prev => [...prev, 'Quá trình phân tích và xếp lịch đã hoàn tất!', `Kết quả: ${response.data.message}`]);
       notifySuccess('Xếp lịch thành công!');
 
     } catch (err) {
