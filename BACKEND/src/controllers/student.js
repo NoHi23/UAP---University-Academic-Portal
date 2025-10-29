@@ -380,7 +380,7 @@ const getMyClassmates = async (req, res) => {
             success: true,
             count: students.length,
             data: students,
-            className: targetClass.className 
+            className: targetClass.className
         });
 
     } catch (error) {
