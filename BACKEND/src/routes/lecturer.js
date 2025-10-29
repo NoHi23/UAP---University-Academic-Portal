@@ -8,6 +8,7 @@ const {
 } = require('../controllers/lecturer');
 
 const { markAttendance } = require('../controllers/lecturer');
+const { getMySlotNotificationsForLecturer } = require('../controllers/notificationController');
 
 lecturerRouter.get('/classes', verifyToken, lecturerController.getClasses);
 lecturerRouter.get('/studentsbyclass/:classId', verifyToken, lecturerController.getStudentsByClass);
@@ -18,6 +19,8 @@ lecturerRouter.get('/schedules/:id', verifyToken, getScheduleById);
 // Mark attendance (single or bulk)
 lecturerRouter.post('/attendance/mark', verifyToken, markAttendance);
 // Lecturers: get evaluations for themselves
+// Slot notifications (for schedules where this lecturer teaches)
+lecturerRouter.get('/notifications/slots', verifyToken, authorize('lecturer', 'staff', 'admin'), getMySlotNotificationsForLecturer);
 
 
 module.exports = lecturerRouter

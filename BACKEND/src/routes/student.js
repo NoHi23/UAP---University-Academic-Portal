@@ -8,10 +8,12 @@ const { submitRequest, getMyRequests } = require('../controllers/requestControll
 const { getEvaluableClasses, submitEvaluation } = require('../controllers/evaluationController');
 const { getMySlotNotifications } = require('../controllers/notificationController');
 const { getProfile, updateProfile, getGradesReport, getTranscript } = require('../controllers/student');
+const studentController = require('../controllers/student');
 
 router.use(verifyToken, authorize('student'));
 router.get('/schedules/my-week', getMyWeeklySchedule);
-router.get('/exams', require('../controllers/student').getExamSchedule);
+router.get('/exams', studentController.getExamSchedule);
+
 
 // Student profile endpoints (protected)
 router.get('/profile', getProfile);

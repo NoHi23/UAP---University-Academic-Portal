@@ -1,7 +1,10 @@
 const SlotNotification = require('../models/slotNotificationModel');
-const ScheduleOfStudent = require('../models/scheduleOfStudent');
 const Student = require('../models/student');
+const ScheduleOfStudent = require('../models/scheduleOfStudent');
 const Schedule = require('../models/schedule');
+const RequestNotification = require('../models/requestNotificationModel');
+const Request = require('../models/requestModel');
+const Lecturer = require('../models/lecturer');
 
 const getMySlotNotifications = async (req, res) => {
     try {
@@ -9,22 +12,29 @@ const getMySlotNotifications = async (req, res) => {
         if (!student) {
             return res.status(404).json({ message: 'Không tìm thấy sinh viên.' });
         }
-
-        const studentSchedules = await ScheduleOfStudent.find({ studentId: student._id });
-        const scheduleIds = studentSchedules.map(s => s.scheduleId);
+        // ScheduleOfStudent stores schedule references inside attendance[].scheduleId
+        const sosDocs = await ScheduleOfStudent.find({ studentId: student._id });
+        const scheduleIds = [];
+        sosDocs.forEach(doc => {
+            if (Array.isArray(doc.attendance)) {
+                doc.attendance.forEach(a => {
+                    if (a && a.scheduleId) scheduleIds.push(a.scheduleId);
+                });
+            }
+        });
 
         const notifications = await SlotNotification.find({ scheduleId: { $in: scheduleIds } })
             .populate({
                 path: 'scheduleId',
                 select: 'classId subjectId timeSlotId weekId',
-                populate: [ 
+                populate: [
                     { path: 'classId', select: 'className' },
                     { path: 'subjectId', select: 'subjectName subjectCode' },
                     { path: 'timeSlotId', select: 'slot startDate endDate' },
                     { path: 'weekId', select: 'startDate endDate' }
                 ]
             })
-            .populate('senderId', 'email role') 
+            .populate('senderId', 'email role')
             .sort({ createdAt: -1 });
 
         res.status(200).json({ success: true, count: notifications.length, data: notifications });
@@ -34,11 +44,43 @@ const getMySlotNotifications = async (req, res) => {
     }
 };
 
+// Lecturer: get slot notifications for schedules the lecturer teaches
+const getMySlotNotificationsForLecturer = async (req, res) => {
+    try {
+        const lecturer = await Lecturer.findOne({ accountId: req.user.id });
+        if (!lecturer) return res.status(404).json({ message: 'Không tìm thấy giảng viên.' });
+
+        const schedules = await Schedule.find({ lecturerId: lecturer._id }).select('_id');
+        const scheduleIds = schedules.map(s => s._id);
+
+        const notifications = await SlotNotification.find({ scheduleId: { $in: scheduleIds } })
+            .populate({
+                path: 'scheduleId',
+                select: 'classId subjectId timeSlotId weekId',
+                populate: [
+                    { path: 'classId', select: 'className' },
+                    { path: 'subjectId', select: 'subjectName subjectCode' },
+                    { path: 'timeSlotId', select: 'slot startDate endDate' },
+                    { path: 'weekId', select: 'startDate endDate' }
+                ]
+            })
+            .populate('senderId', 'email role')
+            .sort({ createdAt: -1 });
+
+        return res.status(200).json({ success: true, count: notifications.length, data: notifications });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Lỗi máy chủ', error: error.message });
+    }
+};
+
+// export lecturer helper
+module.exports.getMySlotNotificationsForLecturer = getMySlotNotificationsForLecturer;
+
 
 const createSlotNotification = async (req, res) => {
     try {
         const { scheduleId, title, content } = req.body;
-        const senderId = req.user.id; 
+        const senderId = req.user.id;
 
         const schedule = await Schedule.findById(scheduleId);
         if (!schedule) {
@@ -51,7 +93,7 @@ const createSlotNotification = async (req, res) => {
             content,
             senderId
         });
-        
+
         res.status(201).json({ success: true, message: "Tạo thông báo thành công.", data: notification });
 
     } catch (error) {
@@ -61,5 +103,21 @@ const createSlotNotification = async (req, res) => {
 
 module.exports = {
     getMySlotNotifications,
-    createSlotNotification
+    createSlotNotification,
+    // new: get request-related notifications for student
+    getMyRequestNotifications: async (req, res) => {
+        try {
+            const student = await Student.findOne({ accountId: req.user.id });
+            if (!student) return res.status(404).json({ message: 'Không tìm thấy sinh viên.' });
+
+            const notifications = await RequestNotification.find({ studentId: student._id })
+                .populate({ path: 'requestId', select: 'title requestType status response' })
+                .populate('senderId', 'email role')
+                .sort({ createdAt: -1 });
+
+            return res.status(200).json({ success: true, count: notifications.length, data: notifications });
+        } catch (error) {
+            return res.status(500).json({ success: false, message: 'Lỗi máy chủ', error: error.message });
+        }
+    }
 };

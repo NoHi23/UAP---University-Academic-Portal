@@ -1,6 +1,6 @@
 const Class = require('../models/class');
 const Lecturer = require('../models/lecturer');
-const ScheduleOfStudent = require('../models/ScheduleOfStudent');
+const ScheduleOfStudent = require('../models/scheduleOfStudent');
 const ScheduleOfLecture = require('../models/scheduleOfLecture');
 const Schedule = require('../models/schedule');
 const bcrypt = require('bcrypt');
@@ -73,13 +73,13 @@ const getStudentsByClass = async (req, res) => {
 
 
 const getMyWeeklySchedule = async (req, res) => {
-    // Hàm xác định thứ trong tuần từ ngày bất kỳ
-    function getDayOfWeek(dateString) {
-  const d = new Date(dateString);
-  d.setHours(d.getHours() + 7); // Chuyển sang giờ VN
-  const daysVN = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
-  return { num: d.getDay(), name: daysVN[d.getDay()] };
-    }
+  // Hàm xác định thứ trong tuần từ ngày bất kỳ
+  function getDayOfWeek(dateString) {
+    const d = new Date(dateString);
+    d.setHours(d.getHours() + 7); // Chuyển sang giờ VN
+    const daysVN = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+    return { num: d.getDay(), name: daysVN[d.getDay()] };
+  }
   try {
     console.log('DEBUG getMyWeeklySchedule: req.user =', req.user);
     const lecturer = await Lecturer.findOne({ accountId: req.user.id });
@@ -90,9 +90,9 @@ const getMyWeeklySchedule = async (req, res) => {
     }
 
     // Cho phép filter tuần bất kỳ qua body from/to (POST), nếu không có thì lấy tuần hiện tại
-  let { from, to } = req.body;
-  console.log('DEBUG getMyWeeklySchedule: from =', from, 'to =', to);
- 
+    let { from, to } = req.body;
+    console.log('DEBUG getMyWeeklySchedule: from =', from, 'to =', to);
+
     let firstDay, lastDay;
     if (from && to) {
       firstDay = new Date(from);
@@ -139,7 +139,7 @@ const getMyWeeklySchedule = async (req, res) => {
 
 module.exports = {
   getMyWeeklySchedule,
-  
+
   getStudentsByClass,
   getClasses,
 };
@@ -206,8 +206,8 @@ const markAttendance = async (req, res) => {
       }
 
       // Chỉ cho phép chấm điểm đúng ngày của schedule (so sánh theo YYYY-MM-DD)
-      const schedDateStr = (new Date(schedule.date)).toISOString().slice(0,10);
-      const attendanceDateStr = date ? (new Date(date)).toISOString().slice(0,10) : (new Date()).toISOString().slice(0,10);
+      const schedDateStr = (new Date(schedule.date)).toISOString().slice(0, 10);
+      const attendanceDateStr = date ? (new Date(date)).toISOString().slice(0, 10) : (new Date()).toISOString().slice(0, 10);
       if (schedDateStr !== attendanceDateStr) {
         results.push({ success: false, message: 'Attendance allowed only on schedule date', scheduleId, expectedDate: schedDateStr, receivedDate: attendanceDateStr });
         continue;

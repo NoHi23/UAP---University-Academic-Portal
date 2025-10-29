@@ -1,6 +1,5 @@
 const Student = require('../models/student');
 const Account = require('../models/account');
-const ScheduleOfStudent = require('../models/scheduleOfStudent');
 const Schedule = require('../models/schedule');
 const Class = require('../models/class');
 const Subject = require('../models/subject');
@@ -9,6 +8,7 @@ const GradeSummary = require('../models/gradeSummary');
 const CurriculumDetail = require('../models/curriculumDetail');
 const Curriculum = require('../models/curriculum');
 const Major = require('../models/major');
+const ScheduleOfStudent = require('../models/scheduleOfStudent');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
@@ -181,17 +181,47 @@ const getExamSchedule = async (req, res) => {
     try {
         const student = await Student.findOne({ accountId: req.user.id });
         if (!student) return res.status(404).json({ message: 'Student not found' });
-        const schedules = await ScheduleOfStudent.find({ studentId: student._id }).populate({
-            path: 'scheduleId',
-            populate: [
-                { path: 'classId', model: 'Class', populate: { path: 'subjectId', model: 'Subject' } },
-                { path: 'roomId', model: 'Room' },
-                { path: 'timeSlotId', model: 'TimeSlot' },
-                { path: 'weekId', model: 'Week' },
-                { path: 'semesterId', model: 'Semester' }
-            ]
+
+        // ScheduleOfStudent stores schedule references inside attendance[].scheduleId
+        // Collect all scheduleIds across the student's enrolled classes
+        const sosDocs = await ScheduleOfStudent.find({ studentId: student._id });
+        const scheduleIds = [];
+        sosDocs.forEach(doc => {
+            if (Array.isArray(doc.attendance)) {
+                doc.attendance.forEach(a => {
+                    if (a && a.scheduleId) scheduleIds.push(a.scheduleId);
+                });
+            }
         });
-        return res.json({ examSchedule: schedules });
+
+        if (scheduleIds.length === 0) {
+            return res.json({ examSchedule: [] });
+        }
+
+        // Query Schedule documents directly and populate related refs
+        const schedules = await Schedule.find({ _id: { $in: scheduleIds } })
+            .populate({ path: 'classId', populate: { path: 'subjectId', model: 'Subject' } })
+            .populate('roomId')
+            .populate('timeSlotId')
+            .populate('weekId')
+            .populate('semesterId')
+            .sort({ date: 1, slot: 1 });
+
+        // Normalize output for frontend: one object per schedule
+        const examSchedule = schedules.map(sch => ({
+            scheduleId: sch._id,
+            subjectCode: sch.classId && sch.classId.subjectId ? sch.classId.subjectId.subjectCode : null,
+            subjectName: sch.classId && sch.classId.subjectId ? sch.classId.subjectId.subjectName : null,
+            className: sch.classId ? sch.classId.className : null,
+            roomName: sch.roomId ? sch.roomId.roomName || sch.roomId.roomCode : null,
+            date: sch.date || null,
+            startTime: sch.startTime || (sch.timeSlotId && sch.timeSlotId.startDate) || null,
+            endTime: sch.endTime || (sch.timeSlotId && sch.timeSlotId.endDate) || null,
+            slot: sch.slot || (sch.timeSlotId && sch.timeSlotId.slot) || null,
+            raw: sch
+        }));
+
+        return res.json({ examSchedule });
     } catch (error) {
         return res.status(500).json({ message: error.message });
     }
