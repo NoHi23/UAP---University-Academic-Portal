@@ -11,7 +11,6 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
-
 // GET /lecturer/classes — Lấy danh sách lớp giảng dạy của giảng viên
 
 const getClasses = async (req, res) => {
