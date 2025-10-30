@@ -6,7 +6,7 @@ const { getStudentMaterials } = require('../controllers/material');
 const { createPaymentUrl, getTransactionHistory, getTuitionInfo } = require('../controllers/paymentController');
 const { submitRequest, getMyRequests } = require('../controllers/requestController');
 const { getEvaluableClasses, submitEvaluation } = require('../controllers/evaluationController');
-const { getMySlotNotifications, getNotificationsForSlot } = require('../controllers/notificationController');
+const { getMySlotNotifications, getNotificationsForSlot, getMyRequestNotifications, getAllNotifications } = require('../controllers/notificationController');
 const { getProfile, updateProfile, getGradesReport, getTranscript } = require('../controllers/student');
 const studentController = require('../controllers/student');
 
@@ -36,6 +36,11 @@ router.get('/evaluations/classes-to-review', getEvaluableClasses);
 router.post('/evaluations', submitEvaluation);
 
 router.get('/notifications/slots', getMySlotNotifications);
+
+router.get('/notifications/requests', getMyRequestNotifications);
+
+// Combined notifications (slot + request)
+router.get('/notifications', getAllNotifications);
 
 router.get('/classes/:classId/classmates', getMyClassmates);
 

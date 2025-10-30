@@ -1,7 +1,7 @@
 const SlotNotification = require('../models/slotNotificationModel');
 const Student = require('../models/student');
-const ScheduleOfStudent = require('../models/scheduleOfStudent');
 const Schedule = require('../models/schedule');
+const ScheduleOfStudent = require('../models/scheduleOfStudent');
 const RequestNotification = require('../models/requestNotificationModel');
 const Request = require('../models/requestModel');
 const Lecturer = require('../models/lecturer');
@@ -119,25 +119,88 @@ const getNotificationsForSlot = async (req, res) => {
     }
 };
 
+// Get request/response-style notifications for the logged-in student
+const getMyRequestNotifications = async (req, res) => {
+    try {
+        const student = await Student.findOne({ accountId: req.user.id });
+        if (!student) return res.status(404).json({ message: 'Không tìm thấy sinh viên.' });
+
+        const notifications = await RequestNotification.find({ studentId: student._id })
+            .populate({ path: 'requestId', select: 'title requestType status response' })
+            .populate('senderId', 'email role')
+            .sort({ createdAt: -1 });
+
+        return res.status(200).json({ success: true, count: notifications.length, data: notifications });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Lỗi máy chủ', error: error.message });
+    }
+};
+
+// Get all notifications relevant to the logged-in student (slot notifications + request notifications)
+const getAllNotifications = async (req, res) => {
+    try {
+        const student = await Student.findOne({ accountId: req.user.id });
+        if (!student) return res.status(404).json({ message: 'Không tìm thấy sinh viên.' });
+
+        // Slot notifications
+        const sosDocs = await ScheduleOfStudent.find({ studentId: student._id });
+        const scheduleIds = [];
+        sosDocs.forEach(doc => {
+            if (Array.isArray(doc.attendance)) {
+                doc.attendance.forEach(a => {
+                    if (a && a.scheduleId) scheduleIds.push(a.scheduleId);
+                });
+            }
+        });
+
+        const slotNotifs = await SlotNotification.find({ scheduleId: { $in: scheduleIds } })
+            .populate('senderId', 'email role')
+            .populate({ path: 'scheduleId', select: 'classId subjectId date slot startTime endTime' })
+            .sort({ createdAt: -1 })
+            .lean();
+
+        // Request notifications
+        const requestNotifs = await RequestNotification.find({ studentId: student._id })
+            .populate('senderId', 'email role')
+            .populate({ path: 'requestId', select: 'title requestType status response' })
+            .sort({ createdAt: -1 })
+            .lean();
+
+        // Normalize and merge
+        const normalizedSlot = slotNotifs.map(n => ({
+            _id: n._id,
+            type: 'slot',
+            title: n.title,
+            content: n.content,
+            sender: n.senderId,
+            schedule: n.scheduleId,
+            createdAt: n.createdAt
+        }));
+
+        const normalizedRequest = requestNotifs.map(n => ({
+            _id: n._id,
+            type: 'request',
+            title: n.title,
+            content: n.content,
+            sender: n.senderId,
+            request: n.requestId,
+            createdAt: n.createdAt
+        }));
+
+        const merged = [...normalizedSlot, ...normalizedRequest].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        return res.status(200).json({ success: true, count: merged.length, data: merged });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Lỗi máy chủ', error: error.message });
+    }
+};
+
 // export all handlers
 module.exports = {
     getMySlotNotifications,
     getNotificationsForSlot,
     createSlotNotification,
-    getMyRequestNotifications: async (req, res) => {
-        try {
-            const student = await Student.findOne({ accountId: req.user.id });
-            if (!student) return res.status(404).json({ message: 'Không tìm thấy sinh viên.' });
-
-            const notifications = await RequestNotification.find({ studentId: student._id })
-                .populate({ path: 'requestId', select: 'title requestType status response' })
-                .populate('senderId', 'email role')
-                .sort({ createdAt: -1 });
-
-            return res.status(200).json({ success: true, count: notifications.length, data: notifications });
-        } catch (error) {
-            return res.status(500).json({ success: false, message: 'Lỗi máy chủ', error: error.message });
-        }
-    },
+    getMyRequestNotifications,
+    getAllNotifications,
     getMySlotNotificationsForLecturer
 };

@@ -1,6 +1,7 @@
 const Student = require('../models/student');
 const Account = require('../models/account');
 const Schedule = require('../models/schedule');
+const ScheduleOfStudent = require('../models/scheduleOfStudent');
 const Class = require('../models/class');
 const Subject = require('../models/subject');
 const Grade = require('../models/grade');
@@ -8,7 +9,6 @@ const GradeSummary = require('../models/gradeSummary');
 const CurriculumDetail = require('../models/curriculumDetail');
 const Curriculum = require('../models/curriculum');
 const Major = require('../models/major');
-const ScheduleOfStudent = require('../models/scheduleOfStudent');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
@@ -207,21 +207,10 @@ const getExamSchedule = async (req, res) => {
             .populate('semesterId')
             .sort({ date: 1, slot: 1 });
 
-        // Normalize output for frontend: one object per schedule
-        const examSchedule = schedules.map(sch => ({
-            scheduleId: sch._id,
-            subjectCode: sch.classId && sch.classId.subjectId ? sch.classId.subjectId.subjectCode : null,
-            subjectName: sch.classId && sch.classId.subjectId ? sch.classId.subjectId.subjectName : null,
-            className: sch.classId ? sch.classId.className : null,
-            roomName: sch.roomId ? sch.roomId.roomName || sch.roomId.roomCode : null,
-            date: sch.date || null,
-            startTime: sch.startTime || (sch.timeSlotId && sch.timeSlotId.startDate) || null,
-            endTime: sch.endTime || (sch.timeSlotId && sch.timeSlotId.endDate) || null,
-            slot: sch.slot || (sch.timeSlotId && sch.timeSlotId.slot) || null,
-            raw: sch
-        }));
-
-        return res.json({ examSchedule });
+        // Return populated schedules directly (frontend accepts either a populated Schedule
+        // document or an object with scheduleId populated). Returning the populated
+        // Schedule documents keeps the response flexible for the UI.
+        return res.json({ examSchedule: schedules });
     } catch (error) {
         return res.status(500).json({ message: error.message });
     }

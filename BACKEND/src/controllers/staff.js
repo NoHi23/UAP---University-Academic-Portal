@@ -13,7 +13,7 @@ const Curriculum = require('../models/curriculum')
 const Subject = require('../models/subject')
 const CurriculumDetail = require('../models/curriculumDetail');
 const Schedule = require('../models/schedule');
-const ScheduleOfStudent = require('../models/scheduleOfStudent');
+
 
 
 const {
