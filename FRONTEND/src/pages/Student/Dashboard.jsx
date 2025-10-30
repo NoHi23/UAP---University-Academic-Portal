@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../services/api';
 import StudentProfile from './StudentProfile';
+import FullScreenLoader from '../../components/Common/FullScreenLoader';
 
 const mockStudentInfo = {
   fullName: 'Nguyễn Văn A',
@@ -143,7 +144,7 @@ const Dashboard = () => {
   }, []);
 
   if (loading) {
-    return <div className="loading">Đang tải dữ liệu...</div>;
+    return <FullScreenLoader/>;
   }
 
   return (

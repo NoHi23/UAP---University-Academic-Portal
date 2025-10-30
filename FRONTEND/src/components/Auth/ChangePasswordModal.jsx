@@ -71,6 +71,12 @@ const ChangePasswordModal = ({ isOpen, onSubmit }) => {
       notifyError('Mật khẩu xác nhận không khớp.');
       return;
     }
+
+    if (newPassword.length < 6) {
+      notifyError('Mật khẩu mới phải có ít nhất 6 ký tự.');
+      return;
+    }
+
     if (strength < 3) {
       notifyError('Mật khẩu quá yếu. Vui lòng chọn mật khẩu mạnh hơn.');
       return;
@@ -81,6 +87,7 @@ const ChangePasswordModal = ({ isOpen, onSubmit }) => {
     try {
       await onSubmit(newPassword);
     } catch (err) {
+      notifyError(err.response?.data?.message || err.message || 'Đổi mật khẩu thất bại.');
     } finally {
       setIsProcessing(false);
     }
