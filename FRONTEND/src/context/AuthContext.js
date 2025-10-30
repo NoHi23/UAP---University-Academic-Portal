@@ -47,8 +47,8 @@ export const AuthProvider = ({ children }) => {
 
     localStorage.setItem('token', token);
     setUser(user);
-     console.log("h: ", user);
-     
+    console.log("h: ", user);
+
     if (isRequired) {
       setPasswordChangeRequired(true);
     } else {
@@ -59,9 +59,13 @@ export const AuthProvider = ({ children }) => {
   };
 
   const handlePasswordChange = async (newPassword) => {
+
     try {
+      console.log("123: ");
+
       await api.post('/account/change-password', { newPassword });
       setPasswordChangeRequired(false);
+      
       notifySuccess('Đổi mật khẩu thành công!');
       navigateToDashboard(user.role);
     } catch (err) {
@@ -76,6 +80,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
+    navigate('/login');
   };
 
   if (loading) {
@@ -98,7 +103,7 @@ export const AuthProvider = ({ children }) => {
 
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, register }}>
+    <AuthContext.Provider value={{ user, login, logout, register, updateProfile }}>
       <ChangePasswordModal
         isOpen={passwordChangeRequired}
         onSubmit={handlePasswordChange}
