@@ -74,19 +74,19 @@ const login = async (req, res) => {
 
         let profileData = null;
         let userName = '';
-        let userAvatar = account.avatar;
+        // let userAvatar = account.avatar;
 
         if (account.role === 'student') {
             profileData = await Student.findOne({ accountId: account._id }).lean();
             if (profileData) {
                 userName = `${profileData.lastName} ${profileData.firstName}`;
-                userAvatar = profileData.studentAvatar || userAvatar; 
+                // userAvatar = profileData.studentAvatar || userAvatar; 
             }
         } else if (account.role === 'lecturer' || account.role === 'lecture') { 
             profileData = await Lecturer.findOne({ accountId: account._id }).lean();
              if (profileData) {
                 userName = `${profileData.lastName} ${profileData.firstName}`;
-                userAvatar = profileData.lecturerAvatar || userAvatar; 
+                // userAvatar = profileData.lecturerAvatar || userAvatar; 
             }
         }
          const combinedUser = {
@@ -96,7 +96,7 @@ const login = async (req, res) => {
             status: account.status,
             isFirstLogin: account.isFirstLogin,
             name: userName,         
-            avatar: userAvatar,     
+            // avatar: userAvatar,     
         };
 
         const token = generateToken(combinedUser);
