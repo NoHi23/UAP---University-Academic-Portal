@@ -20,7 +20,16 @@ export default function CLOExcellImport({ subjectId, onImported, readOnly }) {
       }
       return undefined;
     };
-    // Tolerant mapping: try aliases; if not found, fallback to any header containing 'clo' or 'lo'
+    // Map cloName
+    let cloNameVal = mapField(['cloName','CLO Name','CLOName','cloname']);
+    if (cloNameVal === undefined || cloNameVal === null || cloNameVal === '') {
+      const found = keys.find(k => String(k).toLowerCase().includes('cloname'));
+      if (found) cloNameVal = r[found];
+    }
+    if (cloNameVal !== undefined && cloNameVal !== null && cloNameVal !== '') {
+      cloNameVal = Number(cloNameVal);
+      if (isNaN(cloNameVal)) cloNameVal = undefined;
+    }
     let cloVal = String(mapField(['cloDetails','clo_details','clo detail','clo','CLO Details','CLODetails','clodetails']) || '').trim();
     if (!cloVal) {
       const found = keys.find(k => String(k).toLowerCase().includes('clo'));
@@ -33,6 +42,7 @@ export default function CLOExcellImport({ subjectId, onImported, readOnly }) {
     }
     return {
       subjectId: r.subjectId || r.subjectID || presetSubjectId || undefined,
+      cloName: cloNameVal,
       cloDetails: cloVal,
       loDetails: loVal
     };
@@ -73,16 +83,34 @@ export default function CLOExcellImport({ subjectId, onImported, readOnly }) {
   return (
     <Box sx={{ mt: 3 }}>
       <Typography variant="h6">CLOs</Typography>
+
       <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 1 }}>
         {!readOnly && (
-          <Button variant="outlined" onClick={() => setOpen(true)}>Manage / Import CLOs</Button>
+          <>
+            <Button variant="outlined" onClick={() => setOpen(true)}>Manage / Import CLOs</Button>
+            <Button variant="contained" color="success" onClick={async () => {
+              try {
+                const res = await cloAPI.exportExcel(subjectId ? { subjectId } : {});
+                const url = window.URL.createObjectURL(new Blob([res.data]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', 'clos.xlsx');
+                document.body.appendChild(link);
+                link.click();
+                link.parentNode.removeChild(link);
+                window.URL.revokeObjectURL(url);
+              } catch (err) {
+                alert('Xuất Excel thất bại!');
+              }
+            }}>Xuất Excel</Button>
+          </>
         )}
       </Box>
 
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="lg" fullWidth>
         <DialogTitle>Manage Subject - Import CLOs</DialogTitle>
         <DialogContent>
-          <ExcelImport subjectId={subjectId} onImported={() => { fetchClos(); if (typeof onImported === 'function') onImported(); setOpen(false); }} model="clos" transformRow={cloTransform} requiredFields={["cloDetails","subjectId"]} />
+          <ExcelImport subjectId={subjectId} onImported={() => { fetchClos(); if (typeof onImported === 'function') onImported(); setOpen(false); }} model="clos" transformRow={cloTransform} requiredFields={["cloName","cloDetails","subjectId"]} />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Close</Button>
@@ -103,13 +131,21 @@ export default function CLOExcellImport({ subjectId, onImported, readOnly }) {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {clos.map((c, idx) => (
-                  <TableRow key={c._id}>
-                    <TableCell>{idx + 1}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>{c.cloDetails}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>{c.loDetails || '-'}</TableCell>
-                  </TableRow>
-                ))}
+                {clos
+                  .slice()
+                  .sort((a, b) => {
+                    if (a.cloName === undefined && b.cloName === undefined) return 0;
+                    if (a.cloName === undefined) return 1;
+                    if (b.cloName === undefined) return -1;
+                    return a.cloName - b.cloName;
+                  })
+                  .map((c, idx) => (
+                    <TableRow key={c._id}>
+                      <TableCell>{c.cloName ?? (idx + 1)}</TableCell>
+                      <TableCell sx={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>{c.cloDetails}</TableCell>
+                      <TableCell sx={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>{c.loDetails || '-'}</TableCell>
+                    </TableRow>
+                  ))}
               </TableBody>
             </Table>
           )

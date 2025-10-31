@@ -3,6 +3,7 @@ const Major = require('../models/major');
 const Material = require('../models/material');
 const CLO = require('../models/courseLearningOutcome');
 const SessionMaterial = require('../models/sessionMaterial');
+const XLSX = require('xlsx');
 // Bulk create materials handler moved here so material-related staff features live together
 
 // POST /api/staff/subjects
@@ -98,7 +99,6 @@ const createSubject = async (req, res) => {
   }
 };
 
-module.exports = { createSubject };
  
 // PUT /api/staff/subjects/:id
 // Update an existing subject
@@ -191,7 +191,6 @@ const updateSubject = async (req, res) => {
   }
 };
 
-module.exports = { createSubject, updateSubject };
 
 // GET /api/staff/subjects
 const getSubjects = async (req, res) => {
@@ -394,9 +393,15 @@ const bulkCreateMaterials = async (req, res) => {
           if (!row.subjectId) rowErrors.push('subjectId is required');
           else if (!validSubjects[row.subjectId]) rowErrors.push('subjectId not found');
           if (!row.cloDetails) rowErrors.push('cloDetails is required');
+          if (!row.cloName || !String(row.cloName).trim()) rowErrors.push('cloName is required');
         }
         if (rowErrors.length) errors.push({ index: idx, errors: rowErrors, row });
-        else docs.push({ cloDetails: String(row.cloDetails).trim(), loDetails: row.loDetails || '', subjectId: row.subjectId });
+        else docs.push({
+          cloName: Number(row.cloName),
+          cloDetails: String(row.cloDetails).trim(),
+          loDetails: row.loDetails || '',
+          subjectId: row.subjectId
+        });
       });
 
       const replace = (req.query && String(req.query.replace) === 'true');
@@ -672,13 +677,39 @@ const bulkCreateMaterials = async (req, res) => {
     try {
       const query = {};
       if (req.query.subjectId) query.subjectId = req.query.subjectId;
-      const clos = await CLO.find(query).select('cloDetails loDetails subjectId');
-      return res.status(200).json({ success: true, count: (clos || []).length, data: clos });
+  const clos = await CLO.find(query).select('cloName cloDetails loDetails subjectId');
+  return res.status(200).json({ success: true, count: (clos || []).length, data: clos });
     } catch (err) {
       console.error('getCLOs error', err);
       return res.status(500).json({ success: false, message: err.message });
     }
   };
+
+// GET /api/staff/clos/export-excel
+const exportCLOsExcel = async (req, res) => {
+  try {
+    const query = {};
+    if (req.query.subjectId) query.subjectId = req.query.subjectId;
+    const clos = await CLO.find(query).sort({ cloName: 1 });
+    const data = clos.map(item => ({
+      'CLO Name': item.cloName,
+      'CLO Details': item.cloDetails,
+      'LO Details': item.loDetails
+    }));
+    const header = ['CLO Name', 'CLO Details', 'LO Details'];
+    const ws = XLSX.utils.json_to_sheet(data, { header });
+    XLSX.utils.sheet_add_aoa(ws, [header], { origin: 0 });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'CLOs');
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    res.setHeader('Content-Disposition', 'attachment; filename="clos.xlsx"');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buf);
+  } catch (err) {
+    console.error('exportCLOsExcel error', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
 
   // GET /api/staff/clos/find?cloDetails=partialName[&subjectId=...]
   // Return CLOs whose cloDetails match the provided string (case-insensitive, partial match).
@@ -715,5 +746,51 @@ const bulkCreateMaterials = async (req, res) => {
     }
   };
 
-  module.exports = { createSubject, updateSubject, getSubjects, getSubjectById, bulkCreateMaterials, bulkCreateCLOs, bulkCreateSessionMaterials, getCLOs, getSessionMaterials, findCLOByDetails };
+// GET /api/staff/session-materials/export-excel
+const exportSessionMaterialsExcel = async (req, res) => {
+  try {
+    const query = {};
+    if (req.query.subjectId) query.subjectId = req.query.subjectId;
+    if (req.query.cloId) query.cloId = req.query.cloId;
+    const items = await SessionMaterial.find(query);
+    // Map to required columns with exact header names
+    const data = items.map(item => ({
+      'Session': item.session,
+      'Topic': item.topic,
+      'Learning-Teaching Type': item.learningTeachingType,
+      'LO': (item.learningOutcomes || []).join(', '),
+      'ITU': item.itu,
+      'Student Materials': item.studentMaterial,
+      'S-Download': item.downloadable,
+      "Student's Tasks": item.studentTask,
+      'Urls': (item.urls || []).join(', ')
+    }));
+    // Ensure header order
+    const header = [
+      'Session',
+      'Topic',
+      'Learning-Teaching Type',
+      'LO',
+      'ITU',
+      'Student Materials',
+      'S-Download',
+      "Student's Tasks",
+      'Urls'
+    ];
+    const ws = XLSX.utils.json_to_sheet(data, { header });
+    // Force header row to match exactly
+    XLSX.utils.sheet_add_aoa(ws, [header], { origin: 0 });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'SessionMaterials');
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    res.setHeader('Content-Disposition', 'attachment; filename="session_materials.xlsx"');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buf);
+  } catch (err) {
+    console.error('exportSessionMaterialsExcel error', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+  module.exports = { createSubject, updateSubject, getSubjects, getSubjectById, bulkCreateMaterials, bulkCreateCLOs, bulkCreateSessionMaterials, getCLOs, getSessionMaterials, findCLOByDetails, exportCLOsExcel, exportSessionMaterialsExcel };
 

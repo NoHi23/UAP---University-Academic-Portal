@@ -2,13 +2,17 @@ const express = require('express');
 const router = express.Router();
 const { verifyToken, authorize } = require('../middleware/authorization');
 
-const { createMaterial, getAllMaterials, updateMaterial, deleteMaterial } = require('../controllers/material');
+const { createMaterial, getAllMaterials, updateMaterial, deleteMaterial, exportMaterialsExcel } = require('../controllers/material');
 const { getAllRequests, updateRequest } = require('../controllers/requestController');
 const { createSlotNotification } = require('../controllers/notificationController');
 
 const { getAllSemesters } = require('../controllers/semesterController');
 const { getAllMajors } = require('../controllers/majorController');
-const { createSubject, getSubjects, getSubjectById, bulkCreateMaterials, bulkCreateCLOs, bulkCreateSessionMaterials, getCLOs, getSessionMaterials ,updateSubject } = require('../controllers/MaterialManagerController');
+const { createSubject, getSubjects, getSubjectById, bulkCreateMaterials, bulkCreateCLOs, bulkCreateSessionMaterials, getCLOs, getSessionMaterials ,updateSubject, exportCLOsExcel, exportSessionMaterialsExcel } = require('../controllers/MaterialManagerController');
+// Export Excel routes
+router.get('/clos/export-excel', exportCLOsExcel);
+router.get('/materials/export-excel', exportMaterialsExcel);
+router.get('/session-materials/export-excel', exportSessionMaterialsExcel);
 
 const { getEligibleStudentsForManualEnroll, createManualClass, enrollStudentsManually } = require('../controllers/staff')
 const {
