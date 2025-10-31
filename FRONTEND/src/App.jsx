@@ -70,6 +70,7 @@ import SupportRequestPage from './pages/Lecturer/SupportRequest';
 import ManualClassPage from './pages/Staff/ManualClassPage';
 import StudentClassmatesPage from './pages/Student/StudentClassmatesPage';
 import StudentSlotNotificationPage from './pages/Student/StudentSlotNotificationPage';
+import AttendanceReport from './pages/Student/AttendanceReport';
 function App() {
   const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
@@ -112,6 +113,7 @@ function App() {
                     <Route path="curriculums/:id" element={<CurriculumDetailsPage />} />
                     <Route path="announcements" element={<StudentAnnouncements />} />
                     <Route path="announcements/:id" element={<StudentAnnouncementDetail />} />
+                    <Route path="attendance" element={<AttendanceReport />} />
                   </Route>
                   <Route path="/student/dashboard" element={<StudentDashboard />} />
                   <Route path="/student/materials" element={<MaterialsPage />} />
@@ -136,7 +138,7 @@ function App() {
                   <Route path="support/:id" element={<AnswerSupport />} />
                   <Route path="scheduling" element={<SchedulingPage />} />
                   <Route path="material" element={<MaterialManager />} />
-                    <Route path="material/:id" element={<SubjectDetail />} />
+                  <Route path="material/:id" element={<SubjectDetail />} />
 
                   <Route path="absence" element={<AbsenceList />} />
                   <Route path="absence/:id" element={<AbsenceReview />} />
@@ -152,14 +154,14 @@ function App() {
                   <Route path='evaluations' element={<Evaluations />} />
                   <Route path='enter-grades' element={<EnterGrades />} />
                   <Route path='student-grades' element={<StudentGrades />} />
-                  <Route path='attendance-list' element={<AttendanceList />} /> 
+                  <Route path='attendance-list' element={<AttendanceList />} />
                   <Route path="announcements" element={<LecturerAnnouncements />} />
                   <Route path='my-list-class-charge' element={<ClassesBySemesterPage />} />
                   <Route path="announcements/:id" element={<LecturerAnnouncementDetail />} />
                   <Route path="supports" element={<SupportRequestPage />} />
                   <Route path="schedule" element={<LecturerTimetablePage />} />
                   <Route path="attendance/:scheduleId" element={<AttendancePage />} />
-                  <Route path="view-attendance-list" element={<AttendanceList/>} />
+                  <Route path="view-attendance-list" element={<AttendanceList />} />
                 </Route>
               </Routes>
               <BackToTopButton />

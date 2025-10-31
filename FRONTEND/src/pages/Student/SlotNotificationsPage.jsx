@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../services/api';
+import { useNavigate } from 'react-router-dom';
+import announcementAPI from '../../api/annoucementAPI';
 import FullScreenLoader from '../../components/Common/FullScreenLoader';
 import { FaBullhorn, FaInfoCircle, FaCalendarDay, FaClock, FaBook } from 'react-icons/fa';
 import './SlotNotificationsPage.css';
@@ -9,48 +10,32 @@ const SlotNotificationsPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    const navigate = useNavigate();
+
     useEffect(() => {
         const fetchNotifications = async () => {
             try {
-                // Fetch slot notifications and request notifications in parallel
-                const [slotsRes, requestsRes] = await Promise.allSettled([
-                    api.get('/student/notifications/slots'),
-                    api.get('/student/notifications/requests'),
-                ]);
+                // Use announcements as the global notification source
+                const res = await announcementAPI.getAll();
+                const raw = Array.isArray(res?.data?.data) ? res.data.data : [];
 
-                const slotData = (slotsRes.status === 'fulfilled' && Array.isArray(slotsRes.value?.data?.data))
-                    ? slotsRes.value.data.data.map(n => ({
-                        id: n._id,
-                        type: 'slot',
-                        title: n.title,
-                        content: n.content,
-                        createdAt: n.createdAt,
-                        sender: n.senderId,
-                        raw: n,
-                    }))
-                    : [];
-
-                const requestData = (requestsRes.status === 'fulfilled' && Array.isArray(requestsRes.value?.data?.data))
-                    ? requestsRes.value.data.data.map(n => ({
-                        id: n._id,
-                        type: 'request',
-                        title: n.title || n.requestId?.title || 'Phản hồi yêu cầu',
-                        content: n.content || n.requestId?.response || '',
-                        createdAt: n.createdAt,
-                        sender: n.senderId,
-                        raw: n,
-                    }))
-                    : [];
-
-                // If both calls failed, surface an error
-                if (slotData.length === 0 && requestData.length === 0) {
-                    setError('Không thể tải thông báo.');
+                if (raw.length === 0) {
+                    setNotifications([]);
+                    return;
                 }
 
-                const merged = [...slotData, ...requestData]
-                    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                const mapped = raw.map(a => ({
+                    id: a._id,
+                    type: 'announcement',
+                    title: a.title || 'Không có tiêu đề',
+                    content: a.description || a.content || '',
+                    createdAt: a.createdAt || a.updatedAt || a.created_at,
+                    sender: { name: a.postBy || 'Hệ thống' },
+                    raw: a
+                }));
 
-                setNotifications(merged);
+                const sorted = mapped.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                setNotifications(sorted);
             } catch (err) {
                 console.error(err);
                 setError('Không thể tải thông báo.');
@@ -79,7 +64,7 @@ const SlotNotificationsPage = () => {
             ) : (
                 <div className="notifications-list">
                     {notifications.map(noti => (
-                        <div key={noti.id} className={`notification-card ${noti.type}`}>
+                        <div key={noti.id} className={`notification-card ${noti.type}`} onClick={() => navigate(`/student/announcements/${noti.id}`)} style={{ cursor: 'pointer' }}>
                             <div className="notification-card-header">
                                 <h3>{noti.title}</h3>
                                 <span className="notification-date">

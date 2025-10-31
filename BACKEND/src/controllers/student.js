@@ -33,13 +33,10 @@ const getProfile = async (req, res) => {
 // 2. Update Profile
 const updateProfile = async (req, res) => {
     try {
+        // Use findOneAndUpdate so we only validate fields the client sends.
         const student = await Student.findOne({ accountId: req.user.id });
-
-        // Chỉ cho phép cập nhật nếu đã có Student record
         if (!student) {
-            return res.status(404).json({
-                message: 'Student not found. Vui lòng liên hệ admin để tạo tài khoản sinh viên.'
-            });
+            return res.status(404).json({ message: 'Student not found. Vui lòng liên hệ admin để tạo tài khoản sinh viên.' });
         }
 
         const {
@@ -50,15 +47,27 @@ const updateProfile = async (req, res) => {
             citizenID,
             studentAvatar,
             semester,
-            semesterNo
+            semesterNo,
+            address,
+            dateOfBirth
         } = req.body;
 
-        // Cập nhật các trường có thể thay đổi
-        if (firstName) student.firstName = firstName;
-        if (lastName) student.lastName = lastName;
-        if (phone) student.phone = phone;
-        if (typeof gender !== 'undefined') student.gender = gender;
-        if (citizenID) student.citizenID = citizenID;
+        const updates = {};
+        if (firstName) updates.firstName = firstName;
+        if (lastName) updates.lastName = lastName;
+        if (phone) updates.phone = phone;
+        if (typeof gender !== 'undefined') updates.gender = gender;
+        if (citizenID) updates.citizenID = citizenID;
+        if (address) updates.address = address;
+        if (semester) updates.semester = semester;
+        if (semesterNo) updates.semesterNo = semesterNo;
+
+        if (dateOfBirth) {
+            const parsed = new Date(dateOfBirth);
+            if (isNaN(parsed.getTime())) return res.status(400).json({ message: 'dateOfBirth is not a valid date' });
+            updates.dateOfBirth = parsed;
+        }
+
         if (studentAvatar) {
             // validate data URI base64 OR http(s) url
             const isDataUri = /^data:image\/(png|jpe?g|gif|webp);base64,/.test(studentAvatar);
@@ -66,13 +75,19 @@ const updateProfile = async (req, res) => {
             if (!isDataUri && !isUrl) {
                 return res.status(400).json({ message: 'studentAvatar phải là data URI base64 (ảnh) hoặc URL hợp lệ' });
             }
-            student.studentAvatar = studentAvatar;
+            updates.studentAvatar = studentAvatar;
         }
-        if (semester) student.semester = semester;
-        if (semesterNo) student.semesterNo = semesterNo;
 
-        await student.save();
-        return res.json({ message: 'Profile updated successfully', student });
+        // Only set fields provided by the client. This avoids triggering schema-level
+        // required validations for fields that already exist on the DB but are not
+        // being updated by the client.
+        const updatedStudent = await Student.findOneAndUpdate(
+            { accountId: req.user.id },
+            { $set: updates },
+            { new: true, runValidators: true }
+        );
+
+        return res.json({ message: 'Profile updated successfully', student: updatedStudent });
     } catch (error) {
         return res.status(500).json({ message: error.message });
     }

@@ -153,9 +153,19 @@ const getAllNotifications = async (req, res) => {
             }
         });
 
+        // Populate slot notifications the same way lecturer endpoint does so the shape is consistent
         const slotNotifs = await SlotNotification.find({ scheduleId: { $in: scheduleIds } })
             .populate('senderId', 'email role')
-            .populate({ path: 'scheduleId', select: 'classId subjectId date slot startTime endTime' })
+            .populate({
+                path: 'scheduleId',
+                select: 'classId subjectId timeSlotId weekId',
+                populate: [
+                    { path: 'classId', select: 'className' },
+                    { path: 'subjectId', select: 'subjectName subjectCode' },
+                    { path: 'timeSlotId', select: 'slot startDate endDate' },
+                    { path: 'weekId', select: 'startDate endDate' }
+                ]
+            })
             .sort({ createdAt: -1 })
             .lean();
 
