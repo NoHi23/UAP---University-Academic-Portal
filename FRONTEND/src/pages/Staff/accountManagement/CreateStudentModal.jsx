@@ -11,6 +11,12 @@ import {
     ToggleButtonGroup,
     Box,
     Typography,
+    Paper,
+    Table,
+    TableHead,
+    TableRow,
+    TableCell,
+    TableBody,
 } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import Modal from "../../../components/Modal/Modal";
@@ -18,9 +24,53 @@ import staffAPI from "../../../api/staffAPI";
 import majorAPI from "../../../api/majorAPI";
 import curriculumAPI from "../../../api/curriculumAPI";  // import curriculumAPI
 import { notifySuccess, notifyError } from "../../../services/notificationService";
+import * as XLSX from "xlsx";
 
 const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/i;
 const isGmail = (v) => gmailRegex.test((v || "").trim());
+
+
+
+// ===============================
+// Transform Excel row → student object
+// ===============================
+const studentTransform = (row) => {
+    if (!row["Họ"] || !row["Tên"] || !row["CCCD"]) return null;
+
+    // Normalize and convert date values: support Excel serials, SheetJS parse_date_code objects, Date objects and ISO strings
+    let rawDob = row["Ngày sinh"] || row['ngaysinh'] || row['dob'] || row['DOB'] || row['DateOfBirth'];
+    let dateOfBirth = "";
+    if (rawDob) {
+        try {
+            // Try SheetJS parse (works if cell is a number/serialized date)
+            const parsed = XLSX.SSF.parse_date_code(rawDob);
+            if (parsed && parsed.y) {
+                const dt = new Date(parsed.y, (parsed.m || 1) - 1, parsed.d, parsed.H || 0, parsed.M || 0, parsed.S || 0);
+                if (!isNaN(dt.getTime())) dateOfBirth = dt.toISOString();
+            } else if (rawDob instanceof Date) {
+                dateOfBirth = rawDob.toISOString();
+            } else {
+                // fallback: keep original string (trim)
+                dateOfBirth = String(rawDob).trim();
+            }
+        } catch (e) {
+            dateOfBirth = String(rawDob).trim();
+        }
+    }
+
+    return {
+        firstName: (row["Tên"] || "").trim(),
+        lastName: (row["Họ"] || "").trim(),
+        citizenID: String(row["CCCD"] || row['citizenID'] || row['CMND'] || '').trim(),
+        gender: String(row["Giới tính"] || "Nam").toLowerCase().includes("nam"),
+        phone: String(row["Số điện thoại"] || row['SĐT'] || row['phone'] || "").trim(),
+        majorId: row["Ngành ID"] || row["Major ID"] || row['majorCode'] || row['majorId'] || "",
+        curriculumId: row["Khung chương trình ID"] || row["Curriculum ID"] || row['curriculumName'] || row['curriculumId'] || "",
+        personalEmail: (row["Email cá nhân"] || row['email'] || "").trim().toLowerCase(),
+        address: (row["Địa chỉ"] || row['address'] || "").trim(),
+        dateOfBirth,
+    };
+};
 
 const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
     const [mode, setMode] = useState("manual"); // "manual" | "excel"
@@ -38,6 +88,8 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
         dateOfBirth: ""
     });
     const [file, setFile] = useState(null);
+    const [previewRows, setPreviewRows] = useState([]); // raw parsed rows
+    const [previewTransformed, setPreviewTransformed] = useState([]); // transformed payload
     const [majors, setMajors] = useState([]);
     const [curriculums, setCurriculums] = useState([]);  // state for curriculum data
     const [loading, setLoading] = useState(false);
@@ -177,36 +229,84 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
         }
     };
 
-    // Submit Excel file
-    const handleSubmitExcel = async (e) => {
-        e.preventDefault();
-        if (!file) {
-            notifyError("Vui lòng chọn file Excel để tải lên!");
-            return;
-        }
-        setLoading(true);
+
+    // ===============================
+    // Excel upload (new)
+    // ===============================
+    const handleExcelImport = async (file) => {
         try {
-            const formData = new FormData();
-            formData.append("file", file);
-            await staffAPI.importStudentsExcel(formData);
-            notifySuccess("Nhập sinh viên từ Excel thành công!");
+            // Use previewTransformed if available (user already parsed file and saw preview)
+            let transformed = previewTransformed;
+            if (!transformed || transformed.length === 0) {
+                // Fallback: try parsing file now
+                const data = await file.arrayBuffer();
+                const workbook = XLSX.read(data, { type: "array" });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(sheet);
+                if (!rows || rows.length === 0) {
+                    notifyError("File Excel rỗng hoặc không có dữ liệu!");
+                    return;
+                }
+                transformed = rows.map(studentTransform).filter(Boolean);
+            }
+
+            if (transformed.length === 0) {
+                notifyError("Không có dòng hợp lệ để import!");
+                return;
+            }
+
+            await staffAPI.importStudentsExcel(transformed, { dedupe: true });
+            notifySuccess(`Import thành công ${transformed.length} sinh viên!`);
             onSuccess?.();
             onClose();
         } catch (err) {
             console.error("❌ Lỗi nhập Excel:", err);
-            notifyError("Nhập sinh viên thất bại!");
+            notifyError("Nhập sinh viên thất bại! Kiểm tra lại tệp Excel.");
         } finally {
             setLoading(false);
         }
     };
 
+    const handleExcelFileChange = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (!file.name.endsWith(".xlsx") && !file.name.endsWith(".xls")) {
+            notifyError("Vui lòng chọn file .xls hoặc .xlsx");
+            return;
+        }
+        setFile(file);
+        // parse file for preview
+        (async () => {
+            try {
+                const data = await file.arrayBuffer();
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(sheet);
+                setPreviewRows(rows.slice(0, 200));
+                const transformed = (rows || []).map(studentTransform).filter(Boolean);
+                setPreviewTransformed(transformed.slice(0, 200));
+            } catch (err) {
+                console.error('Error parsing Excel for preview', err);
+                setPreviewRows([]);
+                setPreviewTransformed([]);
+            }
+        })();
+    };
+
     // Render Excel upload section
     const renderExcelUpload = () => (
         <Box
-            onDragEnter={handleDragEnter}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
+            onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragging(true);
+            }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={(e) => {
+                e.preventDefault();
+                setIsDragging(false);
+                const f = e.dataTransfer.files?.[0];
+                if (f) handleExcelFileChange({ target: { files: [f] } });
+            }}
             sx={{
                 border: "2px dashed #94a3b8",
                 borderRadius: 3,
@@ -218,19 +318,18 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
         >
             <CloudUploadIcon sx={{ fontSize: 60, color: "#64748b" }} />
             <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
-                Tải nguồn lên
+                Tải nguồn Excel
             </Typography>
             <Typography variant="body2" sx={{ mb: 3 }}>
-                Kéo và thả hoặc <strong>chọn tệp</strong> Excel để tải lên
+                Kéo & thả hoặc <strong>chọn tệp</strong> Excel để nhập sinh viên
             </Typography>
+
             <input
                 id="excel-upload"
                 type="file"
                 accept=".xls,.xlsx"
                 style={{ display: "none" }}
-                onChange={(e) => {
-                    if (e.target.files?.[0]) setFile(e.target.files[0]);
-                }}
+                onChange={handleExcelFileChange}
             />
             <Button
                 variant="contained"
@@ -242,14 +341,52 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
             >
                 Chọn tệp
             </Button>
+
             {file && (
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
                     📄 {file.name}
                 </Typography>
             )}
-            <Typography variant="caption" display="block" sx={{ mt: 3, color: "#64748b" }}>
-                Các loại tệp được hỗ trợ: .xls, .xlsx
-            </Typography>
+            {/* Preview table: show transformed preview before import */}
+            {previewTransformed && previewTransformed.length > 0 && (
+                <Paper sx={{ mt: 2, p: 1, maxHeight: 300, overflow: 'auto' }}>
+                    <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                        Xem trước {previewTransformed.length} dòng (tối đa 200). Kiểm tra dữ liệu, sau đó nhấn "Nhập sinh viên từ Excel" để lưu vào cơ sở dữ liệu.
+                    </Typography>
+                    <Table size="small">
+                        <TableHead>
+                            <TableRow>
+                                <TableCell>Họ</TableCell>
+                                <TableCell>Tên</TableCell>
+                                <TableCell>CCCD</TableCell>
+                                <TableCell>Giới tính</TableCell>
+                                <TableCell>SĐT</TableCell>
+                                <TableCell>Ngành (ID/Mã)</TableCell>
+                                <TableCell>Khung chương trình</TableCell>
+                                <TableCell>Email</TableCell>
+                                <TableCell>Địa chỉ</TableCell>
+                                <TableCell>Ngày sinh</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {previewTransformed.slice(0, 50).map((r, idx) => (
+                                <TableRow key={idx}>
+                                    <TableCell>{r.lastName}</TableCell>
+                                    <TableCell>{r.firstName}</TableCell>
+                                    <TableCell>{r.citizenID}</TableCell>
+                                    <TableCell>{String(r.gender).toLowerCase().includes('nam') || r.gender === 1 || r.gender === true ? 'Nam' : 'Nữ'}</TableCell>
+                                    <TableCell>{r.phone}</TableCell>
+                                    <TableCell>{r.majorId}</TableCell>
+                                    <TableCell>{r.curriculumId}</TableCell>
+                                    <TableCell>{r.personalEmail}</TableCell>
+                                    <TableCell sx={{ maxWidth: 200, wordBreak: 'break-word' }}>{r.address}</TableCell>
+                                    <TableCell>{r.dateOfBirth ? (typeof r.dateOfBirth === 'string' ? r.dateOfBirth : (r.dateOfBirth instanceof Date ? new Date(r.dateOfBirth).toLocaleDateString() : JSON.stringify(r.dateOfBirth))) : ''}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </Paper>
+            )}
             <Button
                 variant="contained"
                 fullWidth
@@ -259,8 +396,8 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
                     "&:hover": { backgroundColor: "#1d4ed8" },
                     fontWeight: 600,
                 }}
-                onClick={handleSubmitExcel}
-                disabled={loading}
+                onClick={() => handleExcelImport(file)}
+                disabled={!file || loading}
             >
                 {loading ? "Đang nhập..." : "Nhập sinh viên từ Excel"}
             </Button>
