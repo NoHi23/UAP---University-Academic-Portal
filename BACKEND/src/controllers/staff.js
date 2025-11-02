@@ -36,6 +36,21 @@ function parseExcelDate(v) {
         const date = new Date(Math.round((v - 25569) * 86400 * 1000));
         return isNaN(date.getTime()) ? null : date;
     }
+    // If SheetJS parsed date object (e.g. {y:2004,m:8,d:15,H:0,M:0,S:0})
+    if (typeof v === 'object' && (('y' in v && 'm' in v && 'd' in v) || ('Y' in v && 'M' in v && 'D' in v))) {
+        try {
+            const y = v.y || v.Y;
+            const m = v.m || v.M;
+            const d = v.d || v.D;
+            const H = v.H || v.h || 0;
+            const M = v.M || v.min || v.m || 0;
+            const S = v.S || v.s || 0;
+            const date = new Date(y, (m || 1) - 1, d, H || 0, M || 0, S || 0);
+            return isNaN(date.getTime()) ? null : date;
+        } catch (e) {
+            return null;
+        }
+    }
     // If already a Date
     if (v instanceof Date) return isNaN(v.getTime()) ? null : v;
     // Try to parse ISO or common date strings
@@ -197,47 +212,184 @@ const createStudentAccount = async (req, res) => {
 //import Student from excel
 const importStudentsExcel = async (req, res) => {
     try {
-        if (!req.file) return res.status(400).json({ message: 'Không có file Excel được tải lên' });
+        // Accept either an uploaded Excel file (multipart/form-data with field 'file')
+        // OR a parsed JSON array in the request body (frontend may send rows directly).
+        let rows = null;
 
-        const workbook = XLSX.readFile(req.file.path);
-        const sheetName = workbook.SheetNames[0];
-        const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+        if (req.file) {
+            const workbook = XLSX.readFile(req.file.path);
+            const sheetName = workbook.SheetNames[0];
+            rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+        } else if (Array.isArray(req.body) && req.body.length > 0) {
+            // Body is an array of rows
+            rows = req.body;
+        } else if (req.body && Array.isArray(req.body.rows) && req.body.rows.length > 0) {
+            // Support { rows: [...] } payload shape
+            rows = req.body.rows;
+        }
 
+        if (!rows || !Array.isArray(rows) || rows.length === 0) {
+            return res.status(400).json({ success: false, message: 'Không có dữ liệu hợp lệ trong file hoặc body' });
+        }
+
+        if (!Array.isArray(rows) || rows.length === 0) {
+            return res.status(400).json({ success: false, message: 'Không có dữ liệu hợp lệ trong file Excel' });
+        }
+
+        const MAX_ROWS = 2000;
+        if (rows.length > MAX_ROWS) {
+            return res.status(400).json({ success: false, message: `Quá nhiều dòng (tối đa ${MAX_ROWS})` });
+        }
+
+        // Lấy toàn bộ major và curriculum
+        const [majors, curriculums] = await Promise.all([
+            Major.find().select('_id majorCode majorName').lean(),
+            Curriculum.find().select('_id curriculumName').lean(),
+        ]);
+
+        const majorMap = new Map();
+        majors.forEach(m => {
+            majorMap.set(String(m.majorCode).toLowerCase(), m._id);
+            majorMap.set(String(m.majorName).toLowerCase(), m._id);
+        });
+
+        const curriculumMap = new Map();
+        curriculums.forEach(c => {
+            curriculumMap.set(String(c.curriculumName).toLowerCase(), c._id);
+        });
+
+        const errors = [];
+        const docs = [];
+
+        for (let i = 0; i < rows.length; i++) {
+            const r = rows[i];
+            const errList = [];
+
+            const firstName = r.firstName || r['Họ'] || '';
+            const lastName = r.lastName || r['Tên'] || '';
+            const citizenID = r.citizenID || r['CCCD'] || '';
+            const genderRaw = r.gender || r['Giới tính'] || '';
+            const gender = String(genderRaw).trim().toLowerCase() === 'nam' ? 1 : 0;
+            const phone = r.phone || r['SĐT'] || '';
+            const address = r.address || r['Địa chỉ'] || '';
+            const personalEmail = r.personalEmail || r['Email cá nhân'] || '';
+
+            // Accept multiple possible column names. Some clients send majorId as the major code
+            // or send curriculumId as the curriculum name — normalize to support those cases.
+            const majorInput = r.majorCode || r.majorId || r.majorName || r['Mã ngành'] || r['Ngành'] || r['Major ID'] || r['Ngành ID'];
+            const curriculumInput = r.curriculumName || r.curriculumId || r.curriculum || r['Khung chương trình'] || r['Curriculum ID'] || r['Tên khung chương trình'];
+
+            const dobRaw = r.dateOfBirth || r['Ngày sinh'] || r.dob || r.DOB;
+            const dateOfBirth = parseExcelDate(dobRaw);
+
+            // Xác thực dữ liệu
+            if (!firstName || !lastName) errList.push('Thiếu họ hoặc tên');
+            if (!citizenID) errList.push('Thiếu CCCD');
+            if (!phone) errList.push('Thiếu SĐT');
+            if (!address) errList.push('Thiếu địa chỉ');
+            if (!dobRaw) errList.push('Thiếu ngày sinh');
+            else if (!dateOfBirth || isNaN(new Date(dateOfBirth).getTime())) errList.push('Ngày sinh không hợp lệ');
+
+            const majorKey = typeof majorInput === 'undefined' || majorInput === null ? '' : String(majorInput).trim().toLowerCase();
+            const majorId = majorMap.get(majorKey);
+            if (!majorId) errList.push(`Ngành không tồn tại: ${majorInput}`);
+
+            const curriculumKey = typeof curriculumInput === 'undefined' || curriculumInput === null ? '' : String(curriculumInput).trim().toLowerCase();
+            const curriculumId = curriculumMap.get(curriculumKey);
+            if (!curriculumId) errList.push(`Khung chương trình không tồn tại: ${curriculumInput}`);
+
+            // Nếu có lỗi, lưu lại và bỏ qua dòng này
+            if (errList.length > 0) {
+                errors.push({ index: i + 2, row: r, errors: errList });
+                continue;
+            }
+
+            // Chuẩn bị document
+            docs.push({
+                firstName,
+                lastName,
+                citizenID,
+                gender,
+                phone,
+                address,
+                dateOfBirth,
+                majorId,
+                curriculumId,
+                personalEmail,
+            });
+        }
+
+        // Remove temporary uploaded file if present
+        if (req.file && req.file.path) {
+            try { fs.unlinkSync(req.file.path); } catch (e) { /* ignore */ }
+        }
+
+        // Nếu không có dữ liệu hợp lệ
+        if (docs.length === 0) {
+            return res.status(400).json({ success: false, message: 'Không có dòng hợp lệ để import', errors });
+        }
+
+        // Xử lý cờ dedupe / replace
+        const dedupe = String(req.query.dedupe) === 'true';
+        const replace = String(req.query.replace) === 'true';
+
+        let insertedCount = 0;
+        let modifiedCount = 0;
+
+        if (replace) {
+            // Xoá toàn bộ sinh viên trước khi import
+            await Student.deleteMany({});
+        }
+
+        // Process each document sequentially to ensure required fields (studentCode, accountId) are created
+        // If dedupe=true then update existing student (matched by citizenID), otherwise skip existing rows.
         const createdStudents = [];
-        const failed = [];
-
-        for (const [i, row] of rows.entries()) {
+        for (const doc of docs) {
             try {
-                const { firstName, lastName, citizenID, gender, phone, majorCode, curriculumId, address } = row; // ✅ bỏ avatarBase64
+                const existing = await Student.findOne({ citizenID: doc.citizenID }).lean();
 
-                // Accept multiple possible column names for DOB
-                const dobRaw = row.dateOfBirth || row.dob || row.DOB || row.DateOfBirth || row.ngaySinh || row['Ngày sinh'];
-                const dob = parseExcelDate(dobRaw);
-
-                // Validate cơ bản
-                if (!firstName || !lastName || !citizenID || typeof gender === 'undefined' || !phone || !majorCode || !curriculumId || !address || !dob) {
-                    throw new Error(`Thiếu dữ liệu ở dòng ${i + 2}`);
+                if (existing) {
+                    if (dedupe) {
+                        // Update allowed fields only
+                        const updateData = {
+                            phone: doc.phone,
+                            majorId: doc.majorId,
+                            curriculumId: doc.curriculumId,
+                            address: doc.address,
+                        };
+                        if (doc.dateOfBirth) updateData.dateOfBirth = doc.dateOfBirth;
+                        await Student.updateOne({ _id: existing._id }, { $set: updateData });
+                        modifiedCount++;
+                        continue;
+                    } else {
+                        // Skip row to avoid duplicate unique keys
+                        errors.push({ row: doc, errors: ['Student already exists (citizenID)'] });
+                        continue;
+                    }
                 }
 
-                // Check trùng citizenID
-                if (await Student.exists({ citizenID })) throw new Error(`CitizenID ${citizenID} đã tồn tại`);
-
-                // Tìm Major theo majorCode
-                const major = await Major.findOne({ majorCode }).lean();
-                if (!major) throw new Error(`MajorCode "${majorCode}" không tồn tại`);
+                // Create new Account + Student
+                // Load major to compute studentCode
+                const major = await Major.findById(doc.majorId).lean();
+                if (!major) {
+                    errors.push({ row: doc, errors: ['Major not found when creating student'] });
+                    continue;
+                }
 
                 const { number: semesterNo, str2: sem2 } = computeSemesterNo();
+                const studentCode = await generateUniqueCode({ majorCode: major.majorCode, sem2, model: Student, field: 'studentCode' });
 
-                const studentCode = await generateUniqueCode({
-                    majorCode: major.majorCode, sem2,
-                    model: Student, field: 'studentCode'
-                });
-
-                const email = makeStudentEmail({ firstName, lastName, studentCode });
-                let finalEmail = email;
-                if (await Account.exists({ email })) {
+                // Create school email and account
+                const baseEmail = makeStudentEmail({ firstName: doc.firstName, lastName: doc.lastName, studentCode });
+                let finalEmail = baseEmail;
+                if (await Account.exists({ email: finalEmail })) {
                     const suffix = Math.floor(100 + Math.random() * 900);
-                    finalEmail = email.replace('@edu.vn', `${suffix}@edu.vn`);
+                    finalEmail = baseEmail.replace('@edu.vn', `${suffix}@edu.vn`);
+                    if (await Account.exists({ email: finalEmail })) {
+                        // extremely unlikely
+                        errors.push({ row: doc, errors: ['Không thể tạo email trường duy nhất'] });
+                        continue;
+                    }
                 }
 
                 const plainPassword = generateInitialPassword(12);
@@ -245,55 +397,66 @@ const importStudentsExcel = async (req, res) => {
 
                 const account = await Account.create({
                     email: finalEmail,
+                    personalEmail: doc.personalEmail || '',
                     password: hashed,
                     role: 'student',
-                    status: true
+                    status: true,
                 });
 
-                const student = await Student.create({
+                const studentData = {
                     studentCode,
-                    firstName,
-                    lastName,
-                    citizenID,
-                    gender,
-                    phone,
-                    dateOfBirth: dob,
+                    studentAvatar: '',
+                    firstName: doc.firstName,
+                    lastName: doc.lastName,
+                    citizenID: doc.citizenID,
+                    gender: doc.gender,
+                    phone: doc.phone,
+                    dateOfBirth: doc.dateOfBirth,
                     semester: sem2,
                     semesterNo,
-                    curriculumId,
+                    curriculumId: doc.curriculumId,
                     accountId: account._id,
-                    majorId: major._id,
-                    address             // ✅ Lưu vào DB
-                });
+                    majorId: doc.majorId,
+                    address: doc.address,
+                };
 
-                createdStudents.push({
-                    studentCode,
-                    email: finalEmail,
-                    password: plainPassword,
-                    fullName: `${firstName} ${lastName}`,
-                    majorCode
-                });
+                const created = await Student.create(studentData);
+                createdStudents.push({ studentCode: created.studentCode, email: finalEmail, password: plainPassword });
+                insertedCount++;
 
-            } catch (err) {
-                failed.push({ row: i + 2, error: err.message });
+                // Try to send welcome email but don't fail import on email error
+                try {
+                    await sendWelcomeEmail({ to: doc.personalEmail || '', fullName: `${doc.lastName} ${doc.firstName}`, schoolEmail: finalEmail, initialPassword: plainPassword });
+                } catch (mailErr) {
+                    console.error('sendWelcomeEmail failed for import row:', mailErr);
+                }
+
+            } catch (e) {
+                console.error('Error processing import row:', e);
+                errors.push({ row: doc, errors: [e.message] });
             }
         }
 
-        fs.unlinkSync(req.file.path);
-
         return res.status(201).json({
-            message: 'Import hoàn tất',
-            successCount: createdStudents.length,
-            failCount: failed.length,
+            success: true,
+            message: 'Import sinh viên hoàn tất',
+            totalRows: rows.length,
+            validCount: docs.length,
+            insertedCount,
+            modifiedCount,
+            dedupe,
+            replace,
+            errorCount: errors.length,
+            errors,
             createdStudents,
-            failed
         });
 
     } catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: 'server error' });
+        console.error('importStudentsExcel error:', error);
+        return res.status(500).json({ success: false, message: error.message });
     }
 };
+
 
 
 
@@ -519,8 +682,9 @@ const createLecturerAccount = async (req, res) => {
 
         const { number: semesterNo, str2: sem2 } = computeSemesterNo();
 
+        // Generate lecturer code and include GV- prefix so existence checks match stored format
         const lecturerCode = await generateUniqueCode({
-            majorCode: major.majorCode, sem2,
+            majorCode: `GV-${major.majorCode}`, sem2,
             model: Lecturer, field: 'lecturerCode'
         });
 
@@ -614,73 +778,98 @@ const createLecturerAccount = async (req, res) => {
 //import Lecturer from Excel
 const importLecturersExcel = async (req, res) => {
     try {
-        if (!req.file) return res.status(400).json({ message: 'Không có file Excel được tải lên' });
+        // Accept either uploaded file or JSON rows in body (like students import)
+        let rows = null;
+        if (req.file) {
+            const workbook = XLSX.readFile(req.file.path);
+            const sheetName = workbook.SheetNames[0];
+            rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+        } else if (Array.isArray(req.body) && req.body.length > 0) {
+            rows = req.body;
+        } else if (req.body && Array.isArray(req.body.rows) && req.body.rows.length > 0) {
+            rows = req.body.rows;
+        }
 
-        // Đọc file Excel
-        const workbook = XLSX.readFile(req.file.path);
-        const sheetName = workbook.SheetNames[0];
-        const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+        if (!rows || !Array.isArray(rows) || rows.length === 0) {
+            return res.status(400).json({ message: 'Không có dữ liệu hợp lệ để import' });
+        }
 
         const createdLecturers = [];
         const failed = [];
 
+        // Preload majors & curriculums to support finding by code/name
+        const [majors, curriculums] = await Promise.all([
+            Major.find().select('_id majorCode majorName').lean(),
+            Curriculum.find().select('_id curriculumName').lean()
+        ]);
+        const majorMap = new Map();
+        majors.forEach(m => {
+            majorMap.set(String(m._id).toLowerCase(), m._id);
+            majorMap.set(String(m.majorCode).toLowerCase(), m._id);
+            majorMap.set(String(m.majorName).toLowerCase(), m._id);
+        });
+        const curriculumMap = new Map();
+        curriculums.forEach(c => curriculumMap.set(String(c.curriculumName).toLowerCase(), c._id));
+
         for (const [i, row] of rows.entries()) {
             try {
-                const { firstName, lastName, citizenID, gender, phone, majorId, curriculumId, lecturerAvatar, address } = row; // ✅ thêm address
+                // Normalize input names (support multiple header names)
+                const firstName = row.firstName || row['Tên'] || row['FirstName'] || '';
+                const lastName = row.lastName || row['Họ'] || row['LastName'] || '';
+                const citizenID = row.citizenID || row['CCCD'] || row['cmnd'] || '';
+                const genderRaw = row.gender || row['Giới tính'] || row['Gender'] || '';
+                const gender = String(genderRaw).trim().toLowerCase() === 'nam' ? 1 : 0;
+                const phone = row.phone || row['Số điện thoại'] || row['SĐT'] || '';
+                const address = row.address || row['Địa chỉ'] || '';
 
-                // parse DOB from multiple possible column names
-                const dobRaw = row.dateOfBirth || row.dob || row.DOB || row.DateOfBirth || row.ngaySinh || row['Ngày sinh'];
+                const majorInput = row.majorId || row.majorCode || row.majorName || row['Mã ngành'] || row['Ngành'] || '';
+                const curriculumInput = row.curriculumId || row.curriculumName || row['Khung chương trình'] || row['Tên khung chương trình'] || '';
+
+                const dobRaw = row.dateOfBirth || row.dob || row.DOB || row.DateOfBirth || row['Ngày sinh'] || row.ngaySinh;
                 const dob = parseExcelDate(dobRaw);
 
-                // Validate dữ liệu cơ bản
+                // Resolve majorId / curriculumId
+                const majorKey = (majorInput || '').toString().trim().toLowerCase();
+                const majorId = majorMap.get(majorKey);
+                const curriculumKey = (curriculumInput || '').toString().trim().toLowerCase();
+                const curriculumId = curriculumMap.get(curriculumKey) || row.curriculumId;
+
+                // Basic validation
                 if (!firstName || !lastName || !citizenID || typeof gender === 'undefined' || !phone || !majorId || !curriculumId || !address || !dob) {
-                    throw new Error(`Thiếu dữ liệu ở dòng ${i + 2}`);
+                    throw new Error(`Thiếu dữ liệu hợp lệ ở dòng ${i + 2}`);
                 }
 
+                const lecturerAvatar = row.lecturerAvatar || row.avatar || '';
                 if (lecturerAvatar && !isValidImageDataUri(lecturerAvatar)) {
                     throw new Error(`Avatar không hợp lệ ở dòng ${i + 2}`);
                 }
 
-                // Check trùng citizenID
+                // Check duplicate citizenID
                 const citizenTaken = await Lecturer.exists({ citizenID });
                 if (citizenTaken) throw new Error(`CitizenID ${citizenID} đã tồn tại`);
 
-                // Check major tồn tại
+                // Generate lecturerCode
                 const major = await Major.findById(majorId).lean();
-                if (!major) throw new Error(`MajorId ${majorId} không tồn tại`);
+                if (!major) throw new Error(`Major không tồn tại cho dòng ${i + 2}`);
 
-                // Sinh mã giảng viên
                 const { number: semesterNo, str2: sem2 } = computeSemesterNo();
 
-                const lecturerCode = await generateUniqueCode({
-                    majorCode: major.majorCode, sem2,
-                    model: Lecturer, field: 'lecturerCode'
-                });
+                const lecturerCode = await generateUniqueCode({ majorCode: `GV-${major.majorCode}`, sem2, model: Lecturer, field: 'lecturerCode' });
 
-                // Sinh email
+                // Create email + account
                 const email = makeLecturerEmail({ firstName, lastName, lecturerCode });
                 let finalEmail = email;
                 if (await Account.exists({ email })) {
                     const suffix = Math.floor(100 + Math.random() * 900);
                     finalEmail = email.replace('@edu.vn', `${suffix}@edu.vn`);
-                    if (await Account.exists({ email: finalEmail })) {
-                        throw new Error(`Không thể tạo email duy nhất cho ${citizenID}`);
-                    }
+                    if (await Account.exists({ email: finalEmail })) throw new Error(`Không thể tạo email duy nhất cho ${citizenID}`);
                 }
 
-                // Sinh password
                 const plainPassword = generateInitialPassword(12);
                 const hashed = await bcrypt.hash(plainPassword, 10);
 
-                // Tạo Account
-                const account = await Account.create({
-                    email: finalEmail,
-                    password: hashed,
-                    role: 'lecture',
-                    status: true
-                });
+                const account = await Account.create({ email: finalEmail, password: hashed, role: 'lecture', status: true });
 
-                // Tạo Lecturer
                 const lecturer = await Lecturer.create({
                     lecturerCode,
                     lecturerAvatar: lecturerAvatar || '',
@@ -695,31 +884,20 @@ const importLecturersExcel = async (req, res) => {
                     curriculumId,
                     accountId: account._id,
                     majorId,
-                    address              // ✅ NEW (lưu vào DB)
+                    address
                 });
 
-                createdLecturers.push({
-                    lecturerCode,
-                    email: finalEmail,
-                    password: plainPassword,
-                    fullName: `${firstName} ${lastName}`
-                });
+                createdLecturers.push({ lecturerCode, email: finalEmail, password: plainPassword, fullName: `${firstName} ${lastName}` });
 
             } catch (err) {
-                failed.push({ row: i + 2, error: err.message });
+                failed.push({ row: i + 2, error: err.message || String(err) });
             }
         }
 
-        // Xoá file sau khi đọc
-        fs.unlinkSync(req.file.path);
+        // Remove uploaded file if present
+        if (req.file && req.file.path) try { fs.unlinkSync(req.file.path); } catch (e) { }
 
-        return res.status(201).json({
-            message: 'Import giảng viên hoàn tất',
-            successCount: createdLecturers.length,
-            failCount: failed.length,
-            createdLecturers,
-            failed
-        });
+        return res.status(201).json({ message: 'Import giảng viên hoàn tất', successCount: createdLecturers.length, failCount: failed.length, createdLecturers, failed });
 
     } catch (error) {
         console.error(error);
@@ -809,6 +987,8 @@ const listLecturers = async (req, res) => {
         const [items, total] = await Promise.all([
             Lecturer
                 .find(where, Object.keys(projection).length ? projection : undefined)
+                .populate('accountId', 'email personalEmail role status')
+                .populate('majorId', 'majorName majorCode')
                 .sort(sort)
                 .skip(skip)
                 .limit(limitNum)

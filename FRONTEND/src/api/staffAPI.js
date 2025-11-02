@@ -13,9 +13,8 @@ const staffAPI = {
     },
 
     //  Import sinh viên bằng Excel
-    importStudentsExcel: (formData) => {
-        // Let the browser/axios set the Content-Type with correct boundary
-        return api.post(`${BASE_URL}/students/import-excel`, formData);
+    importStudentsExcel: (rows, params = {}) => {
+        return api.post(`${BASE_URL}/students/import-excel`, rows, { params });
     },
 
     //  Lấy danh sách sinh viên
@@ -53,9 +52,13 @@ const staffAPI = {
     },
 
     //  Import giảng viên bằng Excel
-    importLecturersExcel: (formData) => {
-        // Let the browser/axios set the Content-Type with correct boundary
-        return api.post(`${BASE_URL}/lecturers/import-excel`, formData);
+    // Accept either FormData (file upload) or rows array (parsed client-side)
+    importLecturersExcel: (payload, params = {}) => {
+        if (payload instanceof FormData) {
+            return api.post(`${BASE_URL}/lecturers/import-excel`, payload, { params });
+        }
+        // assume JSON rows array
+        return api.post(`${BASE_URL}/lecturers/import-excel`, payload, { params });
     },
 
     //  Lấy danh sách giảng viên

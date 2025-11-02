@@ -24,6 +24,7 @@ import AddIcon from "@mui/icons-material/Add";
 import staffAPI from "../../../api/staffAPI";
 import majorAPI from "../../../api/majorAPI";
 import CreateLecturerModal from "./CreateLectureModal";
+import UpdateLectureModal from "./UpdateLectureModal";
 
 export default function LectureAccount() {
     const [lecturers, setLecturers] = useState([]);
@@ -32,9 +33,19 @@ export default function LectureAccount() {
     const [filterMajor, setFilterMajor] = useState("");
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+    const [selectedLecturerId, setSelectedLecturerId] = useState(null);
 
     const handleCreate = () => setIsModalOpen(true);
     const handleCloseModal = () => setIsModalOpen(false);
+    const handleOpenUpdate = (id) => {
+        setSelectedLecturerId(id);
+        setIsUpdateModalOpen(true);
+    };
+    const handleCloseUpdate = () => {
+        setSelectedLecturerId(null);
+        setIsUpdateModalOpen(false);
+    };
 
     const reloadLecturers = async () => {
         try {
@@ -81,7 +92,7 @@ export default function LectureAccount() {
         return matchesName && matchesMajor;
     });
 
-    const handleEdit = (id) => alert("Open Edit Form cho lecturer ID: " + id);
+    const handleEdit = (id) => handleOpenUpdate(id);
 
     return (
         <Box>
@@ -218,6 +229,13 @@ export default function LectureAccount() {
             <CreateLecturerModal
                 isOpen={isModalOpen}
                 onClose={handleCloseModal}
+                onSuccess={reloadLecturers}
+            />
+
+            <UpdateLectureModal
+                isOpen={isUpdateModalOpen}
+                onClose={handleCloseUpdate}
+                lecturerId={selectedLecturerId}
                 onSuccess={reloadLecturers}
             />
         </Box>
