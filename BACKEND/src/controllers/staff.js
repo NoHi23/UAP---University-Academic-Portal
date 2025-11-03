@@ -512,21 +512,15 @@ const getStudentById = async (req, res) => {
 
 
 
-// get all student (có lọc, tìm kiếm, phân trang, sắp xếp)
+// get all students (có lọc, tìm kiếm, sắp xếp) - return full list (no backend pagination)
 const listStudents = async (req, res) => {
     try {
         const {
             q = "",                 // tìm kiếm theo tên, mã, email
             major = "",             // lọc theo majorId
-            page = "1",
-            limit = "20",
             sort = "-createdAt",    // sắp xếp mới nhất trước
             fields = ""             // chọn field trả về
         } = req.query;
-
-        const pageNum = Math.max(1, parseInt(page, 10) || 1);
-        const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
-        const skip = (pageNum - 1) * limitNum;
 
         // Điều kiện lọc
         const where = {};
@@ -549,26 +543,19 @@ const listStudents = async (req, res) => {
                 .forEach(f => (projection[f] = 1));
         }
 
-        // Truy vấn DB
-        const [items, total] = await Promise.all([
-            Student.find(where, Object.keys(projection).length ? projection : undefined)
-                .populate('accountId', 'email')
-                .populate('majorId', 'majorName majorCode')
-                .sort(sort)
-                .skip(skip)
-                .limit(limitNum)
-                .lean(),
-            Student.countDocuments(where),
-        ]);
+        // Truy vấn DB - không dùng skip/limit để trả về tất cả kết quả, frontend sẽ phụ trách phân trang
+        const items = await Student.find(where, Object.keys(projection).length ? projection : undefined)
+            .populate('accountId', 'email')
+            .populate('majorId', 'majorName majorCode')
+            .sort(sort)
+            .lean();
 
-        // ✅ Trả JSON chuẩn RESTful
+        const total = Array.isArray(items) ? items.length : 0;
+
         return res.json({
             data: items,
             meta: {
-                page: pageNum,
-                limit: limitNum,
                 total,
-                totalPages: Math.ceil(total / limitNum),
             },
         });
     } catch (e) {
@@ -958,15 +945,9 @@ const listLecturers = async (req, res) => {
         const {
             q = "",
             major = "",
-            page = "1",
-            limit = "20",
             sort = "-createdAt",
             fields = ""
         } = req.query;
-
-        const pageNum = Math.max(1, parseInt(page, 10) || 1);
-        const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
-        const skip = (pageNum - 1) * limitNum;
 
         const where = {};
         if (q) {
@@ -974,7 +955,6 @@ const listLecturers = async (req, res) => {
                 { firstName: { $regex: q, $options: "i" } },
                 { lastName: { $regex: q, $options: "i" } },
                 { lecturerCode: { $regex: q, $options: "i" } },
-                { email: { $regex: q, $options: "i" } }, // nếu model Lecturer có trường email
             ];
         }
         if (major) where.majorId = major;
@@ -984,25 +964,20 @@ const listLecturers = async (req, res) => {
             fields.split(",").map(s => s.trim()).filter(Boolean).forEach(f => projection[f] = 1);
         }
 
-        const [items, total] = await Promise.all([
-            Lecturer
-                .find(where, Object.keys(projection).length ? projection : undefined)
-                .populate('accountId', 'email personalEmail role status')
-                .populate('majorId', 'majorName majorCode')
-                .sort(sort)
-                .skip(skip)
-                .limit(limitNum)
-                .lean(),
-            Lecturer.countDocuments(where)
-        ]);
+        // Return full list (no server-side pagination). Frontend handles paging.
+        const items = await Lecturer
+            .find(where, Object.keys(projection).length ? projection : undefined)
+            .populate('accountId', 'email personalEmail role status')
+            .populate('majorId', 'majorName majorCode')
+            .sort(sort)
+            .lean();
+
+        const total = Array.isArray(items) ? items.length : 0;
 
         return res.json({
             data: items,
             meta: {
-                page: pageNum,
-                limit: limitNum,
                 total,
-                totalPages: Math.ceil(total / limitNum)
             }
         });
     } catch (e) {

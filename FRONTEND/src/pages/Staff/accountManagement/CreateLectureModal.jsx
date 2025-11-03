@@ -7,6 +7,7 @@ import {
     FormControl,
     InputLabel,
     CircularProgress,
+    LinearProgress,
     ToggleButton,
     ToggleButtonGroup,
     Box,
@@ -45,6 +46,10 @@ const CreateLecturerModal = ({ isOpen, onClose, onSuccess }) => {
     const [majors, setMajors] = useState([]);
     const [loading, setLoading] = useState(false);
     const [loadingMajors, setLoadingMajors] = useState(false);
+    const [importing, setImporting] = useState(false);
+    const [importProgress, setImportProgress] = useState(0);
+    const [importProcessed, setImportProcessed] = useState(0);
+    const [importTotal, setImportTotal] = useState(0);
 
     // 🧩 Lấy danh sách chuyên ngành
     useEffect(() => {
@@ -108,25 +113,81 @@ const CreateLecturerModal = ({ isOpen, onClose, onSuccess }) => {
             notifyError("Vui lòng chọn file Excel để tải lên!");
             return;
         }
-        setLoading(true);
+
+        setImporting(true);
+        setImportProgress(0);
+        setImportProcessed(0);
+        setImportTotal(0);
+
         try {
             // prefer sending previewTransformed (parsed client-side)
-            const payload = (previewTransformed && previewTransformed.length > 0) ? previewTransformed : (async () => {
+            let transformed = (previewTransformed && previewTransformed.length > 0) ? previewTransformed : [];
+            if (!transformed || transformed.length === 0) {
                 const data = await file.arrayBuffer();
                 const workbook = XLSX.read(data, { type: 'array' });
                 const sheet = workbook.Sheets[workbook.SheetNames[0]];
                 const rows = XLSX.utils.sheet_to_json(sheet);
-                return (rows || []).map(lecturerTransform).filter(Boolean);
-            })();
+                transformed = (rows || []).map(lecturerTransform).filter(Boolean);
+            }
 
-            await staffAPI.importLecturersExcel(await payload, { dedupe: true });
-            notifySuccess("Nhập giảng viên từ Excel thành công!");
+            if (!transformed || transformed.length === 0) {
+                notifyError("Không có dòng hợp lệ để import!");
+                setImporting(false);
+                return;
+            }
+
+            const total = transformed.length;
+            setImportTotal(total);
+
+            let processed = 0;
+            let failed = 0;
+
+            if (total <= 200) {
+                // send per-item for smooth progress
+                for (let idx = 0; idx < total; idx++) {
+                    const item = transformed[idx];
+                    try {
+                        await staffAPI.importLecturersExcel([item], { dedupe: true });
+                        processed += 1;
+                    } catch (err) {
+                        console.error(`Import lecturer failed for row ${idx}:`, err);
+                        failed += 1;
+                    }
+                    setImportProcessed(processed);
+                    setImportProgress(Math.round((processed / total) * 100));
+                }
+            } else {
+                const batchSize = 50;
+                for (let i = 0; i < total; i += batchSize) {
+                    const batch = transformed.slice(i, i + batchSize);
+                    try {
+                        await staffAPI.importLecturersExcel(batch, { dedupe: true });
+                        processed += batch.length;
+                    } catch (err) {
+                        console.error('Batch import failed:', err);
+                        failed += batch.length;
+                    }
+                    setImportProcessed(processed);
+                    setImportProgress(Math.round((processed / total) * 100));
+                }
+            }
+
+            if (processed > 0) {
+                notifySuccess(`Import hoàn tất: ${processed} / ${total} giảng viên` + (failed ? `, ${failed} lỗi` : ""));
+            } else {
+                notifyError("Không có giảng viên nào được import. Kiểm tra lại tệp hoặc logs.");
+            }
+
             onSuccess?.();
             onClose();
         } catch (err) {
             console.error("❌ Lỗi nhập Excel:", err);
             notifyError(err?.response?.data?.message || "Nhập giảng viên thất bại!");
         } finally {
+            setImporting(false);
+            setImportProgress(0);
+            setImportProcessed(0);
+            setImportTotal(0);
             setLoading(false);
         }
     };
@@ -262,6 +323,15 @@ const CreateLecturerModal = ({ isOpen, onClose, onSuccess }) => {
                     </Table>
                 </Paper>
             )}
+            {/* Import progress */}
+            {importing && (
+                <Box sx={{ mt: 2 }}>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                        {`Đang nhập... ${importProgress}% (${importProcessed}/${importTotal})`}
+                    </Typography>
+                    <LinearProgress variant="determinate" value={importProgress} sx={{ height: 10, borderRadius: 2 }} />
+                </Box>
+            )}
             <Typography variant="caption" display="block" sx={{ mt: 3, color: "#64748b" }}>
                 Các loại tệp được hỗ trợ: .xls, .xlsx
             </Typography>
@@ -276,9 +346,9 @@ const CreateLecturerModal = ({ isOpen, onClose, onSuccess }) => {
                     fontWeight: 600,
                 }}
                 onClick={handleSubmitExcel}
-                disabled={loading}
+                disabled={loading || importing}
             >
-                {loading ? "Đang nhập..." : "Nhập giảng viên từ Excel"}
+                {importing ? `Đang nhập... ${importProgress}%` : loading ? "Đang nhập..." : "Nhập giảng viên từ Excel"}
             </Button>
         </Box>
     );

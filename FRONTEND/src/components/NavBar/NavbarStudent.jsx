@@ -83,118 +83,122 @@ const NavbarStudent = () => {
     };
 
     return (
-        <AppBar
-            position="fixed"
-            sx={{
-                backgroundColor: theme.palette.primary.main,
-                zIndex: 1100,
-                height: 55,
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-            }}
-        >
-            <Toolbar sx={{ minHeight: '55px', display: 'flex', justifyContent: 'space-between', px: 2 }}>
-                {/* Left side - Logo and Title */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar
-                        src="/UAP.png"
-                        alt="UAP Logo"
-                        sx={{ width: 30, height: 30, bgcolor: 'transparent' }}
-                    />
-
-                    <Typography
-                        variant="h6"
-                        sx={{
-                            color: 'white',
-                            fontWeight: 500,
-                            fontSize: '1rem',
-                            cursor: 'pointer',
-                        }}
-                        onClick={() => handleNavigate('/student/dashboard')}
-                    >
-                        UAP - University Academic Portal
-                    </Typography>
-                </Box>
-
-                {/* Right side - Navigation items */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                    {/* Home */}
-                    <Box
-                        sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 0.5,
-                            cursor: 'pointer',
-                            '&:hover': { opacity: 0.8 },
-                        }}
-                        onClick={() => handleNavigate('/student/dashboard')}
-                    >
-                        <HomeIcon sx={{ color: 'white', fontSize: 20 }} />
-                        <Typography sx={{ color: 'white', fontSize: '0.9rem' }}>Trang chủ</Typography>
-                    </Box>
-
-                    {/* Notifications */}
-                    <Box
-                        sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 0.5,
-                            cursor: 'pointer',
-                            '&:hover': { opacity: 0.8 },
-                        }}
-                        onClick={() => handleNavigate('/student/announcements')}
-                    >
-                        <NotificationsIcon sx={{ color: 'white', fontSize: 20 }} />
-                        <Typography sx={{ color: 'white', fontSize: '0.9rem' }}>Thông báo</Typography>
-                    </Box>
-
-                    {/* User Info with Dropdown */}
-                    <Box
-                        sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1,
-                            cursor: 'pointer',
-                            '&:hover': { opacity: 0.8 },
-                        }}
-                        onClick={handleMenuClick} // Open dropdown menu
-                    >
-                        {studentInfo.fullName ? (
-                            <Chip
-                                avatar={<Avatar src={studentInfo.avatarUrl} />}
-                                label={`${studentInfo.fullName} - ${studentInfo.studentCode}`}
-                                sx={{
-                                    color: 'white',
-                                    bgcolor: '#C8BDB0',
-                                    fontWeight: 600,
-                                    fontSize: '0.8rem',
-                                    height: 36,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                }}
-                            />
-                        ) : (
-                            <Typography sx={{ color: 'white', fontSize: '0.9rem' }}>Sinh viên</Typography>
-                        )}
-                    </Box>
-                </Box>
-            </Toolbar>
-
-            {/* Dropdown Menu for User */}
-            <Menu
-                anchorEl={anchorEl}
-                open={Boolean(anchorEl)}
-                onClose={handleMenuClose}
-                sx={{ mt: 1, minWidth: 200 }}
+        <>
+            <AppBar
+                position="fixed"
+                sx={{
+                    backgroundColor: theme.palette.primary.main,
+                    zIndex: 1100,
+                    height: 55,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                }}
             >
+                <Toolbar sx={{ minHeight: '55px', display: 'flex', justifyContent: 'space-between', px: 2 }}>
+                    {/* Left side - Logo and Title */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Avatar
+                            src="/UAP.png"
+                            alt="UAP Logo"
+                            sx={{ width: 30, height: 30, bgcolor: 'transparent' }}
+                        />
 
-                <MenuItem onClick={handleLogout}>
-                    <ListItemIcon>
-                        <LogoutIcon fontSize="small" />
-                    </ListItemIcon>
-                    Logout
-                </MenuItem>
-            </Menu>
-        </AppBar>
+                        <Typography
+                            variant="h6"
+                            sx={{
+                                color: 'white',
+                                fontWeight: 500,
+                                fontSize: '1rem',
+                                cursor: 'pointer',
+                            }}
+                            onClick={() => handleNavigate('/student/dashboard')}
+                        >
+                            UAP - University Academic Portal
+                        </Typography>
+                    </Box>
+
+                    {/* Right side - Navigation items */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                        {/* Home */}
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 0.5,
+                                cursor: 'pointer',
+                                '&:hover': { opacity: 0.8 },
+                            }}
+                            onClick={() => handleNavigate('/student/dashboard')}
+                        >
+                            <HomeIcon sx={{ color: 'white', fontSize: 20 }} />
+                            <Typography sx={{ color: 'white', fontSize: '0.9rem' }}>Trang chủ</Typography>
+                        </Box>
+
+                        {/* Notifications */}
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 0.5,
+                                cursor: 'pointer',
+                                '&:hover': { opacity: 0.8 },
+                            }}
+                            onClick={() => handleNavigate('/student/announcements')}
+                        >
+                            <NotificationsIcon sx={{ color: 'white', fontSize: 20 }} />
+                            <Typography sx={{ color: 'white', fontSize: '0.9rem' }}>Thông báo</Typography>
+                        </Box>
+
+                        {/* User Info with Dropdown */}
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1,
+                                cursor: 'pointer',
+                                '&:hover': { opacity: 0.8 },
+                            }}
+                            onClick={handleMenuClick} // Open dropdown menu
+                        >
+                            {studentInfo.fullName ? (
+                                <Chip
+                                    avatar={<Avatar src={studentInfo.avatarUrl} />}
+                                    label={`${studentInfo.fullName} - ${studentInfo.studentCode}`}
+                                    sx={{
+                                        color: 'white',
+                                        bgcolor: '#C8BDB0',
+                                        fontWeight: 600,
+                                        fontSize: '0.8rem',
+                                        height: 36,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                    }}
+                                />
+                            ) : (
+                                <Typography sx={{ color: 'white', fontSize: '0.9rem' }}>Sinh viên</Typography>
+                            )}
+                        </Box>
+                    </Box>
+                </Toolbar>
+
+                {/* Dropdown Menu for User */}
+                <Menu
+                    anchorEl={anchorEl}
+                    open={Boolean(anchorEl)}
+                    onClose={handleMenuClose}
+                    sx={{ mt: 1, minWidth: 200 }}
+                >
+
+                    <MenuItem onClick={handleLogout}>
+                        <ListItemIcon>
+                            <LogoutIcon fontSize="small" />
+                        </ListItemIcon>
+                        Logout
+                    </MenuItem>
+                </Menu>
+            </AppBar>
+            {/* Spacer to offset fixed AppBar so it doesn't overlap page content */}
+            <Toolbar sx={{ minHeight: '55px' }} />
+        </>
     );
 };
 
