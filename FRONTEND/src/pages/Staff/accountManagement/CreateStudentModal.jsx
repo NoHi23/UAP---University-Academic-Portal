@@ -7,6 +7,7 @@ import {
     FormControl,
     InputLabel,
     CircularProgress,
+    LinearProgress,
     ToggleButton,
     ToggleButtonGroup,
     Box,
@@ -80,21 +81,25 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
         citizenID: "",
         gender: "true",
         phone: "",
-        majorId: "",  // Ensure this is available
-        curriculumId: "",   // renamed curriculumId to Khung chương trình
+        majorId: "",
+        curriculumId: "",
         avatarBase64: "",
         personalEmail: "",
-        address: "",         // added address
+        address: "",
         dateOfBirth: ""
     });
     const [file, setFile] = useState(null);
-    const [previewRows, setPreviewRows] = useState([]); // raw parsed rows
-    const [previewTransformed, setPreviewTransformed] = useState([]); // transformed payload
+    const [previewRows, setPreviewRows] = useState([]);
+    const [previewTransformed, setPreviewTransformed] = useState([]);
     const [majors, setMajors] = useState([]);
-    const [curriculums, setCurriculums] = useState([]);  // state for curriculum data
+    const [curriculums, setCurriculums] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [importing, setImporting] = useState(false);
+    const [importProgress, setImportProgress] = useState(0);
+    const [importProcessed, setImportProcessed] = useState(0);
+    const [importTotal, setImportTotal] = useState(0);
     const [loadingMajors, setLoadingMajors] = useState(false);
-    const [loadingCurriculums, setLoadingCurriculums] = useState(false);  // loading for curriculum
+    const [loadingCurriculums, setLoadingCurriculums] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
 
     // Fetch Majors
@@ -235,6 +240,11 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
     // ===============================
     const handleExcelImport = async (file) => {
         try {
+            setImportProgress(0);
+            setImportProcessed(0);
+            setImportTotal(0);
+            setImporting(true);
+
             // Use previewTransformed if available (user already parsed file and saw preview)
             let transformed = previewTransformed;
             if (!transformed || transformed.length === 0) {
@@ -245,6 +255,7 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
                 const rows = XLSX.utils.sheet_to_json(sheet);
                 if (!rows || rows.length === 0) {
                     notifyError("File Excel rỗng hoặc không có dữ liệu!");
+                    setImporting(false);
                     return;
                 }
                 transformed = rows.map(studentTransform).filter(Boolean);
@@ -252,17 +263,64 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
 
             if (transformed.length === 0) {
                 notifyError("Không có dòng hợp lệ để import!");
+                setImporting(false);
                 return;
             }
 
-            await staffAPI.importStudentsExcel(transformed, { dedupe: true });
-            notifySuccess(`Import thành công ${transformed.length} sinh viên!`);
+            const total = transformed.length;
+            setImportTotal(total);
+
+            // If total is small, send items one-by-one so UI progress increments smoothly.
+            let processed = 0;
+            let failed = 0;
+            if (total <= 200) {
+                for (let idx = 0; idx < total; idx++) {
+                    const item = transformed[idx];
+                    try {
+                        // send single item as array (server expects array rows)
+                        await staffAPI.importStudentsExcel([item], { dedupe: true });
+                        processed += 1;
+                    } catch (err) {
+                        console.error(`Import failed for row ${idx}:`, err);
+                        failed += 1;
+                    }
+                    setImportProcessed(processed);
+                    setImportProgress(Math.round((processed / total) * 100));
+                }
+            } else {
+                // Send in batches so we can show progress. Adjust batchSize as needed.
+                const batchSize = 50;
+                for (let i = 0; i < total; i += batchSize) {
+                    const batch = transformed.slice(i, i + batchSize);
+                    try {
+                        await staffAPI.importStudentsExcel(batch, { dedupe: true });
+                        processed += batch.length;
+                    } catch (err) {
+                        // Log and continue with next batch
+                        console.error("Batch import failed:", err);
+                        failed += batch.length;
+                    }
+                    setImportProcessed(processed);
+                    setImportProgress(Math.round((processed / total) * 100));
+                }
+            }
+
+            if (processed > 0) {
+                notifySuccess(`Import hoàn tất: ${processed} / ${total} sinh viên` + (failed ? `, ${failed} lỗi` : ""));
+            } else {
+                notifyError("Không có sinh viên nào được import. Kiểm tra lại tệp hoặc logs.");
+            }
+
             onSuccess?.();
             onClose();
         } catch (err) {
             console.error("❌ Lỗi nhập Excel:", err);
             notifyError("Nhập sinh viên thất bại! Kiểm tra lại tệp Excel.");
         } finally {
+            setImporting(false);
+            setImportProgress(0);
+            setImportProcessed(0);
+            setImportTotal(0);
             setLoading(false);
         }
     };
@@ -387,6 +445,16 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
                     </Table>
                 </Paper>
             )}
+            {/* Import progress */}
+            {importing && (
+                <Box sx={{ mt: 2 }}>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                        {`Đang nhập... ${importProgress}% (${importProcessed}/${importTotal})`}
+                    </Typography>
+                    <LinearProgress variant="determinate" value={importProgress} sx={{ height: 10, borderRadius: 2 }} />
+                </Box>
+            )}
+
             <Button
                 variant="contained"
                 fullWidth
@@ -397,9 +465,9 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
                     fontWeight: 600,
                 }}
                 onClick={() => handleExcelImport(file)}
-                disabled={!file || loading}
+                disabled={!file || loading || importing}
             >
-                {loading ? "Đang nhập..." : "Nhập sinh viên từ Excel"}
+                {importing ? `Đang nhập... ${importProgress}%` : loading ? "Đang nhập..." : "Nhập sinh viên từ Excel"}
             </Button>
         </Box>
     );
