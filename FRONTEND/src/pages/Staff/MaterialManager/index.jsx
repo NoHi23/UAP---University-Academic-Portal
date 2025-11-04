@@ -1,15 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Container, Typography, TextField, MenuItem, Button, FormControlLabel, Checkbox, CircularProgress, IconButton, Tooltip, Tabs, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions, Autocomplete } from '@mui/material';
+import { Box, Container, Typography, TextField, MenuItem, Button, FormControlLabel, Checkbox, CircularProgress, IconButton, Tooltip, Tabs, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions, Autocomplete, FormControl, Select, InputLabel } from '@mui/material';
 import majorAPI from '../../../api/majorAPI';
 import subjectAPI from '../../../api/subjectAPI';
 import materialAPI from '../../../api/materialAPI';
+import curriculumAPI from '../../../api/curriculumAPI';
 import { notifySuccess, notifyError } from '../../../services/notificationService';
 import  Grid  from '@mui/material/GridLegacy';
 import RefreshIcon from '@mui/icons-material/Refresh';
 export default function MaterialManager() {
   const [majors, setMajors] = useState([]);
   const [majorsLoading, setMajorsLoading] = useState(false);
+  const [curricula, setCurricula] = useState([]);
+  const [curriculaLoading, setCurriculaLoading] = useState(false);
+  const [majorFilter, setMajorFilter] = useState('');
   const [tab, setTab] = useState(0);
 
   const [subjects, setSubjects] = useState([]);
@@ -20,14 +24,71 @@ export default function MaterialManager() {
   const [materialForm, setMaterialForm] = useState({ materialDescription: '', author: '', isMainMaterial: false, isOnline: false, url: '' });
   const [form, setForm] = useState({
     subjectCode: '', subjectName: '', subjectEnglish: '', subjectNoCredit: 3,
-    degreeLevel: '', timeAllocation: '', preRequisite: [], description: '', studentTask: '', tools: '', scoringScale: '', decisionNumber: '', minAvgMarkToPass: 4.0, status: true, approveDate: '', majorId: ''
+    degreeLevel: '', timeAllocation: '', preRequisite: [], description: '', studentTask: '', tools: '', scoringScale: '', decisionNumber: '', minAvgMarkToPass: 4.0, status: true, approveDate: '', majorId: '',
+    // new fields
+    curriculumIds: [], // array of curriculum ids (specializations)
+    semester: ''
   });
 
   useEffect(() => {
     loadMajors();
     // preload subjects so create-form can offer prerequisite selection
     loadSubjects();
+    // load curricula for initial state (no major filter)
+    loadCurricula();
   }, []);
+
+  const loadCurricula = async () => {
+    setCurriculaLoading(true);
+    try {
+      const res = await curriculumAPI.getAll();
+      // normalize items so each curriculum has a consistent _id and majorId where possible
+      const raw = res?.data || [];
+      const normalized = (Array.isArray(raw) ? raw : []).map(c => ({
+        _id: c._id || c.curriculumId || c.curriculumId,
+        curriculumName: c.curriculumName || c.curriculumName || c.name || '',
+        yearApplied: c.yearApplied || null,
+        // backend may return major object or just major name; prefer majorId if present
+        majorId: (c.majorId && (c.majorId._id || c.majorId)) || null,
+        // keep original for debugging
+        __raw: c
+      }));
+      setCurricula(normalized);
+    } catch (e) {
+      setCurricula([]);
+      notifyError('Không lấy được danh sách Curricula');
+    } finally {
+      setCurriculaLoading(false);
+    }
+  };
+
+  // reload curricula when major selection changes so Autocomplete shows only relevant curricula
+  useEffect(() => {
+    if (!form.majorId) {
+      loadCurricula();
+      return;
+    }
+    const load = async () => {
+      setCurriculaLoading(true);
+      try {
+        const res = await curriculumAPI.getAll({ majorId: form.majorId });
+        const raw = res?.data || [];
+        const normalized = (Array.isArray(raw) ? raw : []).map(c => ({
+          _id: c._id || c.curriculumId || c.curriculumId,
+          curriculumName: c.curriculumName || c.curriculumName || c.name || '',
+          yearApplied: c.yearApplied || null,
+          majorId: (c.majorId && (c.majorId._id || c.majorId)) || null,
+          __raw: c
+        }));
+        setCurricula(normalized);
+      } catch (err) {
+        setCurricula([]);
+      } finally {
+        setCurriculaLoading(false);
+      }
+    };
+    load();
+  }, [form.majorId]);
 
   const loadMajors = async () => {
     setMajorsLoading(true);
@@ -61,6 +122,11 @@ export default function MaterialManager() {
     // basic client-side validation
     if (!form.subjectCode || !form.subjectName || !form.majorId) {
       notifyError('Vui lòng điền Subject Code, Subject Name và chọn Major');
+      return;
+    }
+    // if curricula selected, require semester
+    if (Array.isArray(form.curriculumIds) && form.curriculumIds.length > 0 && (form.semester === '' || form.semester === null)) {
+      notifyError('Khi chọn chuyên ngành hẹp (Curriculum), vui lòng chỉ định kỳ (semester)');
       return;
     }
     try {
@@ -142,12 +208,14 @@ export default function MaterialManager() {
                 helperText={majors.length === 0 && !majorsLoading ? 'Không có ngành. Nhấn Refresh để thử lại.' : 'Chọn Ngành (bắt buộc)'}
                 SelectProps={{
                   renderValue: (v) => {
-                    const sel = majors.find(x => x._id === v);
-                    return sel ? `${sel.majorName} (${sel.majorCode || sel._id})` : '';
+                    const sel = majors.find(x => x && x._id === v);
+                    return sel ? `${sel.majorName || sel.majorCode || sel._id} (${sel.majorCode || sel._id})` : '';
                   }
                 }}
               >
-                {majors.map(m => (<MenuItem key={m._id} value={m._id}>{m.majorName} ({m.majorCode || m._id})</MenuItem>))}
+                {majors.filter(m => m && m._id).map(m => (
+                  <MenuItem key={m._id} value={m._id}>{(m.majorName || m.majorCode || m._id)}{m.majorCode ? ` (${m.majorCode})` : ''}</MenuItem>
+                ))}
               </TextField>
 
               <Tooltip title="Reload majors">
@@ -186,6 +254,24 @@ export default function MaterialManager() {
                 <TextField {...params} label="Tiền quyết (Pre-Requisite)" placeholder="Chọn môn tiền quyết / Select prerequisite subjects" fullWidth />
               )}
             />
+          </Grid>
+
+          <Grid item xs={12} sm={8}>
+            <Autocomplete
+              multiple
+              options={curricula}
+              getOptionLabel={(opt) => opt ? `${opt.curriculumName} ${opt.yearApplied ? `(${opt.yearApplied})` : ''}` : ''}
+              value={curricula.filter(c => Array.isArray(form.curriculumIds) && form.curriculumIds.includes(String(c._id || c.curriculumId)))}
+              onChange={(e, v) => setForm(prev => ({ ...prev, curriculumIds: Array.isArray(v) ? v.map(x => String(x._id || x.curriculumId)) : [] }))}
+              disablePortal
+              renderInput={(params) => (
+                <TextField {...params} label="Chuyên ngành hẹp / Curriculum" placeholder="Chọn chuyên ngành hẹp (nếu có)" fullWidth />
+              )}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={4}>
+            <TextField label="Kỳ học (Semester)" type="number" value={form.semester} onChange={onChange('semester')} fullWidth helperText="Chỉ định kỳ khi đã chọn chuyên ngành hẹp" />
           </Grid>
 
           <Grid item xs={12} sm={6}>
@@ -240,7 +326,22 @@ export default function MaterialManager() {
         <Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h6">Danh sách môn học</Typography>
-            <Box>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <FormControl size="small" sx={{ minWidth: 220 }}>
+                <InputLabel id="major-filter-label" shrink>Lọc theo ngành</InputLabel>
+                <Select
+                  labelId="major-filter-label"
+                  label="Lọc theo ngành"
+                  value={majorFilter}
+                  displayEmpty
+                  onChange={(e) => setMajorFilter(e.target.value)}
+                >
+                  <MenuItem value=""><em>-- Tất cả ngành --</em></MenuItem>
+                  {majors.filter(m => m && m._id).map(m => (
+                    <MenuItem key={m._id} value={m._id}>{(m.majorName || m.majorCode || m._id)}{m.majorCode ? ` (${m.majorCode})` : ''}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
               <Button onClick={loadSubjects} startIcon={subjectsLoading ? <CircularProgress size={16} /> : null}>Refresh</Button>
             </Box>
           </Box>
@@ -253,18 +354,22 @@ export default function MaterialManager() {
                   <TableCell>Mã</TableCell>
                   <TableCell>Tên</TableCell>
                   <TableCell>Tín chỉ</TableCell>
+                  <TableCell>Kỳ học</TableCell>
                   <TableCell>Major</TableCell>
                   <TableCell>Hành động</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {subjects.map((s, index) => (
+                {subjects
+                  .filter(s => !majorFilter || (s.majorId && String(s.majorId._id) === String(majorFilter)))
+                  .map((s, index) => (
                   <TableRow key={s._id}>
 
                     <TableCell>{index + 1}</TableCell>
                     <TableCell>{s.subjectCode}</TableCell>
                     <TableCell>{s.subjectName}</TableCell>
                     <TableCell>{s.subjectNoCredit}</TableCell>
+                    <TableCell>{s.semester !== null && s.semester !== undefined ? s.semester : 'Chưa cập nhật'}</TableCell>
                     <TableCell>{s.majorId?.majorName || ''}</TableCell>
                     <TableCell>
                       {/* Former "Xem chi tiết" -> now Edit action */}

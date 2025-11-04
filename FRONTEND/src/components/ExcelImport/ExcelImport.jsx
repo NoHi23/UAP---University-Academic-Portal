@@ -9,7 +9,7 @@ import staffAPI from '../../api/staffAPI';
 import { notifySuccess, notifyError } from '../../services/notificationService';
 
 // Minimal Excel import: parse first sheet, auto-map headers to fields, preview and POST to bulk endpoint.
-export default function ExcelImport({ subjectId: presetSubjectId, onImported, model = 'materials', transformRow, requiredFields = [] }) {
+export default function ExcelImport({ subjectId: presetSubjectId, onImported, model = 'materials', transformRow, requiredFields = [], customBulkImport }) {
   const [fileName, setFileName] = useState('');
   const [rows, setRows] = useState([]);
   const [headers, setHeaders] = useState([]);
@@ -156,37 +156,43 @@ export default function ExcelImport({ subjectId: presetSubjectId, onImported, mo
           return;
         }
       }
-      // ensure every item has a subjectId
-      const missing = payload.findIndex(p => !p.subjectId || String(p.subjectId).trim() === '');
-      if (missing !== -1) {
-        notifyError('Có hàng thiếu subjectId. Vui lòng đặt Subject hoặc include subjectId trong file.');
-        setLoading(false);
-        return;
+      // ensure every item has a subjectId (skip if using customBulkImport)
+      if (typeof customBulkImport !== 'function') {
+        const missing = payload.findIndex(p => !p.subjectId || String(p.subjectId).trim() === '');
+        if (missing !== -1 ) {
+          notifyError('Có hàng thiếu subjectId. Vui lòng đặt Subject hoặc include subjectId trong file.');
+          setLoading(false);
+          return;
+        }
       }
 
-      // choose API based on model prop
-      const apiMap = {
-        materials: materialAPI,
-        clos: cloAPI,
-        'session-materials': sessionMaterialAPI,
-        students: staffAPI
-      };
-      const apiClient = apiMap[model] || materialAPI;
-
-      // Support different API client interfaces:
-      // - clients with .bulk(payload, opts)
-      // - staffAPI has importStudentsExcel(rows, params)
+      // Decide how to call the backend:
+      // - If caller provided customBulkImport, use it (GradeComponentImport uses this)
+      // - Otherwise pick an API client and call .bulk(payload, opts) if available
+      // - If client implements importStudentsExcel (special case), call that
       let res;
-      if (apiClient && typeof apiClient.bulk === 'function') {
-        res = await apiClient.bulk(payload, { replace });
-      } else if (apiClient && typeof apiClient.importStudentsExcel === 'function') {
-        // pass replace flag as query param; no dedupe by default
-        res = await apiClient.importStudentsExcel(payload, { replace });
+      if (typeof customBulkImport === 'function') {
+        res = await customBulkImport(payload);
       } else {
-        throw new Error('No API client available for model: ' + model);
+        const apiMap = {
+          materials: materialAPI,
+          clos: cloAPI,
+          'session-materials': sessionMaterialAPI,
+          students: staffAPI
+        };
+        const apiClient = apiMap[model] || materialAPI;
+
+        if (apiClient && typeof apiClient.bulk === 'function') {
+          res = await apiClient.bulk(payload, { replace });
+        } else if (apiClient && typeof apiClient.importStudentsExcel === 'function') {
+          res = await apiClient.importStudentsExcel(payload, { replace });
+        } else {
+          throw new Error('No API client available for model: ' + model);
+        }
       }
+
       setResult(res.data);
-      const labelMap = { materials: 'materials', clos: 'CLOs', 'session-materials': 'session materials' };
+      const labelMap = { materials: 'materials', clos: 'CLOs', 'session-materials': 'session materials', 'grade-components': 'grade components' };
       const label = labelMap[model] || 'items';
       if (res.data?.insertedCount) notifySuccess(`Inserted ${res.data.insertedCount} ${label}`);
       if (onImported) onImported();

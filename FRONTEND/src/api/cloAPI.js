@@ -1,5 +1,6 @@
 import api from '../services/api';
 
+
 const cloAPI = {
   bulk: (payload, options = {}) => {
     const params = {};
@@ -9,7 +10,12 @@ const cloAPI = {
   },
   getAll: (params = {}) => {
     return api.get('staff/clos', { params });
-  }
+  },
+  exportExcel: (params = {}) =>
+    api.get('staff/clos/export-excel', {
+      params,
+      responseType: 'blob',
+    }),
 };
 
 export default cloAPI;
