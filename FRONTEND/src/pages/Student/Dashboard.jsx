@@ -2,7 +2,8 @@ import React, { useState, useEffect, useContext } from 'react';
 import './Dashboard.css';
 import {
   FaUser, FaCalendarAlt, FaChartBar, FaBook, FaMoneyBillWave,
-  FaHistory, FaBookOpen, FaPaperPlane, FaStar, FaBullhorn, FaFileAlt
+  FaHistory, FaBookOpen, FaPaperPlane, FaStar, FaBullhorn, FaFileAlt,
+  FaClock
 } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
@@ -177,21 +178,20 @@ const Dashboard = () => {
                 <p><strong>Kỳ hiện tại:</strong> {studentInfo.semester} {studentInfo.semesterNo ? `(Số: ${studentInfo.semesterNo})` : ''}</p>
               )}
             </div>
-            <button className="btn-detail" onClick={() => setShowProfile(true)}>Xem chi tiết</button>
           </div>
 
           {/* Thẻ thống kê lịch học */}
           <div className="card stat-card">
             <h3>Lịch học trong tuần</h3>
             <div className="stat-number">{stats?.weeklySchedules}</div>
-            <span onClick={() => navigate('/student/schedule')} style={{ cursor: 'pointer', color: '#007bff' }}>Xem chi tiết</span>
+            <span onClick={() => navigate('/student/schedule')} style={{ cursor: 'pointer', color: 'black' }}>Xem chi tiết</span>
           </div>
 
           {/* Thẻ thống kê lịch thi */}
           <div className="card stat-card">
             <h3>Lịch thi trong tuần</h3>
             <div className="stat-number">{stats?.weeklyExams}</div>
-            <a href="/exams">Xem chi tiết</a>
+            <a href="/student/scheduleExam">Xem chi tiết</a>
           </div>
         </div>
 
@@ -199,7 +199,8 @@ const Dashboard = () => {
 
         {/* Lưới các chức năng */}
         <div className="features-grid">
-          <div className="feature-card"><FaUser /><span>Thông tin Sinh viên</span></div>
+
+          <div onClick={() => setShowProfile(true)} className="feature-card"><FaUser /><span>Thông tin Sinh viên</span></div>
           <div className="feature-card" onClick={() => navigate('/student/schedule')}>
             <FaCalendarAlt /><span>Thời khóa biểu</span>
           </div>
@@ -222,6 +223,9 @@ const Dashboard = () => {
           <div className="feature-card" onClick={() => navigate('/student/requests')}><FaPaperPlane /><span>Đơn từ & Yêu cầu</span></div>
           <div className="feature-card" onClick={() => navigate('/student/evaluation')}><FaStar /><span>Đánh giá giảng viên</span></div>
           <div className="feature-card" onClick={() => navigate('/student/notifications')}><FaBullhorn /><span>Thông báo</span></div>
+          <div className="feature-card" onClick={() => navigate('/student/scheduleExam')}><FaClock /><span>Lịch thi</span></div>
+
+
         </div>
 
 
