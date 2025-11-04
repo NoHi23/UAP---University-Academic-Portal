@@ -17,7 +17,6 @@ const getMySlotNotifications = async (req, res) => {
         }
         // ScheduleOfStudent stores schedule references inside attendance[].scheduleId
         const sosDocs = await ScheduleOfStudent.find({ studentId: student._id });
-        const scheduleIds = [];
         sosDocs.forEach(doc => {
             if (Array.isArray(doc.attendance)) {
                 doc.attendance.forEach(a => {
@@ -84,9 +83,6 @@ const getMySlotNotificationsForLecturer = async (req, res) => {
         }
         
 
-        const notifications = await SlotNotification.find({ scheduleId: scheduleId })
-            .populate('senderId', 'email')
-            .sort({ createdAt: -1 });
 
         return res.status(200).json({ success: true, count: notifications.length, data: notifications });
     } catch (error) {
