@@ -73,7 +73,8 @@ const getCurriculumDetails = async (req, res) => {
                 type: d.type || s.type || null,
                 lecturer: d.lecturer || s.lecturer || null,
                 description: d.description || s.description || null,
-                learningOutcomes: (d.learningOutcomes && d.learningOutcomes.length) ? d.learningOutcomes : (s.learningOutcomes || [])
+                learningOutcomes: (d.learningOutcomes && d.learningOutcomes.length) ? d.learningOutcomes : (s.learningOutcomes || []),
+                preRequisite: s.preRequisite || []
             };
         });
 

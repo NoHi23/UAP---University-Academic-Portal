@@ -75,9 +75,21 @@
     align-items: center;
     gap: 6px;
 }
-.status-approved { background-color: #ecfdf5; color: #10b981; }
-.status-rejected { background-color: #fef2f2; color: #ef4444; }
-.status-pending { background-color: #fffbeb; color: #f59e0b; }
+
+.status-approved {
+    background-color: #ecfdf5;
+    color: #10b981;
+}
+
+.status-rejected {
+    background-color: #fef2f2;
+    color: #ef4444;
+}
+
+.status-pending {
+    background-color: #fffbeb;
+    color: #f59e0b;
+}
 
 .request-card-body {
     padding: 20px;
@@ -85,8 +97,16 @@
     color: #4b5563;
 }
 
-.req-type { font-style: italic; color: #6b7280; }
-.req-response { margin-top: 15px; padding-top: 15px; border-top: 1px dashed #e5e7eb; }
+.req-type {
+    font-style: italic;
+    color: #6b7280;
+}
+
+.req-response {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px dashed #e5e7eb;
+}
 
 .request-card-footer {
     padding: 10px 20px;
@@ -98,8 +118,8 @@
     border-bottom-right-radius: 8px;
 }
 
-/* Modal Styles */
-.modal-overlay {
+/* Modal Styles (scoped to Requests page to avoid global conflicts) */
+.requests-page-container .modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -112,7 +132,7 @@
     z-index: 1000;
 }
 
-.modal-content {
+.requests-page-container .modal-content {
     background: white;
     padding: 25px;
     border-radius: 8px;
@@ -120,20 +140,25 @@
     max-width: 500px;
 }
 
-.modal-content h2 { margin-top: 0; }
+.requests-page-container .modal-content h2 {
+    margin-top: 0;
+}
 
-.form-group {
+/* scope form styles to modal inside requests page */
+.requests-page-container .modal-content .form-group {
     margin-bottom: 15px;
 }
 
-.form-group label {
+.requests-page-container .modal-content .form-group label {
     display: block;
     margin-bottom: 5px;
     font-weight: 600;
     color: #374151;
 }
 
-.form-group input, .form-group select, .form-group textarea {
+.requests-page-container .modal-content .form-group input,
+.requests-page-container .modal-content .form-group select,
+.requests-page-container .modal-content .form-group textarea {
     width: 100%;
     padding: 10px;
     border: 1px solid #d1d5db;
@@ -141,14 +166,15 @@
     font-size: 1rem;
 }
 
-.modal-actions {
+.requests-page-container .modal-actions {
     margin-top: 20px;
     display: flex;
     justify-content: flex-end;
     gap: 10px;
 }
 
-.btn-cancel, .btn-submit {
+.requests-page-container .modal-actions .btn-cancel,
+.requests-page-container .modal-actions .btn-submit {
     padding: 10px 20px;
     border-radius: 6px;
     border: none;
@@ -156,16 +182,17 @@
     cursor: pointer;
 }
 
-.btn-cancel {
+.requests-page-container .modal-actions .btn-cancel {
     background-color: #e5e7eb;
     color: #374151;
 }
 
-.btn-submit {
+.requests-page-container .modal-actions .btn-submit {
     background-color: #3b82f6;
     color: white;
 }
-.btn-submit:disabled {
+
+.requests-page-container .modal-actions .btn-submit:disabled {
     background-color: #9ca3af;
     cursor: not-allowed;
 }

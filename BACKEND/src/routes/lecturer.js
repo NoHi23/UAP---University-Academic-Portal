@@ -1,44 +1,45 @@
-const express = require('express')
+const express = require('express');
 const { verifyToken, authorize } = require('../middleware/authorization');
+
+// ✅ Import toàn bộ controller 1 lần
 const lecturerController = require('../controllers/lecturer');
+const { getMySlotNotificationsForLecturer } = require('../controllers/notificationController');
+
 const lecturerRouter = express.Router();
-const {
-  getMyWeeklySchedule,
-  getScheduleById
-} = require('../controllers/lecturer');
 
-const { getMyProfile, updateMyProfile } = require('../controllers/lecturer');
-
-const { markAttendance } = require('../controllers/lecturer');
-const { getSemesters, getSemesterOptions, getAttendanceSummary } = require('../controllers/lecturer');
-
+// ================== CLASSES & STUDENTS ==================
 lecturerRouter.get('/classes', verifyToken, lecturerController.getClasses);
 lecturerRouter.get('/studentsbyclass/:classId', verifyToken, lecturerController.getStudentsByClass);
-// API lấy lịch giảng dạy theo khoảng ngày bất kỳ
-lecturerRouter.post('/schedules/my-week', verifyToken, getMyWeeklySchedule);
-// Get schedule detail by id
-lecturerRouter.get('/schedules/:id', verifyToken, getScheduleById);
-// Lecturer profile (get/update own)
-lecturerRouter.get('/profile', verifyToken, getMyProfile);
-lecturerRouter.put('/profile', verifyToken, updateMyProfile);
-// Mark attendance (single or bulk)
-lecturerRouter.post('/attendance/mark', verifyToken, markAttendance);
-// Attendance summary by semester (semesterId required)
-lecturerRouter.get('/attendance/summary', verifyToken, getAttendanceSummary);
-// Semesters list and current semester
-lecturerRouter.get('/semesters', verifyToken, getSemesters);
-// Return classes and subjects (with schedules) for a semester for this lecturer
-lecturerRouter.get('/semester-options', verifyToken, getSemesterOptions);
-// Trả về các teaching-instance (class + subject) trong kỳ: schedules, start/end, tổng buổi, số sinh viên
+
+// ================== SCHEDULE ==================
+lecturerRouter.post('/schedules/my-week', verifyToken, lecturerController.getMyWeeklySchedule);
+lecturerRouter.get('/schedules/:id', verifyToken, lecturerController.getScheduleById);
+lecturerRouter.get('/semesters', verifyToken, lecturerController.getSemesters);
+lecturerRouter.get('/semester-options', verifyToken, lecturerController.getSemesterOptions);
 lecturerRouter.get('/classes-by-semester', verifyToken, lecturerController.getClassesBySemester);
-// Lecturer can fetch notifications related to a schedule they teach
+
+// ================== PROFILE ==================
+lecturerRouter.get('/profile', verifyToken, lecturerController.getMyProfile);
+lecturerRouter.put('/profile', verifyToken, lecturerController.updateMyProfile);
+
+// ================== ATTENDANCE ==================
+lecturerRouter.post('/attendance/mark', verifyToken, lecturerController.markAttendance);
+lecturerRouter.get('/attendance/summary', verifyToken, lecturerController.getAttendanceSummary);
+
+// ================== NOTIFICATIONS ==================
 lecturerRouter.get('/notifications/slots', verifyToken, lecturerController.getNotificationsBySchedule);
-// Lecturer create notification for a schedule they teach
 lecturerRouter.post('/notifications/slots', verifyToken, lecturerController.createNotificationForSchedule);
-// Lecturer support endpoints (create and list own supports)
+
+// ================== SUPPORT ==================
 lecturerRouter.post('/supports', verifyToken, lecturerController.createLecturerSupport);
 lecturerRouter.get('/supports', verifyToken, lecturerController.getMySupports);
-// Lecturers: get evaluations for themselves
 
+// ================== EXTRA ==================
+lecturerRouter.get(
+  '/notifications/my-slots',
+  verifyToken,
+  authorize('lecturer', 'staff', 'admin'),
+  getMySlotNotificationsForLecturer
+);
 
-module.exports = lecturerRouter
+module.exports = lecturerRouter;

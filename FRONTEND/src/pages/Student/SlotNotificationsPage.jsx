@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import announcementAPI from '../../api/annoucementAPI';
 import api from '../../services/api';
 import FullScreenLoader from '../../components/Common/FullScreenLoader';
 import { FaBullhorn, FaInfoCircle, FaCalendarDay, FaClock, FaBook } from 'react-icons/fa';
@@ -10,15 +12,38 @@ const SlotNotificationsPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    const navigate = useNavigate();
+
     useEffect(() => {
         const fetchNotifications = async () => {
             try {
+                // Use announcements as the global notification source
+                const res = await announcementAPI.getAll();
+                const raw = Array.isArray(res?.data?.data) ? res.data.data : [];
+
+                if (raw.length === 0) {
+                    setNotifications([]);
+                    return;
+                }
+
+                const mapped = raw.map(a => ({
+                    id: a._id,
+                    type: 'announcement',
+                    title: a.title || 'Không có tiêu đề',
+                    content: a.description || a.content || '',
+                    createdAt: a.createdAt || a.updatedAt || a.created_at,
+                    sender: { name: a.postBy || 'Hệ thống' },
+                    raw: a
+                }));
+
+                const sorted = mapped.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                setNotifications(sorted);
                 const response = await api.get('/notifications/slots');
                 const sortedData = response.data.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
                 setNotifications(sortedData);
             } catch (err) {
-                setError('Không thể tải thông báo.');
                 console.error(err);
+                setError('Không thể tải thông báo.');
             } finally {
                 setLoading(false);
             }
@@ -33,7 +58,7 @@ const SlotNotificationsPage = () => {
     return (
         <div className="notifications-page-container">
             <header className="notifications-header">
-                <h1><FaBullhorn /> Thông báo buổi học</h1>
+                <h1><FaBullhorn /> Thông báo</h1>
             </header>
 
             {notifications.length === 0 ? (
@@ -44,16 +69,35 @@ const SlotNotificationsPage = () => {
             ) : (
                 <div className="notifications-list">
                     {notifications.map(noti => (
-                        <div key={noti._id} className="notification-card">
+                        <div key={noti.id} className={`notification-card ${noti.type}`} onClick={() => navigate(`/student/announcements/${noti.id}`)} style={{ cursor: 'pointer' }}>
                             <div className="notification-card-header">
                                 <h3>{noti.title}</h3>
                                 <span className="notification-date">
                                     {new Date(noti.createdAt).toLocaleString('vi-VN')}
                                 </span>
                             </div>
+
                             <div className="notification-card-body">
                                 <p className="notification-content">{noti.content}</p>
+
+                                {noti.type === 'slot' && (
+                                    <div className="slot-info">
+                                        <p><FaBook /> {noti.raw?.scheduleId?.subjectId?.subjectName} ({noti.raw?.scheduleId?.classId?.className})</p>
+                                        <p><FaCalendarDay /> Ngày học: {noti.raw?.scheduleId?.weekId?.startDate ? new Date(noti.raw.scheduleId.weekId.startDate).toLocaleDateString('vi-VN') : 'N/A'}</p>
+                                        <p><FaClock /> Slot: {noti.raw?.scheduleId?.timeSlotId?.slot}</p>
+                                    </div>
+                                )}
+
+                                {noti.type === 'request' && (
+                                    <div className="request-info">
+                                        <p><strong>Yêu cầu:</strong> {noti.raw?.requestId?.title || '—'}</p>
+                                        <p><strong>Loại:</strong> {noti.raw?.requestId?.requestType || '—'}</p>
+                                        <p><strong>Trạng thái:</strong> {noti.raw?.requestId?.status || '—'}</p>
+                                        <p><strong>Phản hồi:</strong> {noti.raw?.requestId?.response || noti.content || '—'}</p>
+                                    </div>
+                                )}
                             </div>
+
                             <div className="notification-card-footer">
                                 <div className="slot-info">
                                     <p><FaBook /> {noti.scheduleId?.subjectId?.subjectName} ({noti.scheduleId?.classId?.className})</p>
@@ -61,7 +105,7 @@ const SlotNotificationsPage = () => {
                                     <p><FaClock /> Slot: {noti.scheduleId?.slot || 'N/A'}</p>
                                 </div>
                                 <span className="sender-info">
-                                    Gửi bởi: {noti.senderId?.email}
+                                    Gửi bởi: {noti.sender?.email || noti.sender?.name || 'Hệ thống'}
                                 </span>
                             </div>
                         </div>

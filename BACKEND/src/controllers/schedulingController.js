@@ -13,6 +13,131 @@ const Semester = require('../models/semester');
 const GradeSummary = require('../models/gradeSummary')
 const GradeComponent = require('../models/gradeComponent')
 
+// Get student schedule
+const getStudentSchedule = async (req, res) => {
+    try {
+        // Find student by accountId
+        const student = await Student.findOne({ accountId: req.user.id });
+        if (!student) {
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy thông tin sinh viên'
+            });
+        }
+
+        // Get all class schedules of student
+        const studentSchedules = await ScheduleOfStudent.find({ studentId: student._id })
+            .populate({
+                path: 'classId',
+                select: 'className',
+                populate: {
+                    path: 'subjectId',
+                    select: 'subjectCode subjectName'
+                }
+            })
+            .populate({
+                path: 'attendance.scheduleId',
+                populate: [
+                    { path: 'roomId', select: 'roomCode' },
+                    { path: 'lecturerId', select: 'firstName lastName' }
+                ]
+            });
+
+        const formattedSchedules = studentSchedules.map(schedule => ({
+            classId: schedule.classId._id,
+            className: schedule.classId.className,
+            subjectCode: schedule.classId.subjectId.subjectCode,
+            subjectName: schedule.classId.subjectId.subjectName,
+            schedules: schedule.attendance
+                .filter(att => att.scheduleId) // Filter out null scheduleIds
+                .map(att => ({
+                    id: att.scheduleId._id,
+                    date: att.scheduleId.date,
+                    slot: att.scheduleId.slot,
+                    room: att.scheduleId.roomId.roomCode,
+                    lecturer: `${att.scheduleId.lecturerId.firstName} ${att.scheduleId.lecturerId.lastName}`,
+                    status: att.status,
+                    note: att.note || ''
+                }))
+        }));
+
+        return res.status(200).json({
+            success: true,
+            data: formattedSchedules
+        });
+    } catch (error) {
+        console.error('Error in getStudentSchedule:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Lỗi khi lấy thông tin lịch học',
+            error: error.message
+        });
+    }
+};
+
+// Get class attendance for all students
+const getClassAttendance = async (req, res) => {
+    try {
+        const classId = req.params.classId;
+
+        // Get class information
+        const classInfo = await Class.findById(classId)
+            .populate('subjectId', 'subjectCode subjectName')
+            .populate('lecturerId', 'firstName lastName');
+
+        if (!classInfo) {
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy thông tin lớp học'
+            });
+        }
+
+        // Get all students' attendance records
+        const studentsAttendance = await ScheduleOfStudent.find({ classId })
+            .populate('studentId', 'studentCode firstName lastName')
+            .populate('attendance.scheduleId');
+
+        if (!studentsAttendance || studentsAttendance.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy thông tin điểm danh'
+            });
+        }
+
+        // Format data
+        const formattedData = {
+            className: classInfo.className,
+            subjectCode: classInfo.subjectId.subjectCode,
+            subjectName: classInfo.subjectId.subjectName,
+            lecturer: `${classInfo.lecturerId.firstName} ${classInfo.lecturerId.lastName}`,
+            students: studentsAttendance.map(record => ({
+                id: record.studentId._id,
+                studentCode: record.studentId.studentCode,
+                fullName: `${record.studentId.firstName} ${record.studentId.lastName}`,
+                attendance: record.attendance.map(att => ({
+                    scheduleId: att.scheduleId._id,
+                    date: att.scheduleId.date,
+                    slot: att.scheduleId.slot,
+                    status: att.status,
+                    note: att.note || ''
+                }))
+            }))
+        };
+
+        return res.status(200).json({
+            success: true,
+            data: formattedData
+        });
+    } catch (error) {
+        console.error('Error in getClassAttendance:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Lỗi khi lấy thông tin điểm danh',
+            error: error.message
+        });
+    }
+};
+
 // --- BẢN ĐỒ THỜI GIAN CÁC SLOT ---
 const slotTimes = [
     { slot: 1, startTime: '07:30', endTime: '09:50' },

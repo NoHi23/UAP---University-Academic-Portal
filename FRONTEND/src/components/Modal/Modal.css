@@ -15,14 +15,19 @@
     background: #ffffff;
     padding: 30px;
     border-radius: 16px;
-    width: min(900px, 95%);
-    /* Điều chỉnh chiều rộng để responsive */
+    /* Responsive width: use viewport width but cap at sensible max */
+    width: min(95vw, 1200px);
+    max-width: 1200px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
     position: relative;
     animation: fadeIn 0.3s ease-in-out;
     border-top: 6px solid #282e4e;
     margin: 0 auto;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    /* ensure children can take full width */
 }
 
 
@@ -42,18 +47,15 @@
     color: #b91c1c;
 }
 
-.modal-close {
-    background: none;
-    border: none;
-    font-size: 20px;
-    color: #b91c1c;
-    cursor: pointer;
-}
+/* modal-close initial styles removed and consolidated below */
 
 .modal-content {
     margin-top: 10px;
-    width: 100%;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    /* center children horizontally while allowing full-width elements to stretch */
+    align-items: center;
 }
 
 /* ======================== */
@@ -72,8 +74,9 @@
 /* Lưới form: chia đều các cột linh hoạt */
 .form-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(260px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: 20px;
+    width: 100%;
 }
 
 /* Make grid single-column on narrow viewports to avoid cramped layout */
@@ -140,20 +143,7 @@
     cursor: pointer;
 }
 
-/* Cải thiện modal box */
-.modal-box {
-    background: #ffffff;
-    padding: 30px;
-    border-radius: 16px;
-    width: 900px;
-    /* Đã tăng chiều rộng modal */
-    max-width: 95%;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-    position: relative;
-    animation: fadeIn 0.3s ease-in-out;
-    border-top: 6px solid #282e4e;
-    margin: 0 auto;
-}
+/* Removed duplicate empty rules */
 
 /* Header modal */
 .modal-header h3 {
@@ -165,8 +155,12 @@
 }
 
 .modal-close {
+    background: none;
+    border: none;
+    font-size: 20px;
     color: #b91c1c;
     font-weight: 600;
+    cursor: pointer;
     transition: 0.25s;
 }
 

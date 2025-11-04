@@ -74,7 +74,10 @@
 }
 
 .profile-avatar-section {
-    text-align: center;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
 }
 
 .avatar-container {
@@ -84,8 +87,8 @@
 }
 
 .profile-avatar {
-    width: 150px;
-    height: 150px;
+    width: 140px;
+    height: 140px;
     border-radius: 50%;
     object-fit: cover;
     border: 4px solid #e0e0e0;

@@ -22,6 +22,8 @@ import Timetable from './pages/Student/Timetable';
 import ExamSchedule from './pages/Student/ExamSchedule';
 import CurriculumsPage from './pages/Student/CurriculumsPage';
 import CurriculumDetailsPage from './pages/Student/CurriculumDetailsPage';
+import StudentAnnouncements from './pages/Student/StudentAnnouncements';
+import StudentAnnouncementDetail from './pages/Student/StudentAnnouncementDetail';
 
 import StudentLayout from './pages/Student';
 import LecturerLayout from './pages/Lecturer/LectureLayout';
@@ -68,6 +70,7 @@ import SupportRequestPage from './pages/Lecturer/SupportRequest';
 import ManualClassPage from './pages/Staff/ManualClassPage';
 import StudentClassmatesPage from './pages/Student/StudentClassmatesPage';
 import StudentSlotNotificationPage from './pages/Student/StudentSlotNotificationPage';
+import AttendanceReport from './pages/Student/AttendanceReport';
 import ChatBubble from './components/Common/ChatBubble';
 import AiToolManagementPage from './pages/Staff/AiToolManagementPage';
 import AiChatPage from './pages/Student/AiChatPage';
@@ -112,6 +115,9 @@ function App() {
                     <Route path="exams" element={<ExamSchedule />} />
                     <Route path="curriculums" element={<CurriculumsPage />} />
                     <Route path="curriculums/:id" element={<CurriculumDetailsPage />} />
+                    <Route path="announcements" element={<StudentAnnouncements />} />
+                    <Route path="announcements/:id" element={<StudentAnnouncementDetail />} />
+                    <Route path="attendance" element={<AttendanceReport />} />
                   </Route>
                   <Route path="/student/dashboard" element={<StudentDashboard />} />
                   <Route path="/student/materials" element={<MaterialsPage />} />
@@ -121,6 +127,8 @@ function App() {
                   <Route path="/student/evaluation" element={<EvaluationPage />} />
                   <Route path="/student/notifications" element={<SlotNotificationsPage />} />
                   <Route path="/student/schedule" element={<StudentTimetablePage />} />
+                  <Route path="/student/announcements" element={<StudentAnnouncements />} />
+                  <Route path="/student/announcements/:id" element={<StudentAnnouncementDetail />} />
                   <Route path="/student/absence" element={<RequestAbsenceList />} />
                   <Route path="/student/absence/new" element={<RequestAbsenceCreate />} />
                   <Route path="/student/classmates/:classId" element={<StudentClassmatesPage />} />
@@ -139,6 +147,8 @@ function App() {
                   <Route path="scheduling" element={<SchedulingPage />} />
                   <Route path="material" element={<MaterialManager />} />
                   <Route path="material/:id" element={<SubjectDetail />} />
+
+                  <Route path="material/:id" element={<SubjectDetail />} />
                   <Route path="ai-tools" element={<AiToolManagementPage />} />
                   <Route path="absence" element={<AbsenceList />} />
                   <Route path="absence/:id" element={<AbsenceReview />} />
@@ -155,12 +165,14 @@ function App() {
                   <Route path='enter-grades' element={<EnterGrades />} />
                   <Route path='student-grades' element={<StudentGrades />} />
                   <Route path='attendance-list' element={<AttendanceList />} />
+                  <Route path='attendance-list' element={<AttendanceList />} />
                   <Route path="announcements" element={<LecturerAnnouncements />} />
                   <Route path='my-list-class-charge' element={<ClassesBySemesterPage />} />
                   <Route path="announcements/:id" element={<LecturerAnnouncementDetail />} />
                   <Route path="supports" element={<SupportRequestPage />} />
                   <Route path="schedule" element={<LecturerTimetablePage />} />
                   <Route path="attendance/:scheduleId" element={<AttendancePage />} />
+                  <Route path="view-attendance-list" element={<AttendanceList />} />
                   <Route path="view-attendance-list" element={<AttendanceList />} />
                 </Route>
 

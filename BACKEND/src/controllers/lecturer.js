@@ -1,7 +1,6 @@
 const Class = require('../models/class');
 const Lecturer = require('../models/lecturer');
 const Account = require('../models/account');
-const ScheduleOfStudent = require('../models/ScheduleOfStudent');
 const ScheduleOfLecture = require('../models/scheduleOfLecture');
 const Schedule = require('../models/schedule');
 const Support = require('../models/support');
@@ -169,7 +168,7 @@ const getClassesBySemester = async (req, res) => {
     const lecturer = await Lecturer.findOne({ accountId: lecturerAccountId });
     if (!lecturer) return res.status(404).json({ success: false, message: 'Lecturer not found' });
 
-  const { semesterId, subject, subjectId } = req.query;
+    const { semesterId, subject, subjectId } = req.query;
 
     // Lấy tất cả schedules của giảng viên — nếu semesterId không truyền sẽ lấy tất cả kỳ
     const baseFilter = { lecturerId: lecturer._id };
@@ -242,13 +241,13 @@ const getClassesBySemester = async (req, res) => {
 // GET /lecturer/schedules/my-week — Lấy lịch giảng dạy tuần hiện tại của giảng viên
 
 const getMyWeeklySchedule = async (req, res) => {
-    // Hàm xác định thứ trong tuần từ ngày bất kỳ
-    function getDayOfWeek(dateString) {
-  const d = new Date(dateString);
-  d.setHours(d.getHours() + 7); // Chuyển sang giờ VN
-  const daysVN = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
-  return { num: d.getDay(), name: daysVN[d.getDay()] };
-    }
+  // Hàm xác định thứ trong tuần từ ngày bất kỳ
+  function getDayOfWeek(dateString) {
+    const d = new Date(dateString);
+    d.setHours(d.getHours() + 7); // Chuyển sang giờ VN
+    const daysVN = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+    return { num: d.getDay(), name: daysVN[d.getDay()] };
+  }
   try {
     console.log('DEBUG getMyWeeklySchedule: req.user =', req.user);
     const lecturer = await Lecturer.findOne({ accountId: req.user.id });
@@ -259,9 +258,9 @@ const getMyWeeklySchedule = async (req, res) => {
     }
 
     // Cho phép filter tuần bất kỳ qua body from/to (POST), nếu không có thì lấy tuần hiện tại
-  let { from, to } = req.body;
-  console.log('DEBUG getMyWeeklySchedule: from =', from, 'to =', to);
- 
+    let { from, to } = req.body;
+    console.log('DEBUG getMyWeeklySchedule: from =', from, 'to =', to);
+
     let firstDay, lastDay;
     if (from && to) {
       firstDay = new Date(from);
@@ -357,8 +356,8 @@ const updateMyProfile = async (req, res) => {
     const lecturer = await Lecturer.findOne({ accountId });
     if (!lecturer) return res.status(404).json({ success: false, message: 'Lecturer not found' });
 
-  // Allowed updates: include citizenID and remove birthDate/birthPlace (not used)
-  const allowed = ['lecturerAvatar', 'firstName', 'lastName', 'gender', 'phone', 'semester', 'semesterNo', 'curriculumId', 'majorId', 'citizenID'];
+    // Allowed updates: include citizenID and remove birthDate/birthPlace (not used)
+    const allowed = ['lecturerAvatar', 'firstName', 'lastName', 'gender', 'phone', 'semester', 'semesterNo', 'curriculumId', 'majorId', 'citizenID'];
     const data = {};
     for (const k of allowed) {
       if (k in req.body) data[k] = req.body[k];
@@ -562,57 +561,57 @@ const getAttendanceSummary = async (req, res) => {
     const result = [];
     for (const key of Object.keys(groups)) {
       const g = groups[key];
-        // Build scheduleId list for this group (normalize populated ids)
-        const scheduleIds = g.schedules.map(s => String((s._id) ? s._id : s));
+      // Build scheduleId list for this group (normalize populated ids)
+      const scheduleIds = g.schedules.map(s => String((s._id) ? s._id : s));
 
-        // Fetch lecture-level records to determine which slots the lecturer already marked attendance for
-        const lectureRecords = await ScheduleOfLecture.find({ scheduleId: { $in: scheduleIds }, lecturerId: lecturer._id }).lean();
-        const lectureMap = {};
-        for (const lr of lectureRecords) {
-          lectureMap[String(lr.scheduleId)] = lr;
-        }
+      // Fetch lecture-level records to determine which slots the lecturer already marked attendance for
+      const lectureRecords = await ScheduleOfLecture.find({ scheduleId: { $in: scheduleIds }, lecturerId: lecturer._id }).lean();
+      const lectureMap = {};
+      for (const lr of lectureRecords) {
+        lectureMap[String(lr.scheduleId)] = lr;
+      }
 
-        // Build per-schedule info with only lecture-level 'taught' flag
-        const schedulesWithCounts = g.schedules.map(sch => {
-          const lectureRec = lectureMap[String(sch._id)];
-          const taught = !!(lectureRec && lectureRec.attendance === true);
-          return {
-            scheduleId: sch._id,
-            date: sch.date,
-            slot: sch.slot,
-            startTime: sch.startTime,
-            endTime: sch.endTime,
-            room: sch.roomId ? (sch.roomId.roomName || sch.roomId.roomCode) : null,
-            // include class info so frontend can show class when grouping by subject
-            classId: sch.classId?._id || sch.classId || null,
-            className: sch.classId?.className || sch.className || null,
-            taught
-          };
-        });
-
-        // totalSlots for this group: count of ScheduleOfLecture docs (slots recorded for this lecturer)
-        const totalLectureSlots = lectureRecords.length;
-        const taughtSlots = lectureRecords.filter(lr => lr.attendance === true).length;
-        const notTaughtSlots = totalLectureSlots - taughtSlots;
-
-        const out = groupBySubject ? {
-          subjectId: g.subjectId,
-          subjectName: g.subjectName,
-          subjectCode: g.subjectCode,
-          totalSlots: totalLectureSlots,
-          taughtSlots,
-          notTaughtSlots,
-          schedules: schedulesWithCounts
-        } : {
-          classId: g.classId,
-          className: g.className,
-          subjectId: g.subjectId,
-          subjectName: g.subjectName,
-          totalSlots: totalLectureSlots,
-          taughtSlots,
-          notTaughtSlots,
-          schedules: schedulesWithCounts
+      // Build per-schedule info with only lecture-level 'taught' flag
+      const schedulesWithCounts = g.schedules.map(sch => {
+        const lectureRec = lectureMap[String(sch._id)];
+        const taught = !!(lectureRec && lectureRec.attendance === true);
+        return {
+          scheduleId: sch._id,
+          date: sch.date,
+          slot: sch.slot,
+          startTime: sch.startTime,
+          endTime: sch.endTime,
+          room: sch.roomId ? (sch.roomId.roomName || sch.roomId.roomCode) : null,
+          // include class info so frontend can show class when grouping by subject
+          classId: sch.classId?._id || sch.classId || null,
+          className: sch.classId?.className || sch.className || null,
+          taught
         };
+      });
+
+      // totalSlots for this group: count of ScheduleOfLecture docs (slots recorded for this lecturer)
+      const totalLectureSlots = lectureRecords.length;
+      const taughtSlots = lectureRecords.filter(lr => lr.attendance === true).length;
+      const notTaughtSlots = totalLectureSlots - taughtSlots;
+
+      const out = groupBySubject ? {
+        subjectId: g.subjectId,
+        subjectName: g.subjectName,
+        subjectCode: g.subjectCode,
+        totalSlots: totalLectureSlots,
+        taughtSlots,
+        notTaughtSlots,
+        schedules: schedulesWithCounts
+      } : {
+        classId: g.classId,
+        className: g.className,
+        subjectId: g.subjectId,
+        subjectName: g.subjectName,
+        totalSlots: totalLectureSlots,
+        taughtSlots,
+        notTaughtSlots,
+        schedules: schedulesWithCounts
+      };
 
       result.push(out);
     }
@@ -665,8 +664,8 @@ const markAttendance = async (req, res) => {
       }
 
       // Chỉ cho phép chấm điểm đúng ngày của schedule (so sánh theo YYYY-MM-DD)
-      const schedDateStr = (new Date(schedule.date)).toISOString().slice(0,10);
-      const attendanceDateStr = date ? (new Date(date)).toISOString().slice(0,10) : (new Date()).toISOString().slice(0,10);
+      const schedDateStr = (new Date(schedule.date)).toISOString().slice(0, 10);
+      const attendanceDateStr = date ? (new Date(date)).toISOString().slice(0, 10) : (new Date()).toISOString().slice(0, 10);
       if (schedDateStr !== attendanceDateStr) {
         results.push({ success: false, message: 'Attendance allowed only on schedule date', scheduleId, expectedDate: schedDateStr, receivedDate: attendanceDateStr });
         continue;

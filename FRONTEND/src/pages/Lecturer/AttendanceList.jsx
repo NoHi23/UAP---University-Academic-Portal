@@ -85,22 +85,16 @@ const AttendanceList = () => {
           // reset selection so empty = all
           setSelectedClass('');
         }
-        } catch (err) {
-          console.error('fetchOptions error', err);
-          const msg = err?.response?.data?.message || err.message || null;
-          if (msg) setError(msg);
-        }
+      } catch (err) {
+        console.error('fetchOptions error', err);
+        const msg = err?.response?.data?.message || err.message || null;
+        if (msg) setError(msg);
+      }
     };
     fetchOptions();
   }, [selectedSemester]);
 
   return (
-<<<<<<< HEAD
-    <div>
-      <h2>Danh sách điểm danh</h2>
-      <p>Danh sách điểm danh theo buổi/học phần</p>
-    </div>
-=======
     <Box sx={{ p: 3 }}>
       <Typography variant="h5" sx={{ mb: 2 }}>Danh sách điểm danh (theo học kỳ)</Typography>
 
@@ -108,19 +102,19 @@ const AttendanceList = () => {
         <Grid container spacing={1} alignItems="center">
           <Grid item xs={12} sm={4}>
             <FormControl fullWidth={isSmall} sx={{ minWidth: 240 }} size="small">
-          <InputLabel id="semester-label">Học kỳ</InputLabel>
-          <Select
-            labelId="semester-label"
-            value={selectedSemester}
-            label="Học kỳ"
-            onChange={(e) => setSelectedSemester(e.target.value)}
-          >
-            <MenuItem value="">-- Chọn học kỳ --</MenuItem>
-            {semesters.map(s => (
+              <InputLabel id="semester-label">Học kỳ</InputLabel>
+              <Select
+                labelId="semester-label"
+                value={selectedSemester}
+                label="Học kỳ"
+                onChange={(e) => setSelectedSemester(e.target.value)}
+              >
+                <MenuItem value="">-- Chọn học kỳ --</MenuItem>
+                {semesters.map(s => (
                   <MenuItem key={s._id || s.id} value={s._id || s.id}>{s.semesterName} • {new Date(s.startDate).getFullYear()}</MenuItem>
-            ))}
-          </Select>
-          </FormControl>
+                ))}
+              </Select>
+            </FormControl>
           </Grid>
 
           <Grid item xs={12} sm={2}>
@@ -238,13 +232,13 @@ const AttendanceList = () => {
                     <TableCell>{classDisplay || '—'}</TableCell>
                     <TableCell align="center">{row.totalSlots ?? (row.schedules ? row.schedules.length : '—')}</TableCell>
                     <TableCell align="center">{row.taughtSlots ?? 0}</TableCell>
-                    <TableCell align="center">{row.notTaughtSlots ?? ( (row.totalSlots ?? (row.schedules ? row.schedules.length : 0)) - (row.taughtSlots ?? 0) )}</TableCell>
+                    <TableCell align="center">{row.notTaughtSlots ?? ((row.totalSlots ?? (row.schedules ? row.schedules.length : 0)) - (row.taughtSlots ?? 0))}</TableCell>
                     <TableCell align="center">
                       <Button size="small" onClick={() => {
-                          setScheduleListSchedules(row.schedules || []);
-                          setScheduleListTitle(subjectDisplay);
-                          setScheduleListOpen(true);
-                        }}>Xem chi tiết</Button>
+                        setScheduleListSchedules(row.schedules || []);
+                        setScheduleListTitle(subjectDisplay);
+                        setScheduleListOpen(true);
+                      }}>Xem chi tiết</Button>
                     </TableCell>
                   </TableRow>
                 );
@@ -293,7 +287,6 @@ const AttendanceList = () => {
         </DialogContent>
       </Dialog>
     </Box>
->>>>>>> 345a50dcfb1b50bbf4f6c3dba8ad796e44230aee
   );
 };
 
