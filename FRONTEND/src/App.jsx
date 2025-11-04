@@ -70,14 +70,11 @@ import SupportRequestPage from './pages/Lecturer/SupportRequest';
 import ManualClassPage from './pages/Staff/ManualClassPage';
 import StudentClassmatesPage from './pages/Student/StudentClassmatesPage';
 import StudentSlotNotificationPage from './pages/Student/StudentSlotNotificationPage';
-<<<<<<< HEAD
 import AttendanceReport from './pages/Student/AttendanceReport';
-=======
 import ChatBubble from './components/Common/ChatBubble';
 import AiToolManagementPage from './pages/Staff/AiToolManagementPage';
 import AiChatPage from './pages/Student/AiChatPage';
 import AiChatLayout from './pages/Student/AiChatLayout';
->>>>>>> origin/hieunn-dev
 function App() {
   const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
@@ -150,11 +147,9 @@ function App() {
                   <Route path="scheduling" element={<SchedulingPage />} />
                   <Route path="material" element={<MaterialManager />} />
                   <Route path="material/:id" element={<SubjectDetail />} />
-<<<<<<< HEAD
 
-=======
+                  <Route path="material/:id" element={<SubjectDetail />} />
                   <Route path="ai-tools" element={<AiToolManagementPage />} />
->>>>>>> origin/hieunn-dev
                   <Route path="absence" element={<AbsenceList />} />
                   <Route path="absence/:id" element={<AbsenceReview />} />
                   <Route path="manual-class" element={<ManualClassPage />} />
@@ -170,12 +165,14 @@ function App() {
                   <Route path='enter-grades' element={<EnterGrades />} />
                   <Route path='student-grades' element={<StudentGrades />} />
                   <Route path='attendance-list' element={<AttendanceList />} />
+                  <Route path='attendance-list' element={<AttendanceList />} />
                   <Route path="announcements" element={<LecturerAnnouncements />} />
                   <Route path='my-list-class-charge' element={<ClassesBySemesterPage />} />
                   <Route path="announcements/:id" element={<LecturerAnnouncementDetail />} />
                   <Route path="supports" element={<SupportRequestPage />} />
                   <Route path="schedule" element={<LecturerTimetablePage />} />
                   <Route path="attendance/:scheduleId" element={<AttendancePage />} />
+                  <Route path="view-attendance-list" element={<AttendanceList />} />
                   <Route path="view-attendance-list" element={<AttendanceList />} />
                 </Route>
 

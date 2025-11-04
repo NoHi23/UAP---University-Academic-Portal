@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from 'react';
-<<<<<<< HEAD
 import { useNavigate } from 'react-router-dom';
 import announcementAPI from '../../api/annoucementAPI';
-=======
 import api from '../../services/api';
->>>>>>> origin/hieunn-dev
 import FullScreenLoader from '../../components/Common/FullScreenLoader';
 import { FaBullhorn, FaInfoCircle, FaCalendarDay, FaClock, FaBook } from 'react-icons/fa';
 import './SlotNotificationsPage.css';
@@ -20,7 +17,6 @@ const SlotNotificationsPage = () => {
     useEffect(() => {
         const fetchNotifications = async () => {
             try {
-<<<<<<< HEAD
                 // Use announcements as the global notification source
                 const res = await announcementAPI.getAll();
                 const raw = Array.isArray(res?.data?.data) ? res.data.data : [];
@@ -42,11 +38,9 @@ const SlotNotificationsPage = () => {
 
                 const sorted = mapped.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
                 setNotifications(sorted);
-=======
                 const response = await api.get('/notifications/slots');
                 const sortedData = response.data.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
                 setNotifications(sortedData);
->>>>>>> origin/hieunn-dev
             } catch (err) {
                 console.error(err);
                 setError('Không thể tải thông báo.');
@@ -105,14 +99,11 @@ const SlotNotificationsPage = () => {
                             </div>
 
                             <div className="notification-card-footer">
-<<<<<<< HEAD
-=======
                                 <div className="slot-info">
                                     <p><FaBook /> {noti.scheduleId?.subjectId?.subjectName} ({noti.scheduleId?.classId?.className})</p>
                                     <p><FaCalendarDay /> Ngày học: {noti.scheduleId?.date ? dayjs(noti.scheduleId.date).format('DD/MM/YYYY') : 'N/A'}</p>
                                     <p><FaClock /> Slot: {noti.scheduleId?.slot || 'N/A'}</p>
                                 </div>
->>>>>>> origin/hieunn-dev
                                 <span className="sender-info">
                                     Gửi bởi: {noti.sender?.email || noti.sender?.name || 'Hệ thống'}
                                 </span>

@@ -13,12 +13,9 @@ const majorRouter = require('./major')
 const curriculumRouter = require('./curriculum');
 const schedulingRouter = require('./scheduling');
 const absenceRouter = require('./absenceRequest');
-<<<<<<< HEAD
 const attendanceRouter = require('./attendance');
-=======
 const notificationRouter = require('./notification');
 const aiRouter = require('./ai');
->>>>>>> origin/hieunn-dev
 
 
 router.use("/api/absence", absenceRouter);
