@@ -358,7 +358,7 @@ const generateSchedule = async (req, res) => {
 
             let createdSchedules = [];
             let scheduledSlotsForThisClass = [];
-            for (let i = 0; i < 20; i++) {
+            for (let i = 0; i < 5; i++) {
                 const validSlot = findValidScheduleSlot(classToSchedule.students, lecturersForMajor, allRooms, conflictSet, semester.startDate, scheduledSlotsForThisClass);
                 if (validSlot) {
                     const timeInfo = slotTimes.find(t => t.slot === validSlot.slot);

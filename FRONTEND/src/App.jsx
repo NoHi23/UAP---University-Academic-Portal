@@ -71,6 +71,10 @@ import ManualClassPage from './pages/Staff/ManualClassPage';
 import StudentClassmatesPage from './pages/Student/StudentClassmatesPage';
 import StudentSlotNotificationPage from './pages/Student/StudentSlotNotificationPage';
 import AttendanceReport from './pages/Student/AttendanceReport';
+import ChatBubble from './components/Common/ChatBubble';
+import AiToolManagementPage from './pages/Staff/AiToolManagementPage';
+import AiChatPage from './pages/Student/AiChatPage';
+import AiChatLayout from './pages/Student/AiChatLayout';
 function App() {
   const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
@@ -106,7 +110,7 @@ function App() {
                     <Route path="requests" element={<RequestsPage />} />
                     <Route path="evaluation" element={<EvaluationPage />} />
                     <Route path="notifications" element={<SlotNotificationsPage />} />
-
+                    <Route path="chat" element={<AiChatPage />} />
                     <Route path="timetable" element={<Timetable />} />
                     <Route path="exams" element={<ExamSchedule />} />
                     <Route path="curriculums" element={<CurriculumsPage />} />
@@ -129,6 +133,10 @@ function App() {
                   <Route path="/student/absence/new" element={<RequestAbsenceCreate />} />
                   <Route path="/student/classmates/:classId" element={<StudentClassmatesPage />} />
                   <Route path="/student/notifications/slot/:scheduleId" element={<StudentSlotNotificationPage />} />
+                  <Route path="chat" element={<AiChatLayout />}>
+                    <Route index element={<AiChatPage />} />
+                    <Route path=":chatId" element={<AiChatPage />} />
+                  </Route>
                 </Route>
                 <Route path="/staff/" element={<StaffLayout />}>
                   <Route path="dashboard" element={<StaffLayout />} />
@@ -140,6 +148,8 @@ function App() {
                   <Route path="material" element={<MaterialManager />} />
                   <Route path="material/:id" element={<SubjectDetail />} />
 
+                  <Route path="material/:id" element={<SubjectDetail />} />
+                  <Route path="ai-tools" element={<AiToolManagementPage />} />
                   <Route path="absence" element={<AbsenceList />} />
                   <Route path="absence/:id" element={<AbsenceReview />} />
                   <Route path="manual-class" element={<ManualClassPage />} />
@@ -155,6 +165,7 @@ function App() {
                   <Route path='enter-grades' element={<EnterGrades />} />
                   <Route path='student-grades' element={<StudentGrades />} />
                   <Route path='attendance-list' element={<AttendanceList />} />
+                  <Route path='attendance-list' element={<AttendanceList />} />
                   <Route path="announcements" element={<LecturerAnnouncements />} />
                   <Route path='my-list-class-charge' element={<ClassesBySemesterPage />} />
                   <Route path="announcements/:id" element={<LecturerAnnouncementDetail />} />
@@ -162,8 +173,11 @@ function App() {
                   <Route path="schedule" element={<LecturerTimetablePage />} />
                   <Route path="attendance/:scheduleId" element={<AttendancePage />} />
                   <Route path="view-attendance-list" element={<AttendanceList />} />
+                  <Route path="view-attendance-list" element={<AttendanceList />} />
                 </Route>
+
               </Routes>
+              <ChatBubble />
               <BackToTopButton />
             </AuthProvider>
           </GoogleOAuthProvider >

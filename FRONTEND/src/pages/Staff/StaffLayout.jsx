@@ -32,7 +32,7 @@ import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
 import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
-
+import SmartToyIcon from '@mui/icons-material/SmartToy';
 import { notifySuccess, showConfirmDialog } from '../../services/notificationService';
 import { Outlet, useNavigate } from 'react-router-dom';
 
@@ -166,6 +166,7 @@ export default function StaffLayout() {
         { text: 'Tạo Lịch tự động', icon: <EventNoteIcon />, path: '/staff/scheduling' },
         { text: 'Xếp lớp thủ công', icon: <PlaylistAddIcon />, path: '/staff/manual-class' },
         { text: 'Duyệt đơn học vụ', icon: <AssignmentTurnedInIcon />, path: '/staff/absence' },
+        { text: 'Quản lý AI Tools', icon: <SmartToyIcon />, path: '/staff/ai-tools' },
     ];
 
     // =========================

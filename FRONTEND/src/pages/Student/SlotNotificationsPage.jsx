@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import announcementAPI from '../../api/annoucementAPI';
+import api from '../../services/api';
 import FullScreenLoader from '../../components/Common/FullScreenLoader';
 import { FaBullhorn, FaInfoCircle, FaCalendarDay, FaClock, FaBook } from 'react-icons/fa';
 import './SlotNotificationsPage.css';
+import dayjs from 'dayjs';
 
 const SlotNotificationsPage = () => {
     const [notifications, setNotifications] = useState([]);
@@ -36,6 +38,9 @@ const SlotNotificationsPage = () => {
 
                 const sorted = mapped.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
                 setNotifications(sorted);
+                const response = await api.get('/notifications/slots');
+                const sortedData = response.data.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                setNotifications(sortedData);
             } catch (err) {
                 console.error(err);
                 setError('Không thể tải thông báo.');
@@ -94,6 +99,11 @@ const SlotNotificationsPage = () => {
                             </div>
 
                             <div className="notification-card-footer">
+                                <div className="slot-info">
+                                    <p><FaBook /> {noti.scheduleId?.subjectId?.subjectName} ({noti.scheduleId?.classId?.className})</p>
+                                    <p><FaCalendarDay /> Ngày học: {noti.scheduleId?.date ? dayjs(noti.scheduleId.date).format('DD/MM/YYYY') : 'N/A'}</p>
+                                    <p><FaClock /> Slot: {noti.scheduleId?.slot || 'N/A'}</p>
+                                </div>
                                 <span className="sender-info">
                                     Gửi bởi: {noti.sender?.email || noti.sender?.name || 'Hệ thống'}
                                 </span>

@@ -6,6 +6,9 @@ const RequestNotification = require('../models/requestNotificationModel');
 const Request = require('../models/requestModel');
 const Lecturer = require('../models/lecturer');
 
+const Account = require('../models/account');
+
+    
 const getMySlotNotifications = async (req, res) => {
     try {
         const student = await Student.findOne({ accountId: req.user.id });
@@ -14,7 +17,6 @@ const getMySlotNotifications = async (req, res) => {
         }
         // ScheduleOfStudent stores schedule references inside attendance[].scheduleId
         const sosDocs = await ScheduleOfStudent.find({ studentId: student._id });
-        const scheduleIds = [];
         sosDocs.forEach(doc => {
             if (Array.isArray(doc.attendance)) {
                 doc.attendance.forEach(a => {
@@ -23,15 +25,22 @@ const getMySlotNotifications = async (req, res) => {
             }
         });
 
+        const enrollments = await ScheduleOfStudent.find({ studentId: student._id }).select('classId');
+        if (!enrollments || enrollments.length === 0) {
+            return res.status(200).json({ success: true, count: 0, data: [] }); 
+        }
+        const enrolledClassIds = enrollments.map(e => e.classId);
+
+        const schedules = await Schedule.find({ classId: { $in: enrolledClassIds } }).select('_id');
+        const scheduleIds = schedules.map(s => s._id);
+
         const notifications = await SlotNotification.find({ scheduleId: { $in: scheduleIds } })
             .populate({
                 path: 'scheduleId',
-                select: 'classId subjectId timeSlotId weekId',
+                select: 'classId subjectId date slot',
                 populate: [
                     { path: 'classId', select: 'className' },
                     { path: 'subjectId', select: 'subjectName subjectCode' },
-                    { path: 'timeSlotId', select: 'slot startDate endDate' },
-                    { path: 'weekId', select: 'startDate endDate' }
                 ]
             })
             .populate('senderId', 'email role')
@@ -40,6 +49,7 @@ const getMySlotNotifications = async (req, res) => {
         res.status(200).json({ success: true, count: notifications.length, data: notifications });
 
     } catch (error) {
+        console.error("Lỗi khi lấy thông báo slot:", error);
         res.status(500).json({ success: false, message: 'Lỗi máy chủ', error: error.message });
     }
 };
@@ -49,6 +59,8 @@ const getMySlotNotificationsForLecturer = async (req, res) => {
     try {
         const lecturer = await Lecturer.findOne({ accountId: req.user.id });
         if (!lecturer) return res.status(404).json({ message: 'Không tìm thấy giảng viên.' });
+        const { scheduleId } = req.params;
+        const accountId = req.user.id; 
 
         const schedules = await Schedule.find({ lecturerId: lecturer._id }).select('_id');
         const scheduleIds = schedules.map(s => s._id);
@@ -65,7 +77,12 @@ const getMySlotNotificationsForLecturer = async (req, res) => {
                 ]
             })
             .populate('senderId', 'email role')
-            .sort({ createdAt: -1 });
+        const schedule = await Schedule.findById(scheduleId).select('classId').lean();
+        if (!schedule) {
+            return res.status(404).json({ message: 'Không tìm thấy buổi học.' });
+        }
+        
+
 
         return res.status(200).json({ success: true, count: notifications.length, data: notifications });
     } catch (error) {
@@ -79,7 +96,7 @@ const getMySlotNotificationsForLecturer = async (req, res) => {
 const createSlotNotification = async (req, res) => {
     try {
         const { scheduleId, title, content } = req.body;
-        const senderId = req.user.id;
+        const senderId = req.user.id; 
 
         const schedule = await Schedule.findById(scheduleId);
         if (!schedule) {
@@ -92,7 +109,7 @@ const createSlotNotification = async (req, res) => {
             content,
             senderId
         });
-
+        
         res.status(201).json({ success: true, message: "Tạo thông báo thành công.", data: notification });
 
     } catch (error) {
