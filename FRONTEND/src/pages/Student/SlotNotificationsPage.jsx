@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import  api  from '../../services/api';
+import api from '../../services/api';
 import FullScreenLoader from '../../components/Common/FullScreenLoader';
 import { FaBullhorn, FaInfoCircle, FaCalendarDay, FaClock, FaBook } from 'react-icons/fa';
 import './SlotNotificationsPage.css';
+import dayjs from 'dayjs';
 
 const SlotNotificationsPage = () => {
     const [notifications, setNotifications] = useState([]);
@@ -12,8 +13,7 @@ const SlotNotificationsPage = () => {
     useEffect(() => {
         const fetchNotifications = async () => {
             try {
-                const response = await api.get('/student/notifications/slots');
-                // Sắp xếp các thông báo theo ngày mới nhất
+                const response = await api.get('/notifications/slots');
                 const sortedData = response.data.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
                 setNotifications(sortedData);
             } catch (err) {
@@ -57,8 +57,8 @@ const SlotNotificationsPage = () => {
                             <div className="notification-card-footer">
                                 <div className="slot-info">
                                     <p><FaBook /> {noti.scheduleId?.subjectId?.subjectName} ({noti.scheduleId?.classId?.className})</p>
-                                    <p><FaCalendarDay /> Ngày học: {new Date(noti.scheduleId?.weekId?.startDate).toLocaleDateString('vi-VN')}</p>
-                                    <p><FaClock /> Slot: {noti.scheduleId?.timeSlotId?.slot}</p>
+                                    <p><FaCalendarDay /> Ngày học: {noti.scheduleId?.date ? dayjs(noti.scheduleId.date).format('DD/MM/YYYY') : 'N/A'}</p>
+                                    <p><FaClock /> Slot: {noti.scheduleId?.slot || 'N/A'}</p>
                                 </div>
                                 <span className="sender-info">
                                     Gửi bởi: {noti.senderId?.email}
