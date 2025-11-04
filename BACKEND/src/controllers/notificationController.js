@@ -83,22 +83,12 @@ const getMySlotNotificationsForLecturer = async (req, res) => {
         }
 
 
-        const notifications = await SlotNotification.find({ scheduleId: scheduleId })
-            .populate('senderId', 'email')
-            .sort({ createdAt: -1 });
-
         return res.status(200).json({ success: true, count: notifications.length, data: notifications });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Lỗi máy chủ', error: error.message });
     }
 };
 
-<<<<<<< HEAD
-// export lecturer helper
-
-
-=======
->>>>>>> origin/hieunn-dev
 const createSlotNotification = async (req, res) => {
     try {
         const { scheduleId, title, content } = req.body;
