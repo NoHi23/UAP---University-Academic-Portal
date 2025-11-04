@@ -18,15 +18,7 @@ const curriculumDetailSchema = new Schema({
     required: true
   }
   ,
-  // denormalized subject snapshot fields to make API responses self-contained
-  subjectCode: { type: String },
-  subjectName: { type: String },
-  subjectEnglish: { type: String },
-  credits: { type: Number },
-  type: { type: String },
-  lecturer: { type: String },
-  description: { type: String },
-  learningOutcomes: { type: [String], default: [] }
+
 }, {
   timestamps: true
 });

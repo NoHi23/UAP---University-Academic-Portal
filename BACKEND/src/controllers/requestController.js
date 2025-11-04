@@ -1,5 +1,7 @@
 const Request = require('../models/requestModel');
 const Student = require('../models/student');
+const RequestNotification = require('../models/requestNotificationModel');
+const Account = require('../models/account');
 
 const submitRequest = async (req, res) => {
   try {
@@ -87,6 +89,26 @@ const updateRequest = async (req, res) => {
 
     const updatedRequest = await request.save();
 
+    // Create a request notification for the student so they see the staff response
+    try {
+      const student = await Student.findById(request.studentId);
+      if (student) {
+        const sender = await Account.findById(req.user.id).select('email role');
+        const title = `Phản hồi: ${request.title}`;
+        const content = response || `Yêu cầu của bạn đã được cập nhật: ${status}`;
+        await RequestNotification.create({
+          requestId: request._id,
+          studentId: student._id,
+          senderId: req.user.id,
+          title,
+          content
+        });
+      }
+    } catch (notifErr) {
+      // Log and continue - do not fail the main request update if notification creation fails
+      console.error('Failed to create request notification:', notifErr.message || notifErr);
+    }
+
     res.status(200).json({
       success: true,
       message: 'Cập nhật yêu cầu thành công.',
@@ -100,6 +122,6 @@ const updateRequest = async (req, res) => {
 module.exports = {
   submitRequest,
   getMyRequests,
-  getAllRequests, 
+  getAllRequests,
   updateRequest
 };

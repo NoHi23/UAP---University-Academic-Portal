@@ -17,6 +17,8 @@ import {
     Fab,
     Tooltip,
     CircularProgress,
+    Pagination,
+    Stack,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import EditIcon from "@mui/icons-material/Edit";
@@ -33,6 +35,8 @@ export default function StudentAccount() {
     const [filterMajor, setFilterMajor] = useState("");
     const [filterCourse, setFilterCourse] = useState("");
     const [loading, setLoading] = useState(true);
+    const [page, setPage] = useState(1);
+    const [rowsPerPage, setRowsPerPage] = useState(10); // default 10, allow 15
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
     const [selectedStudentId, setSelectedStudentId] = useState(null); // To store the ID of the student to update
@@ -90,6 +94,18 @@ export default function StudentAccount() {
         return matchesName && matchesMajor && matchesCourse;
     });
 
+    // client-side pagination
+    const total = filteredStudents.length;
+    const totalPages = Math.max(1, Math.ceil(total / rowsPerPage));
+    const startIndex = (page - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    const paginated = filteredStudents.slice(startIndex, endIndex);
+
+    // reset page when filters/search change
+    useEffect(() => {
+        setPage(1);
+    }, [search, filterMajor, filterCourse, rowsPerPage]);
+
     return (
         <Box>
             <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
@@ -141,6 +157,23 @@ export default function StudentAccount() {
                 </FormControl>
             </Box>
 
+            {/* Tổng số / Kết quả lọc */}
+            <Box sx={{ mb: 2 }}>
+                {(() => {
+                    const totalStudents = students.length;
+                    const isFiltered = Boolean(search || filterMajor || filterCourse);
+                    return isFiltered ? (
+                        <Typography variant="subtitle2" color="text.secondary">
+                            {`Kết quả: ${filteredStudents.length} sinh viên (trên tổng ${totalStudents})`}
+                        </Typography>
+                    ) : (
+                        <Typography variant="subtitle2" color="text.secondary">
+                            {`Tổng số sinh viên: ${totalStudents}`}
+                        </Typography>
+                    );
+                })()}
+            </Box>
+
             {/* Bảng danh sách sinh viên */}
             {loading ? (
                 <Box sx={{ textAlign: "center", py: 10 }}>
@@ -183,7 +216,7 @@ export default function StudentAccount() {
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {filteredStudents.map((s) => (
+                            {paginated.map((s) => (
                                 <TableRow key={s._id}>
                                     <TableCell>{s.studentCode}</TableCell>
                                     <TableCell>{s.lastName}</TableCell>
@@ -204,6 +237,39 @@ export default function StudentAccount() {
                             ))}
                         </TableBody>
                     </Table>
+                    {/* Pagination controls */}
+                    <Stack
+                        direction="row"
+                        alignItems="center"
+                        justifyContent="space-between"
+                        sx={{ p: 2 }}
+                    >
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                            <Typography variant="body2">số lượng/ trang:</Typography>
+                            <FormControl size="small">
+                                <Select
+                                    value={rowsPerPage}
+                                    onChange={(e) => {
+                                        setRowsPerPage(Number(e.target.value));
+                                    }}
+                                >
+                                    <MenuItem value={10}>10</MenuItem>
+                                    <MenuItem value={15}>15</MenuItem>
+                                </Select>
+                            </FormControl>
+                            <Typography variant="body2">{`Hiển thị ${Math.min(startIndex + 1, total)}-${Math.min(
+                                endIndex,
+                                total
+                            )} of ${total}`}</Typography>
+                        </Box>
+
+                        <Pagination
+                            count={totalPages}
+                            page={page}
+                            onChange={(_, value) => setPage(value)}
+                            color="primary"
+                        />
+                    </Stack>
                 </Paper>
             )}
 

@@ -5,7 +5,6 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import api from '../../services/api';
 import dayjs from 'dayjs';
 
-// Đây là logic từ modal cũ
 const StudentSlotNotificationPage = () => {
     const { scheduleId } = useParams();
     const [notifications, setNotifications] = useState([]);

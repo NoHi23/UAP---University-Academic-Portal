@@ -5,6 +5,7 @@ import * as XLSX from 'xlsx';
 import materialAPI from '../../api/materialAPI';
 import cloAPI from '../../api/cloAPI';
 import sessionMaterialAPI from '../../api/sessionMaterialAPI';
+import staffAPI from '../../api/staffAPI';
 import { notifySuccess, notifyError } from '../../services/notificationService';
 
 // Minimal Excel import: parse first sheet, auto-map headers to fields, preview and POST to bulk endpoint.
@@ -60,11 +61,11 @@ export default function ExcelImport({ subjectId: presetSubjectId, onImported, mo
       console.log('Excel preview rows (first 10, cleaned):', cleaned.slice(0, 10));
       setHeaders(hdrs);
       setRows(cleaned.slice(0, 200)); // preview up to 200 rows
-  setResult(null);
+      setResult(null);
     };
-    
-   const save = reader.readAsArrayBuffer(f);
-console.log('read file', save);
+
+    const save = reader.readAsArrayBuffer(f);
+    console.log('read file', save);
   };
 
   const buildPayload = async () => {
@@ -97,9 +98,9 @@ console.log('read file', save);
         if (typeof v === 'boolean') return v;
         if (typeof v === 'number') return v !== 0;
         const s = String(v).trim().toLowerCase();
-        const truthy = ['true', 'yes', '1', 'y', 'on', 'checked','TRUE','YES','Y'];
+        const truthy = ['true', 'yes', '1', 'y', 'on', 'checked', 'TRUE', 'YES', 'Y'];
         if (truthy.includes(s)) return true;
-        const falsy = ['false', 'no', '0', 'n', 'off', 'unchecked','FALSE','NO','N'];
+        const falsy = ['false', 'no', '0', 'n', 'off', 'unchecked', 'FALSE', 'NO', 'N'];
         if (falsy.includes(s)) return false;
         if (/[\u2713\u2714\u2611\u2715\u00D7x×]/.test(s)) return true;
         return false;
@@ -107,14 +108,14 @@ console.log('read file', save);
 
       const payload = {
         subjectId: r.subjectId || r.subjectID || r['SubjectId'] || subjectId || presetSubjectId || undefined,
-        materialDescription: mapField(['materialDescription','description','title','name','MaterialDescription','Description']) || '',
-        author: mapField(['author','Author','nguoi','Nguoi']) || '',
-        isMainMaterial: parseBool(mapField(['isMainMaterial','isMain','Main','main','mainMaterial'])),
-        isOnline: parseBool(mapField(['isOnline','online','IsOnline','Online'])),
-        isHardCopy: parseBool(mapField(['isHardCopy','hardCopy','hard','isHard','Hard copy','HardCopy'])),
-        url: mapField(['url','link','Link','URL']) || '',
-        isbn: mapField(['isbn','ISBN']) || '',
-        note: mapField(['note','Note','GhiChu']) || ''
+        materialDescription: mapField(['materialDescription', 'description', 'title', 'name', 'MaterialDescription', 'Description']) || '',
+        author: mapField(['author', 'Author', 'nguoi', 'Nguoi']) || '',
+        isMainMaterial: parseBool(mapField(['isMainMaterial', 'isMain', 'Main', 'main', 'mainMaterial'])),
+        isOnline: parseBool(mapField(['isOnline', 'online', 'IsOnline', 'Online'])),
+        isHardCopy: parseBool(mapField(['isHardCopy', 'hardCopy', 'hard', 'isHard', 'Hard copy', 'HardCopy'])),
+        url: mapField(['url', 'link', 'Link', 'URL']) || '',
+        isbn: mapField(['isbn', 'ISBN']) || '',
+        note: mapField(['note', 'Note', 'GhiChu']) || ''
       };
       try {
         const descVal = String(payload.materialDescription || '').trim();
@@ -140,10 +141,10 @@ console.log('read file', save);
     setLoading(true);
     setResult(null);
     try {
-  const payload = await buildPayload();
-  // Debug: log payload summary before sending
-  console.log('Importing payload length:', payload.length);
-  console.log('Importing payload sample (first 3):', payload.slice(0, 3));
+      const payload = await buildPayload();
+      // Debug: log payload summary before sending
+      console.log('Importing payload length:', payload.length);
+      console.log('Importing payload sample (first 3):', payload.slice(0, 3));
       // Validate requiredFields (if provided)
       if (Array.isArray(requiredFields) && requiredFields.length > 0) {
         const missingField = requiredFields.find(f => {
@@ -165,23 +166,35 @@ console.log('read file', save);
         }
       }
 
+      // Decide how to call the backend:
+      // - If caller provided customBulkImport, use it (GradeComponentImport uses this)
+      // - Otherwise pick an API client and call .bulk(payload, opts) if available
+      // - If client implements importStudentsExcel (special case), call that
       let res;
       if (typeof customBulkImport === 'function') {
         res = await customBulkImport(payload);
       } else {
-        // choose API based on model prop
         const apiMap = {
           materials: materialAPI,
           clos: cloAPI,
-          'session-materials': sessionMaterialAPI
+          'session-materials': sessionMaterialAPI,
+          students: staffAPI
         };
         const apiClient = apiMap[model] || materialAPI;
-        res = await apiClient.bulk(payload, { replace });
+
+        if (apiClient && typeof apiClient.bulk === 'function') {
+          res = await apiClient.bulk(payload, { replace });
+        } else if (apiClient && typeof apiClient.importStudentsExcel === 'function') {
+          res = await apiClient.importStudentsExcel(payload, { replace });
+        } else {
+          throw new Error('No API client available for model: ' + model);
+        }
       }
-  setResult(res.data);
-  const labelMap = { materials: 'materials', clos: 'CLOs', 'session-materials': 'session materials' };
-  const label = labelMap[model] || 'items';
-  if (res.data?.insertedCount) notifySuccess(`Inserted ${res.data.insertedCount} ${label}`);
+
+      setResult(res.data);
+      const labelMap = { materials: 'materials', clos: 'CLOs', 'session-materials': 'session materials', 'grade-components': 'grade components' };
+      const label = labelMap[model] || 'items';
+      if (res.data?.insertedCount) notifySuccess(`Inserted ${res.data.insertedCount} ${label}`);
       if (onImported) onImported();
     } catch (err) {
       console.error('bulk import error', err);
@@ -192,7 +205,7 @@ console.log('read file', save);
   };
 
   return (
-  <Paper sx={{ p: 2, mt: 2, width: '100%' }}>
+    <Paper sx={{ p: 2, mt: 2, width: '100%' }}>
       <Typography variant="subtitle1">Import từ Excel</Typography>
       <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 1 }}>
         <Button variant="outlined" component="label" startIcon={<UploadFileIcon />}>
@@ -200,63 +213,63 @@ console.log('read file', save);
           <input hidden type="file" accept=".xlsx,.xls" onChange={handleFile} />
         </Button>
         <Typography>{fileName || 'Chưa chọn file'}</Typography>
-        <TextField label="SubjectId (optional)" size="small" value={subjectId} onChange={(e)=>setSubjectId(e.target.value)} disabled={!!presetSubjectId} />
-        <FormControlLabel control={<Checkbox checked={replace} onChange={(e)=>setReplace(e.target.checked)} />} label="Replace existing (delete subject materials before import)" />
-        <Button variant="contained" onClick={handleImport} disabled={loading || rows.length===0}>
+        <TextField label="SubjectId (optional)" size="small" value={subjectId} onChange={(e) => setSubjectId(e.target.value)} disabled={!!presetSubjectId} />
+        <FormControlLabel control={<Checkbox checked={replace} onChange={(e) => setReplace(e.target.checked)} />} label="Replace existing (delete subject materials before import)" />
+        <Button variant="contained" onClick={handleImport} disabled={loading || rows.length === 0}>
           {loading ? <CircularProgress size={16} /> : 'Import'}
         </Button>
       </Box>
 
       {headers.length > 0 && (
-      <Box sx={{ mt: 2, overflowX: 'auto', width: '100%' }}>
-            <Typography variant="subtitle2">Preview (max 200 rows)</Typography>
-            {/* Table will occupy 100% of container but keep a minWidth so on narrow screens it becomes horizontally scrollable */}
-            <Table size="small" sx={{ width: '100%', minWidth: tableMinWidth, tableLayout: 'auto' }}>
-              <TableHead>
-                <TableRow>
-                  {headers.map((h) => (
-                    <TableCell
-                      key={h}
-                      sx={{
-                        whiteSpace: 'normal',
-                        wordBreak: 'break-word',
-                        verticalAlign: 'top',
-                        minWidth: 160,
-                        fontWeight: 600
-                      }}
-                      title={h}
-                    >
-                      {h}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {rows.map((r, idx) => (
-                  <TableRow key={idx}>
-                    {headers.map((h) => {
-                      const val = String(r[h] ?? '');
-                      return (
-                        <TableCell
-                          key={h}
-                          sx={{
-                            whiteSpace: 'normal',
-                            wordBreak: 'break-word',
-                            minWidth: 160,
-                            maxWidth: 420,
-                            verticalAlign: 'top'
-                          }}
-                          title={val}
-                        >
-                          {val}
-                        </TableCell>
-                      );
-                    })}
-                  </TableRow>
+        <Box sx={{ mt: 2, overflowX: 'auto', width: '100%' }}>
+          <Typography variant="subtitle2">Preview (max 200 rows)</Typography>
+          {/* Table will occupy 100% of container but keep a minWidth so on narrow screens it becomes horizontally scrollable */}
+          <Table size="small" sx={{ width: '100%', minWidth: tableMinWidth, tableLayout: 'auto' }}>
+            <TableHead>
+              <TableRow>
+                {headers.map((h) => (
+                  <TableCell
+                    key={h}
+                    sx={{
+                      whiteSpace: 'normal',
+                      wordBreak: 'break-word',
+                      verticalAlign: 'top',
+                      minWidth: 160,
+                      fontWeight: 600
+                    }}
+                    title={h}
+                  >
+                    {h}
+                  </TableCell>
                 ))}
-              </TableBody>
-            </Table>
-          </Box>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {rows.map((r, idx) => (
+                <TableRow key={idx}>
+                  {headers.map((h) => {
+                    const val = String(r[h] ?? '');
+                    return (
+                      <TableCell
+                        key={h}
+                        sx={{
+                          whiteSpace: 'normal',
+                          wordBreak: 'break-word',
+                          minWidth: 160,
+                          maxWidth: 420,
+                          verticalAlign: 'top'
+                        }}
+                        title={val}
+                      >
+                        {val}
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Box>
       )}
 
       {result && (

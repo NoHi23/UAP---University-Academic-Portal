@@ -1,5 +1,7 @@
 const Subject = require('../models/subject');
 const Major = require('../models/major');
+const Curriculum = require('../models/curriculum');
+const CurriculumDetail = require('../models/curriculumDetail');
 const Material = require('../models/material');
 const CLO = require('../models/courseLearningOutcome');
 const SessionMaterial = require('../models/sessionMaterial');
@@ -27,7 +29,11 @@ const createSubject = async (req, res) => {
       minAvgMarkToPass,
       status,
       approveDate,
-      majorId
+      majorId,
+      // new: list of curriculum ids (specializations) that include this subject
+      curriculumIds,
+      // new: semester number (applies to each curriculumDetail for this subject)
+      semester
     } = payload;
 
     // Basic validation
@@ -92,6 +98,44 @@ const createSubject = async (req, res) => {
 
     await doc.save();
 
+    // If curriculumIds provided, validate and upsert CurriculumDetail entries
+    if (curriculumIds !== undefined) {
+      // require semester when associating to curricula
+      if (semester === undefined || semester === null || Number.isNaN(Number(semester))) {
+        return res.status(400).json({ success: false, message: 'semester is required when assigning curricula (curriculumIds)'});
+      }
+
+      // normalize to array of strings
+      const cIds = Array.isArray(curriculumIds) ? curriculumIds : [curriculumIds];
+
+      // verify curricula exist
+      const foundCurricula = await Curriculum.find({ _id: { $in: cIds } }).select('_id');
+      const foundIds = foundCurricula.map(c => c._id.toString());
+      const missing = cIds.filter(id => !foundIds.includes(String(id)));
+      if (missing.length) {
+        return res.status(400).json({ success: false, message: `Curriculum ids not found: ${missing.join(',')}` });
+      }
+
+      // upsert CurriculumDetail for each curriculumId with the same semester
+      for (const cId of cIds) {
+        const cd = await CurriculumDetail.findOneAndUpdate(
+          { curriculumId: cId, subjectId: doc._id },
+          { curriculumId: cId, subjectId: doc._id, semester: Number(semester) },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+        console.log('[CurriculumDetail][upsert] created/updated:', { id: cd._id, curriculumId: cId, subjectId: String(doc._id), semester: Number(semester) });
+      }
+
+      // Remove any existing curriculumDetails for this subject that are not in cIds
+      const existing = await CurriculumDetail.find({ subjectId: doc._id }).select('curriculumId');
+      const toDelete = existing.filter(e => !cIds.includes(String(e.curriculumId)));
+      if (toDelete.length) {
+        const idsToDelete = toDelete.map(d => d._id);
+        const del = await CurriculumDetail.deleteMany({ _id: { $in: idsToDelete } });
+        console.log('[CurriculumDetail][delete] removed count:', del.deletedCount, 'ids:', idsToDelete);
+      }
+    }
+
     return res.status(201).json({ success: true, message: 'Subject created', data: doc });
   } catch (err) {
     console.error('createSubject error', err);
@@ -122,7 +166,10 @@ const updateSubject = async (req, res) => {
       minAvgMarkToPass,
       status,
       approveDate,
-      majorId
+      majorId,
+      // optional: update curricula associations and semester
+      curriculumIds,
+      semester
     } = payload;
 
     const subject = await Subject.findById(id);
@@ -184,7 +231,45 @@ const updateSubject = async (req, res) => {
 
     await subject.save();
 
-    return res.status(200).json({ success: true, message: 'Subject updated', data: subject });
+    // If curriculumIds provided, synchronize CurriculumDetail records
+    if (curriculumIds !== undefined) {
+      // if curriculumIds provided, semester is required (even if empty array? require when non-empty)
+      const cIds = Array.isArray(curriculumIds) ? curriculumIds : [curriculumIds];
+      if (cIds.length > 0 && (semester === undefined || semester === null || Number.isNaN(Number(semester)))) {
+        return res.status(400).json({ success: false, message: 'semester is required when assigning curricula (curriculumIds)'});
+      }
+
+      // verify curricula exist (if any)
+      if (cIds.length > 0) {
+        const foundCurricula = await Curriculum.find({ _id: { $in: cIds } }).select('_id');
+        const foundIds = foundCurricula.map(c => c._id.toString());
+        const missing = cIds.filter(id => !foundIds.includes(String(id)));
+        if (missing.length) {
+          return res.status(400).json({ success: false, message: `Curriculum ids not found: ${missing.join(',')}` });
+        }
+      }
+
+      // Upsert provided curricula -> set semester for each (if any)
+      for (const cId of cIds) {
+        const cd = await CurriculumDetail.findOneAndUpdate(
+          { curriculumId: cId, subjectId: subject._id },
+          { curriculumId: cId, subjectId: subject._id, semester: Number(semester) },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+        console.log('[CurriculumDetail][upsert] created/updated:', { id: cd._id, curriculumId: cId, subjectId: String(subject._id), semester: Number(semester) });
+      }
+
+      // Delete any existing details that are not in the provided list
+      const existing = await CurriculumDetail.find({ subjectId: subject._id }).select('curriculumId');
+      const toDelete = existing.filter(e => !cIds.includes(String(e.curriculumId)));
+      if (toDelete.length) {
+        const idsToDelete = toDelete.map(d => d._id);
+        const del = await CurriculumDetail.deleteMany({ _id: { $in: idsToDelete } });
+        console.log('[CurriculumDetail][delete] removed count:', del.deletedCount, 'ids:', idsToDelete);
+      }
+    }
+
+  return res.status(200).json({ success: true, message: 'Subject updated', data: subject });
   } catch (err) {
     console.error('updateSubject error', err);
     return res.status(500).json({ success: false, message: err.message });
@@ -199,10 +284,45 @@ const getSubjects = async (req, res) => {
     const query = {};
     if (req.query.majorId) query.majorId = req.query.majorId;
 
-    const subjects = await Subject.find(query)
+    let subjects = await Subject.find(query)
       .select('subjectCode subjectName subjectEnglish subjectNoCredit degreeLevel timeAllocation preRequisite description tools scoringScale decisionNumber minAvgMarkToPass approveDate majorId')
       .populate('majorId', 'majorName majorCode')
       .populate({ path: 'preRequisite', select: 'subjectCode subjectName' });
+
+    // attach semester for each subject by reading CurriculumDetail
+    const subjectIds = subjects.map(s => s._id);
+    if (subjectIds.length > 0) {
+      const details = await CurriculumDetail.find({ subjectId: { $in: subjectIds } }).select('subjectId semester curriculumId');
+      // map subjectId -> highest semester (in case multiple curricula exist)
+      const semMap = {};
+      details.forEach(d => {
+        try {
+          const sid = String(d.subjectId);
+          const sem = (d.semester !== undefined && d.semester !== null) ? Number(d.semester) : null;
+          if (sem !== null && !Number.isNaN(sem)) {
+            if (!semMap[sid]) semMap[sid] = sem;
+            else semMap[sid] = Math.max(semMap[sid], sem);
+          }
+        } catch (e) { /* ignore malformed entries */ }
+      });
+
+      // attach semester field to subject objects (plain property so frontend can read subject.semester)
+      subjects = subjects.map(s => {
+        const sid = String(s._id);
+        const sem = semMap[sid] !== undefined ? semMap[sid] : null;
+        // convert mongoose doc to object so we can safely add field
+        const so = s.toObject ? s.toObject() : Object.assign({}, s);
+        so.semester = sem;
+        return so;
+      });
+
+      // sort by semester desc (null/undefined go last)
+      subjects.sort((a, b) => {
+        const sa = (a.semester === null || a.semester === undefined) ? -Infinity : Number(a.semester);
+        const sb = (b.semester === null || b.semester === undefined) ? -Infinity : Number(b.semester);
+        return sb - sa;
+      });
+    }
 
     return res.status(200).json({ success: true, count: subjects.length, data: subjects });
   } catch (err) {

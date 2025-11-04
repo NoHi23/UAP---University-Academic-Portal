@@ -17,6 +17,8 @@ import {
     Fab,
     Tooltip,
     CircularProgress,
+    Pagination,
+    Stack,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import EditIcon from "@mui/icons-material/Edit";
@@ -24,6 +26,7 @@ import AddIcon from "@mui/icons-material/Add";
 import staffAPI from "../../../api/staffAPI";
 import majorAPI from "../../../api/majorAPI";
 import CreateLecturerModal from "./CreateLectureModal";
+import UpdateLectureModal from "./UpdateLectureModal";
 
 export default function LectureAccount() {
     const [lecturers, setLecturers] = useState([]);
@@ -31,10 +34,22 @@ export default function LectureAccount() {
     const [search, setSearch] = useState("");
     const [filterMajor, setFilterMajor] = useState("");
     const [loading, setLoading] = useState(true);
+    const [page, setPage] = useState(1);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+    const [selectedLecturerId, setSelectedLecturerId] = useState(null);
 
     const handleCreate = () => setIsModalOpen(true);
     const handleCloseModal = () => setIsModalOpen(false);
+    const handleOpenUpdate = (id) => {
+        setSelectedLecturerId(id);
+        setIsUpdateModalOpen(true);
+    };
+    const handleCloseUpdate = () => {
+        setSelectedLecturerId(null);
+        setIsUpdateModalOpen(false);
+    };
 
     const reloadLecturers = async () => {
         try {
@@ -81,7 +96,19 @@ export default function LectureAccount() {
         return matchesName && matchesMajor;
     });
 
-    const handleEdit = (id) => alert("Open Edit Form cho lecturer ID: " + id);
+    // client-side pagination
+    const total = filteredLecturers.length;
+    const totalPages = Math.max(1, Math.ceil(total / rowsPerPage));
+    const startIndex = (page - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    const paginated = filteredLecturers.slice(startIndex, endIndex);
+
+    // reset page when filters/search change
+    useEffect(() => {
+        setPage(1);
+    }, [search, filterMajor, rowsPerPage]);
+
+    const handleEdit = (id) => handleOpenUpdate(id);
 
     return (
         <Box>
@@ -175,7 +202,7 @@ export default function LectureAccount() {
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {filteredLecturers.map((l) => (
+                            {paginated.map((l) => (
                                 <TableRow key={l._id}>
                                     <TableCell>{l.lecturerCode}</TableCell>
                                     <TableCell>{l.lastName}</TableCell>
@@ -195,6 +222,36 @@ export default function LectureAccount() {
                             ))}
                         </TableBody>
                     </Table>
+                    {/* Pagination controls */}
+                    <Stack
+                        direction="row"
+                        alignItems="center"
+                        justifyContent="space-between"
+                        sx={{ p: 2 }}
+                    >
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                            <Typography variant="body2">Rows per page:</Typography>
+                            <FormControl size="small">
+                                <Select
+                                    value={rowsPerPage}
+                                    onChange={(e) => {
+                                        setRowsPerPage(Number(e.target.value));
+                                    }}
+                                >
+                                    <MenuItem value={10}>10</MenuItem>
+                                    <MenuItem value={15}>15</MenuItem>
+                                </Select>
+                            </FormControl>
+                            <Typography variant="body2">{`Showing ${Math.min(startIndex + 1, total)}-${Math.min(endIndex, total)} of ${total}`}</Typography>
+                        </Box>
+
+                        <Pagination
+                            count={totalPages}
+                            page={page}
+                            onChange={(_, value) => setPage(value)}
+                            color="primary"
+                        />
+                    </Stack>
                 </Paper>
             )}
 
@@ -218,6 +275,13 @@ export default function LectureAccount() {
             <CreateLecturerModal
                 isOpen={isModalOpen}
                 onClose={handleCloseModal}
+                onSuccess={reloadLecturers}
+            />
+
+            <UpdateLectureModal
+                isOpen={isUpdateModalOpen}
+                onClose={handleCloseUpdate}
+                lecturerId={selectedLecturerId}
                 onSuccess={reloadLecturers}
             />
         </Box>

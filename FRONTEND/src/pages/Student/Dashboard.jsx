@@ -55,13 +55,15 @@ const Dashboard = () => {
           setStudentInfo({
             fullName: `${studentData.firstName} ${studentData.lastName}`,
             studentCode: studentData.studentCode,
-            dob: new Date(studentData.createdAt).toLocaleDateString('vi-VN'),
+            dob: studentData.dateOfBirth ? new Date(studentData.dateOfBirth).toLocaleDateString('vi-VN') : new Date(studentData.createdAt).toLocaleDateString('vi-VN'),
             pob: 'Việt Nam',
             major: studentData.majorId ? studentData.majorId.majorName : 'Chưa có chuyên ngành',
             majorId: studentData.majorId ? (studentData.majorId._id || studentData.majorId) : null,
             avatarUrl: studentData.studentAvatar || 'https://i.pravatar.cc/150',
             phone: studentData.phone,
-            gender: studentData.gender
+            gender: studentData.gender,
+            semester: studentData.semester || null,
+            semesterNo: studentData.semesterNo || null
           });
         } else {
           setStudentInfo(mockStudentInfo);
@@ -123,12 +125,14 @@ const Dashboard = () => {
             setStudentInfo({
               fullName: `${studentData.firstName} ${studentData.lastName}`,
               studentCode: studentData.studentCode,
-              dob: new Date(studentData.createdAt).toLocaleDateString('vi-VN'),
+              dob: studentData.dateOfBirth ? new Date(studentData.dateOfBirth).toLocaleDateString('vi-VN') : new Date(studentData.createdAt).toLocaleDateString('vi-VN'),
               pob: 'Việt Nam',
               major: studentData.majorId ? studentData.majorId.majorName : 'Chưa có chuyên ngành',
               avatarUrl: studentData.studentAvatar || 'https://i.pravatar.cc/150',
               phone: studentData.phone,
-              gender: studentData.gender
+              gender: studentData.gender,
+              semester: studentData.semester || null,
+              semesterNo: studentData.semesterNo || null
             });
           }
         } catch (e) {
@@ -144,7 +148,7 @@ const Dashboard = () => {
   }, []);
 
   if (loading) {
-    return <FullScreenLoader/>;
+    return <FullScreenLoader />;
   }
 
   return (
@@ -169,6 +173,9 @@ const Dashboard = () => {
               <p><strong>Ngày sinh:</strong> {studentInfo?.dob}</p>
               <p><strong>Nơi Sinh:</strong> {studentInfo?.pob}</p>
               <p><strong>Chuyên Ngành:</strong> {studentInfo?.major}</p>
+              {studentInfo?.semester && (
+                <p><strong>Kỳ hiện tại:</strong> {studentInfo.semester} {studentInfo.semesterNo ? `(Số: ${studentInfo.semesterNo})` : ''}</p>
+              )}
             </div>
             <button className="btn-detail" onClick={() => setShowProfile(true)}>Xem chi tiết</button>
           </div>
@@ -196,7 +203,7 @@ const Dashboard = () => {
           <div className="feature-card" onClick={() => navigate('/student/schedule')}>
             <FaCalendarAlt /><span>Thời khóa biểu</span>
           </div>
-          <div className="feature-card"><FaChartBar /><span>Báo cáo điểm</span></div>
+          <div className="feature-card" onClick={() => navigate('/student/attendance')}><FaChartBar /><span>Báo cáo điểm danh</span></div>
           <div className="feature-card" onClick={handleOpenCurriculum} style={{ cursor: 'pointer' }}>
             <FaBook /><span>Khung chương trình</span>
           </div>

@@ -27,7 +27,17 @@ const {
     getAllRooms
 } = require('../controllers/semesterController');
 
+
+const {
+    getAllTools,
+    createTool,
+    updateTool,
+    deleteTool
+} = require('../controllers/aiToolController');
+
 router.use(verifyToken, authorize('staff', 'admin', 'lecturer'));
+
+
 
 router.route('/materials')
     .post(authorize('staff', 'admin'), createMaterial)
@@ -60,8 +70,15 @@ router.get('/subjects/:id', authorize('staff', 'admin'), getSubjectById);
 router.get('/eligible-students', getEligibleStudentsForManualEnroll);
 router.post('/classes/manual', createManualClass);
 router.post('/classes/:classId/enroll-manual', enrollStudentsManually);
-router.get('/subjects', getAllSubjects);   
+router.get('/subjects', getAllSubjects);
 router.get('/rooms', getAllRooms);
 
+router.route('/ai-tools')
+    .get(getAllTools)
+    .post(createTool);
+
+router.route('/ai-tools/:id')
+    .put(updateTool)
+    .delete(deleteTool);
 
 module.exports = router;
