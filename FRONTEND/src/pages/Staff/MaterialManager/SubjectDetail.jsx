@@ -7,6 +7,13 @@ import subjectAPI from '../../../api/subjectAPI';
 import MaterialImport from '../../../components/ExcelImport/MaterialImport';
 import CLOExcellImport from '../../../components/ExcelImport/CLOExcellImport';
 import SessionMaterialImport from '../../../components/ExcelImport/sessionMaterialImport';
+import GradeComponentImport from '../../../components/ExcelImport/GradeComponentImport';
+import gradeComponentAPI from '../../../api/gradeComponentAPI';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
 // Dialogs are handled inside the import components
 import { notifyError, notifySuccess } from '../../../services/notificationService';
 
@@ -24,14 +31,26 @@ export default function SubjectDetail() {
   const [saving, setSaving] = useState(false);
   const [majors, setMajors] = useState([]);
   const [subjectsList, setSubjectsList] = useState([]);
+  const [gradeComponents, setGradeComponents] = useState([]);
   
 
   useEffect(() => {
     fetchSubject();
     loadMajors();
     loadSubjects();
+    loadGradeComponents();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  const loadGradeComponents = async () => {
+    try {
+      const res = await gradeComponentAPI.getAll(id);
+      setGradeComponents(res.data?.data || []);
+    } catch (err) {
+      console.error('loadGradeComponents error', err);
+      setGradeComponents([]);
+    }
+  };
 
   const loadMajors = async () => {
     try {
@@ -248,10 +267,47 @@ export default function SubjectDetail() {
         )}
       </Box>
 
-      {/* Always render the three lists; pass readOnly so wrappers can hide import controls when necessary */}
-      <MaterialImport subjectId={id} readOnly={readOnly} />
-      <CLOExcellImport subjectId={id} readOnly={readOnly} />
-      <SessionMaterialImport subjectId={id} readOnly={readOnly} />
+
+  {/* Grade Component Import (Excel) */}
+  <GradeComponentImport subjectId={id} readOnly={readOnly} onImported={loadGradeComponents} />
+
+  {/* Grade Components list */}
+  <Paper sx={{ p: 2, mt: 2 }}>
+    <Typography variant="h6">Grade Components</Typography>
+    {gradeComponents.length === 0 ? (
+      <Typography color="textSecondary">Chưa có đầu điểm cho môn này.</Typography>
+    ) : (
+      <Box sx={{ overflowX: 'auto', mt: 1 }}>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>Name</TableCell>
+              <TableCell>Weight (%)</TableCell>
+              <TableCell>DropLowest</TableCell>
+              <TableCell>ReLearnTime</TableCell>
+              <TableCell>Description</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {gradeComponents.map(gc => (
+              <TableRow key={gc._id}>
+                <TableCell>{gc.name}</TableCell>
+                <TableCell>{gc.weightPercentage}</TableCell>
+                <TableCell>{gc.dropLowest}</TableCell>
+                <TableCell>{gc.reLearnTime}</TableCell>
+                <TableCell>{gc.description}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Box>
+    )}
+  </Paper>
+
+  {/* Always render the three lists; pass readOnly so wrappers can hide import controls when necessary */}
+  <MaterialImport subjectId={id} readOnly={readOnly} />
+  <CLOExcellImport subjectId={id} readOnly={readOnly} />
+  <SessionMaterialImport subjectId={id} readOnly={readOnly} />
 
     </Container>
   );

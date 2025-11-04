@@ -8,7 +8,7 @@ import sessionMaterialAPI from '../../api/sessionMaterialAPI';
 import { notifySuccess, notifyError } from '../../services/notificationService';
 
 // Minimal Excel import: parse first sheet, auto-map headers to fields, preview and POST to bulk endpoint.
-export default function ExcelImport({ subjectId: presetSubjectId, onImported, model = 'materials', transformRow, requiredFields = [] }) {
+export default function ExcelImport({ subjectId: presetSubjectId, onImported, model = 'materials', transformRow, requiredFields = [], customBulkImport }) {
   const [fileName, setFileName] = useState('');
   const [rows, setRows] = useState([]);
   const [headers, setHeaders] = useState([]);
@@ -155,22 +155,29 @@ console.log('read file', save);
           return;
         }
       }
-      // ensure every item has a subjectId
-      const missing = payload.findIndex(p => !p.subjectId || String(p.subjectId).trim() === '');
-      if (missing !== -1) {
-        notifyError('Có hàng thiếu subjectId. Vui lòng đặt Subject hoặc include subjectId trong file.');
-        setLoading(false);
-        return;
+      // ensure every item has a subjectId (skip if using customBulkImport)
+      if (typeof customBulkImport !== 'function') {
+        const missing = payload.findIndex(p => !p.subjectId || String(p.subjectId).trim() === '');
+        if (missing !== -1 ) {
+          notifyError('Có hàng thiếu subjectId. Vui lòng đặt Subject hoặc include subjectId trong file.');
+          setLoading(false);
+          return;
+        }
       }
 
-      // choose API based on model prop
-      const apiMap = {
-        materials: materialAPI,
-        clos: cloAPI,
-        'session-materials': sessionMaterialAPI
-      };
-      const apiClient = apiMap[model] || materialAPI;
-  const res = await apiClient.bulk(payload, { replace });
+      let res;
+      if (typeof customBulkImport === 'function') {
+        res = await customBulkImport(payload);
+      } else {
+        // choose API based on model prop
+        const apiMap = {
+          materials: materialAPI,
+          clos: cloAPI,
+          'session-materials': sessionMaterialAPI
+        };
+        const apiClient = apiMap[model] || materialAPI;
+        res = await apiClient.bulk(payload, { replace });
+      }
   setResult(res.data);
   const labelMap = { materials: 'materials', clos: 'CLOs', 'session-materials': 'session materials' };
   const label = labelMap[model] || 'items';

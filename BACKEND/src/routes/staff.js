@@ -3,12 +3,19 @@ const router = express.Router();
 const { verifyToken, authorize } = require('../middleware/authorization');
 
 const { createMaterial, getAllMaterials, updateMaterial, deleteMaterial, exportMaterialsExcel } = require('../controllers/material');
+const { bulkCreateGradeComponents, exportGradeComponentsExcel, getGradeComponents } = require('../controllers/gradeComponent');
 const { getAllRequests, updateRequest } = require('../controllers/requestController');
 const { createSlotNotification } = require('../controllers/notificationController');
 
 const { getAllSemesters } = require('../controllers/semesterController');
 const { getAllMajors } = require('../controllers/majorController');
 const { createSubject, getSubjects, getSubjectById, bulkCreateMaterials, bulkCreateCLOs, bulkCreateSessionMaterials, getCLOs, getSessionMaterials ,updateSubject, exportCLOsExcel, exportSessionMaterialsExcel } = require('../controllers/MaterialManagerController');
+
+// Export/import grade components
+router.get('/grade-components/export-excel', exportGradeComponentsExcel);
+router.post('/grade-components/bulk', bulkCreateGradeComponents);
+// List grade components (protected)
+router.get('/grade-components', getGradeComponents);
 // Export Excel routes
 router.get('/clos/export-excel', exportCLOsExcel);
 router.get('/materials/export-excel', exportMaterialsExcel);
