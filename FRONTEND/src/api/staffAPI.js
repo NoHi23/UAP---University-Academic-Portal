@@ -53,12 +53,8 @@ const staffAPI = {
 
     //  Import giảng viên bằng Excel
     // Accept either FormData (file upload) or rows array (parsed client-side)
-    importLecturersExcel: (payload, params = {}) => {
-        if (payload instanceof FormData) {
-            return api.post(`${BASE_URL}/lecturers/import-excel`, payload, { params });
-        }
-        // assume JSON rows array
-        return api.post(`${BASE_URL}/lecturers/import-excel`, payload, { params });
+    importLecturersExcel: (rows, params = {}) => {
+        return api.post(`${BASE_URL}/lecturers/import-excel`, rows, { params });
     },
 
     //  Lấy danh sách giảng viên
