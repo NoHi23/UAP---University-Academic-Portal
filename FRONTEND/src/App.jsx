@@ -13,6 +13,7 @@ import LoginPage from './components/Auth/LoginPage';
 import RegisterPage from './components/Auth/RegisterPage';
 
 
+
 import ProtectedRoute from './components/Routing/ProtectedRoute';
 import BackToTopButton from './components/Common/BackToTopButton';
 import { GoogleOAuthProvider } from '@react-oauth/google';
@@ -158,6 +159,8 @@ function App() {
                   <Route path="absence" element={<AbsenceList />} />
                   <Route path="absence/:id" element={<AbsenceReview />} />
                   <Route path="manual-class" element={<ManualClassPage />} />
+                  <Route path="/staff/exam-schedule" element={<ExamSchedulePage />} />  
+                <Route path="/staff/announcements" element={<AnnouncementList />} /> 
                 </Route>
 
                 <Route path="/lecturer/" element={<LecturerLayout />}>
@@ -180,6 +183,16 @@ function App() {
                   <Route path="view-attendance-list" element={<AttendanceList />} />
                   <Route path="view-attendance-list" element={<AttendanceList />} />
                 </Route>
+
+                 
+                
+                  <Route path="/admin" element={<AdminLayout />}>
+                    <Route path="curriculum" element={<CurriculumList />} />  
+                    <Route path="account" element={<AdminAccountList />} />
+                  </Route>
+                
+
+                
 
               </Routes>
               <ChatBubble />

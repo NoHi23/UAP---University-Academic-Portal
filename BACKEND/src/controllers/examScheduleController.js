@@ -44,6 +44,7 @@ exports.getAll = async (req, res) => {
   }
 };
 
+
 //  Tạo lịch thi + auto add sinh viên cùng chuyên ngành
 exports.createExamSchedule = async (req, res) => {
   try {
@@ -147,3 +148,17 @@ exports.getRoomList = async (req, res) => {
     res.status(500).json({ message: "Lỗi khi lấy danh sách phòng học" });
   }
 };
+
+exports.getStudentsByExamSchedule = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const students = await ExamScheduleOfStudent.find({ examSchedule: id })
+      .populate("student", "name email") // Lấy thông tin sinh viên
+      .populate("examSchedule", "courseName examDate time room"); // Thông tin lịch thi
+    res.json(students);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Không thể lấy thông tin sinh viên tham gia lịch thi." });
+  }
+};
+
