@@ -265,6 +265,7 @@ const StudentProfile = ({ isOpen, onClose }) => {
                                                 value={formData.citizenID}
                                                 onChange={handleInputChange}
                                                 placeholder="Nhập số CCCD"
+                                                maxLength={12}
                                             />
                                         </div>
                                         <div className="field-group">
@@ -298,7 +299,7 @@ const StudentProfile = ({ isOpen, onClose }) => {
                                             <label>Kỳ học hiện tại:</label>
                                             <span>
                                                 {studentData?.semester
-                                                    ? `Học kỳ ${studentData.semesterNo} - ${studentData.semester}`
+                                                    ? `Học kỳ ${studentData.semesterNo}`
                                                     : 'Chưa có thông tin'}
                                             </span>
                                         </div>

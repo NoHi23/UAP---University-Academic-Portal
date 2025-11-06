@@ -2,12 +2,14 @@ import React, { useState, useEffect, useContext } from 'react';
 import './Dashboard.css';
 import {
   FaUser, FaCalendarAlt, FaChartBar, FaBook, FaMoneyBillWave,
-  FaHistory, FaBookOpen, FaPaperPlane, FaStar, FaBullhorn, FaFileAlt
+  FaHistory, FaBookOpen, FaPaperPlane, FaStar, FaBullhorn, FaFileAlt,
+  FaClock
 } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../services/api';
 import StudentProfile from './StudentProfile';
+import AcademicResultsChart from './AcademicResultsChart';
 import FullScreenLoader from '../../components/Common/FullScreenLoader';
 
 const mockStudentInfo = {
@@ -21,7 +23,7 @@ const mockStudentInfo = {
 
 const mockDashboardStats = {
   weeklySchedules: 4,
-  weeklyExams: 0
+  weeklyExams: 999
 };
 // -------------------------------------------------
 
@@ -69,8 +71,39 @@ const Dashboard = () => {
           setStudentInfo(mockStudentInfo);
         }
 
-        // TODO: replace with real stats API when available
-        setStats(mockDashboardStats);
+        // Fetch weekly schedule and exam stats and set to the stat cards
+        try {
+          const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+          // Run both requests in parallel
+          const [weekRes, examsRes] = await Promise.all([
+            fetch('http://localhost:9999/api/student/schedules/my-week', { method: 'GET', headers }),
+            fetch('http://localhost:9999/api/student/exams', { method: 'GET', headers })
+          ]);
+
+          let weeklyTotal = mockDashboardStats.weeklySchedules;
+          if (weekRes.ok) {
+            const weekJson = await weekRes.json();
+            const weekData = weekJson.data || weekJson;
+            if (Array.isArray(weekData)) {
+              weeklyTotal = weekData.length;
+            } else if (Array.isArray(weekData?.days)) {
+              weeklyTotal = weekData.days.reduce((s, d) => s + (d.count || 0), 0);
+            }
+          }
+
+          let examsTotal = mockDashboardStats.weeklyExams;
+          if (examsRes.ok) {
+            const examsJson = await examsRes.json();
+            const examsArr = examsJson.examSchedule || examsJson.data || examsJson;
+            if (Array.isArray(examsArr)) examsTotal = examsArr.length;
+          }
+
+          setStats({ weeklySchedules: weeklyTotal, weeklyExams: examsTotal });
+        } catch (err) {
+          console.error('Lỗi khi lấy thống kê tuần/thi:', err);
+          setStats(mockDashboardStats);
+        }
       } catch (error) {
         console.error("Lỗi khi tải dữ liệu dashboard:", error);
         setStudentInfo(mockStudentInfo);
@@ -177,21 +210,20 @@ const Dashboard = () => {
                 <p><strong>Kỳ hiện tại:</strong> {studentInfo.semester} {studentInfo.semesterNo ? `(Số: ${studentInfo.semesterNo})` : ''}</p>
               )}
             </div>
-            <button className="btn-detail" onClick={() => setShowProfile(true)}>Xem chi tiết</button>
           </div>
 
           {/* Thẻ thống kê lịch học */}
           <div className="card stat-card">
             <h3>Lịch học trong tuần</h3>
             <div className="stat-number">{stats?.weeklySchedules}</div>
-            <span onClick={() => navigate('/student/schedule')} style={{ cursor: 'pointer', color: '#007bff' }}>Xem chi tiết</span>
+            <span onClick={() => navigate('/student/schedule')} style={{ cursor: 'pointer', color: 'black' }}>Xem chi tiết</span>
           </div>
 
           {/* Thẻ thống kê lịch thi */}
           <div className="card stat-card">
             <h3>Lịch thi trong tuần</h3>
             <div className="stat-number">{stats?.weeklyExams}</div>
-            <a href="/exams">Xem chi tiết</a>
+            <a href="/student/scheduleExam">Xem chi tiết</a>
           </div>
         </div>
 
@@ -199,7 +231,8 @@ const Dashboard = () => {
 
         {/* Lưới các chức năng */}
         <div className="features-grid">
-          <div className="feature-card"><FaUser /><span>Thông tin Sinh viên</span></div>
+
+          <div onClick={() => setShowProfile(true)} className="feature-card"><FaUser /><span>Thông tin Sinh viên</span></div>
           <div className="feature-card" onClick={() => navigate('/student/schedule')}>
             <FaCalendarAlt /><span>Thời khóa biểu</span>
           </div>
@@ -222,6 +255,9 @@ const Dashboard = () => {
           <div className="feature-card" onClick={() => navigate('/student/requests')}><FaPaperPlane /><span>Đơn từ & Yêu cầu</span></div>
           <div className="feature-card" onClick={() => navigate('/student/evaluation')}><FaStar /><span>Đánh giá giảng viên</span></div>
           <div className="feature-card" onClick={() => navigate('/student/notifications')}><FaBullhorn /><span>Thông báo</span></div>
+          <div className="feature-card" onClick={() => navigate('/student/scheduleExam')}><FaClock /><span>Lịch thi</span></div>
+
+
         </div>
 
 
@@ -229,7 +265,7 @@ const Dashboard = () => {
         <div className="charts-grid">
           <div className="card chart-card">
             <h3>Kết quả học tập</h3>
-            <div className="chart-placeholder">[Biểu đồ kết quả học tập]</div>
+            <AcademicResultsChart />
           </div>
           <div className="card chart-card">
             <h3>Tiến độ học tập</h3>
