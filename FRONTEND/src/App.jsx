@@ -153,7 +153,6 @@ function App() {
                   <Route path="material" element={<MaterialManager />} />
                   <Route path="material/:id" element={<SubjectDetail />} />
                   <Route path="exam-schedule" element={<ExamSchedulePage />} />
-
                   <Route path="material/:id" element={<SubjectDetail />} />
                   <Route path="ai-tools" element={<AiToolManagementPage />} />
                   <Route path="absence" element={<AbsenceList />} />
