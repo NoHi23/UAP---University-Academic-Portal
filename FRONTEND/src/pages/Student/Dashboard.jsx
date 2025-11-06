@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../services/api';
 import StudentProfile from './StudentProfile';
+import AcademicResultsChart from './AcademicResultsChart';
 import FullScreenLoader from '../../components/Common/FullScreenLoader';
 
 const mockStudentInfo = {
@@ -22,7 +23,7 @@ const mockStudentInfo = {
 
 const mockDashboardStats = {
   weeklySchedules: 4,
-  weeklyExams: 0
+  weeklyExams: 999
 };
 // -------------------------------------------------
 
@@ -70,8 +71,39 @@ const Dashboard = () => {
           setStudentInfo(mockStudentInfo);
         }
 
-        // TODO: replace with real stats API when available
-        setStats(mockDashboardStats);
+        // Fetch weekly schedule and exam stats and set to the stat cards
+        try {
+          const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+          // Run both requests in parallel
+          const [weekRes, examsRes] = await Promise.all([
+            fetch('http://localhost:9999/api/student/schedules/my-week', { method: 'GET', headers }),
+            fetch('http://localhost:9999/api/student/exams', { method: 'GET', headers })
+          ]);
+
+          let weeklyTotal = mockDashboardStats.weeklySchedules;
+          if (weekRes.ok) {
+            const weekJson = await weekRes.json();
+            const weekData = weekJson.data || weekJson;
+            if (Array.isArray(weekData)) {
+              weeklyTotal = weekData.length;
+            } else if (Array.isArray(weekData?.days)) {
+              weeklyTotal = weekData.days.reduce((s, d) => s + (d.count || 0), 0);
+            }
+          }
+
+          let examsTotal = mockDashboardStats.weeklyExams;
+          if (examsRes.ok) {
+            const examsJson = await examsRes.json();
+            const examsArr = examsJson.examSchedule || examsJson.data || examsJson;
+            if (Array.isArray(examsArr)) examsTotal = examsArr.length;
+          }
+
+          setStats({ weeklySchedules: weeklyTotal, weeklyExams: examsTotal });
+        } catch (err) {
+          console.error('Lỗi khi lấy thống kê tuần/thi:', err);
+          setStats(mockDashboardStats);
+        }
       } catch (error) {
         console.error("Lỗi khi tải dữ liệu dashboard:", error);
         setStudentInfo(mockStudentInfo);
@@ -233,7 +265,7 @@ const Dashboard = () => {
         <div className="charts-grid">
           <div className="card chart-card">
             <h3>Kết quả học tập</h3>
-            <div className="chart-placeholder">[Biểu đồ kết quả học tập]</div>
+            <AcademicResultsChart />
           </div>
           <div className="card chart-card">
             <h3>Tiến độ học tập</h3>

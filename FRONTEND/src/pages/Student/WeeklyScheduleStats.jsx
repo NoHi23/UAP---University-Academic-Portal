@@ -1,6 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, CircularProgress, Alert, Paper, Grid } from '@mui/material';
+import { Box, Typography, CircularProgress, Alert, Paper } from '@mui/material';
 import axios from 'axios';
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    BarElement,
+    Title,
+    Tooltip,
+    Legend
+} from 'chart.js';
+import { Bar } from 'react-chartjs-2';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 export default function WeeklyScheduleStats() {
     const [loading, setLoading] = useState(true);
@@ -12,10 +24,46 @@ export default function WeeklyScheduleStats() {
             try {
                 setLoading(true);
                 const token = localStorage.getItem('token');
-                const res = await axios.get('http://localhost:9999/api/scheduling/student/weekly', {
+
+                const res = await axios.get('http://localhost:9999/api/student/schedules/my-week', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-                setData(res.data.data);
+
+                const schedules = res.data.data || res.data || [];
+
+                // Determine current week's Monday..Sunday
+                const now = new Date();
+                const day = now.getDay();
+                const diffToMonday = (day === 0) ? -6 : (1 - day);
+                const monday = new Date(now);
+                monday.setDate(now.getDate() + diffToMonday);
+                monday.setHours(0, 0, 0, 0);
+                const sunday = new Date(monday);
+                sunday.setDate(monday.getDate() + 6);
+                sunday.setHours(23, 59, 59, 999);
+
+                const labels = ['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+                const days = labels.map(label => ({ label, count: 0, items: [] }));
+
+                schedules.forEach(sch => {
+                    const dateVal = sch.date || sch.time || sch.startTime || (sch._doc && sch._doc.date);
+                    const date = dateVal ? new Date(dateVal) : null;
+                    if (!date || isNaN(date.getTime())) return;
+                    if (date < monday || date > sunday) return;
+                    const idx = date.getDay();
+                    const item = {
+                        scheduleId: sch._id || sch.id,
+                        date: dateVal,
+                        slot: sch.slot,
+                        className: sch.classId?.className || sch.className || '',
+                        subjectCode: sch.subjectId?.subjectCode || sch.subjectCode || sch.subjectName || '',
+                        room: sch.roomId?.roomName || sch.room || ''
+                    };
+                    days[idx].items.push(item);
+                    days[idx].count = days[idx].items.length;
+                });
+
+                setData({ weekStart: monday.toISOString(), weekEnd: sunday.toISOString(), days });
             } catch (err) {
                 setError(err.response?.data?.message || err.message || 'Lỗi khi tải dữ liệu');
             } finally {
@@ -28,8 +76,36 @@ export default function WeeklyScheduleStats() {
     if (loading) return <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}><CircularProgress /></Box>;
     if (error) return <Alert severity="error">{error}</Alert>;
 
-    // find max count to scale bars
-    const max = Math.max(...(data.days.map(d => d.count)), 1);
+    const labels = data.days.map(d => d.label);
+    const counts = data.days.map(d => d.count);
+
+    const chartData = {
+        labels,
+        datasets: [
+            {
+                label: 'Số buổi',
+                data: counts,
+                backgroundColor: 'rgba(25, 118, 210, 0.7)',
+                borderColor: 'rgba(25, 118, 210, 1)',
+                borderWidth: 1
+            }
+        ]
+    };
+
+    const options = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            title: { display: true, text: 'Thống kê số buổi trong tuần' }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: { stepSize: 1 }
+            }
+        }
+    };
 
     return (
         <Paper sx={{ p: 2 }}>
@@ -38,21 +114,11 @@ export default function WeeklyScheduleStats() {
                 Tuần: {new Date(data.weekStart).toLocaleDateString()} - {new Date(data.weekEnd).toLocaleDateString()}
             </Typography>
 
-            <Grid container spacing={2} alignItems="end">
-                {data.days.map((d, idx) => (
-                    <Grid item xs={12} sm={6} md={3} lg={1.714} key={d.label}>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                            <Box sx={{ height: 120, width: '100%', display: 'flex', alignItems: 'flex-end' }}>
-                                <Box sx={{ width: '100%', height: `${Math.round((d.count / max) * 100)}%`, bgcolor: '#1976d2', borderRadius: 1, transition: 'height 300ms' }} />
-                            </Box>
-                            <Typography variant="subtitle2" sx={{ mt: 1 }}>{d.label}</Typography>
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>{d.count} buổi</Typography>
-                        </Box>
-                    </Grid>
-                ))}
-            </Grid>
+            <Box sx={{ height: 260, mb: 2 }}>
+                <Bar data={chartData} options={options} />
+            </Box>
 
-            <Box sx={{ mt: 2 }}>
+            <Box sx={{ mt: 1 }}>
                 <Typography variant="subtitle2" sx={{ mb: 1 }}>Chi tiết:</Typography>
                 {data.days.map(d => (
                     <Box key={d.label} sx={{ mb: 1 }}>
@@ -62,7 +128,7 @@ export default function WeeklyScheduleStats() {
                         ) : (
                             d.items.map(it => (
                                 <Box key={it.scheduleId} sx={{ pl: 1, py: 0.5 }}>
-                                    <Typography variant="body2">{new Date(it.date).toLocaleDateString()} — {it.subjectCode || it.subjectName} — {it.className} — Slot {it.slot} — {it.room || ''}</Typography>
+                                    <Typography variant="body2">{new Date(it.date).toLocaleDateString()} — {it.subjectCode} — {it.className} — Slot {it.slot} — {it.room || ''}</Typography>
                                 </Box>
                             ))
                         )}
