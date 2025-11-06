@@ -35,10 +35,19 @@ const getStudentAttendanceStatus = async (req, res) => {
         }
 
         // Get student's attendance record and class details
+        // Populate attendance.scheduleId so frontend can display schedule date/slot/subject
         const [attendance, classInfo] = await Promise.all([
             ScheduleOfStudent.findOne({
                 studentId,
                 classId
+            }).populate({
+                path: 'attendance.scheduleId',
+                model: 'Schedule',
+                populate: [
+                    { path: 'subjectId', model: 'Subject' },
+                    { path: 'roomId' },
+                    { path: 'semesterId' }
+                ]
             }),
             Class.findById(classId)
         ]);

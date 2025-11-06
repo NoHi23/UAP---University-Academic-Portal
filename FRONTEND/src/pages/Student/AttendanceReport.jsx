@@ -18,55 +18,94 @@ import {
     TableRow,
     Grid,
     Card,
-    CardContent,
-    Grow
+    CardContent
 } from '@mui/material';
 import { KeyboardArrowDown } from '@mui/icons-material';
 import axios from 'axios';
 
 const AttendanceReport = () => {
-    const [attendanceData, setAttendanceData] = useState(null);
+    const [attendanceData, setAttendanceData] = useState([]); // array of semesters
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [dialogOpen, setDialogOpen] = useState(false);
+
+    const [detailOpen, setDetailOpen] = useState(false);
+    const [detailLoading, setDetailLoading] = useState(false);
+    const [detailError, setDetailError] = useState(null);
+    const [detailData, setDetailData] = useState(null);
 
     useEffect(() => {
-        const fetchAttendanceData = async () => {
+        const fetchAttendanceSummary = async () => {
             try {
-                const classId = '68fee22ee2c0d91b734657dc';
-                const response = await axios.get(
-                    `http://localhost:9999/api/attendance/student/${classId}`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${localStorage.getItem('token')}`,
-                        },
-                    }
-                );
-                setAttendanceData(response.data.data);
+                setLoading(true);
+                const res = await axios.get('http://localhost:9999/api/student/attendance/summary', {
+                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                });
+                setAttendanceData(res.data.data || []);
             } catch (err) {
-                setError(err.response?.data?.message || 'Có lỗi xảy ra khi tải dữ liệu điểm danh');
+                console.error('Error fetching attendance summary', err);
+                setError(err.response?.data?.message || err.message || 'Có lỗi xảy ra khi tải dữ liệu điểm danh');
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchAttendanceData();
+        fetchAttendanceSummary();
     }, []);
 
-    const handleOpen = () => setDialogOpen(true);
-    const handleClose = () => setDialogOpen(false);
+    const openDetailForClass = async (classIdRaw) => {
+        try {
+            setDetailLoading(true);
+            setDetailError(null);
+            setDetailData(null);
+
+            // Normalize classId: it could be a string or an object like { _id: '...' }
+            let classId = null;
+            if (!classIdRaw) {
+                setDetailError('Không xác định được lớp để xem chi tiết');
+                setDetailOpen(true);
+                return;
+            }
+            if (typeof classIdRaw === 'string') classId = classIdRaw;
+            else if (typeof classIdRaw === 'object') classId = classIdRaw._id || classIdRaw.id || String(classIdRaw);
+            else classId = String(classIdRaw);
+
+            // Basic validation
+            if (!classId || classId === '[object Object]') {
+                setDetailError('ID lớp không hợp lệ');
+                setDetailOpen(true);
+                return;
+            }
+
+            const res = await axios.get(`http://localhost:9999/api/attendance/student/${classId}`, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            });
+            setDetailData(res.data.data || null);
+            setDetailOpen(true);
+        } catch (err) {
+            console.error('Error fetching class attendance details', err?.response || err);
+            setDetailError(err.response?.data?.message || err.message || 'Lỗi khi tải chi tiết điểm danh');
+            setDetailOpen(true);
+        } finally {
+            setDetailLoading(false);
+        }
+    };
+
+    const closeDetail = () => {
+        setDetailOpen(false);
+        setDetailData(null);
+        setDetailError(null);
+    };
 
     const getAttendanceColor = (rate) => (rate >= 80 ? '#4caf50' : '#f44336');
 
-    if (loading) {
+    if (loading)
         return (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
                 <CircularProgress />
             </Box>
         );
-    }
 
-    if (error) {
+    if (error)
         return (
             <Container>
                 <Alert severity="error" sx={{ mt: 2 }}>
@@ -74,167 +113,245 @@ const AttendanceReport = () => {
                 </Alert>
             </Container>
         );
-    }
 
     return (
         <Container>
-            <Typography variant="h4" component="h1" sx={{ my: 4, fontWeight: 600, color: '#1976d2' }}>
+            <Typography
+                variant="h4"
+                component="h1"
+                sx={{ my: 4, fontWeight: 600, color: '#1976d2' }}
+            >
                 Báo Cáo Điểm Danh
             </Typography>
 
+            {attendanceData.length === 0 ? (
+                <Alert severity="info">Chưa có dữ liệu điểm danh để hiển thị.</Alert>
+            ) : (
+                attendanceData.map((semObj, sIdx) => (
+                    <Box key={sIdx} sx={{ mb: 5 }}>
+                        <Typography variant="h6" sx={{ mb: 3, fontWeight: 700 }}>
+                            {semObj.semester?.semesterName ||
+                                `Kỳ học ${new Date(semObj.semester?.startDate).getFullYear()}`}
+                        </Typography>
 
-            <Grid container spacing={3} justifyContent="left">
-                <Grid item xs={12} md={8}>
-                    <Card
-                        sx={{
-                            borderRadius: 3,
-                            boxShadow: 3,
-                            p: 2,
-                            background: 'linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%)',
-                        }}
-                    >
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                                Tổng Quan
-                            </Typography>
-                            {attendanceData?.className && (
-                                <Typography variant="h6" sx={{ mb: 3, color: '#666' }}>
-                                    {attendanceData.className}
-                                </Typography>
-                            )}
-
-                            <Box
-                                sx={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    mb: 2,
-                                }}
-                            >
-                                <Box sx={{ position: 'relative', display: 'inline-flex', mr: 3 }}>
-                                    <CircularProgress
-                                        variant="determinate"
-                                        value={attendanceData?.attendanceRate || 0}
-                                        size={110}
-                                        thickness={4.5}
+                        <Grid container spacing={3}>
+                            {semObj.subjects.map((subj, idx) => (
+                                <Grid item xs={12} md={6} key={idx}>
+                                    <Card
                                         sx={{
-                                            color: getAttendanceColor(attendanceData?.attendanceRate),
-                                        }}
-                                    />
-                                    <Box
-                                        sx={{
-                                            top: 0,
-                                            left: 0,
-                                            bottom: 0,
-                                            right: 0,
-                                            position: 'absolute',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
+                                            borderRadius: 3,
+                                            boxShadow: 3,
+                                            p: 2,
+                                            background:
+                                                'linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%)'
                                         }}
                                     >
-                                        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                            {`${Math.round(attendanceData?.attendanceRate || 0)}%`}
-                                        </Typography>
-                                    </Box>
-                                </Box>
+                                        <CardContent>
+                                            <Typography
+                                                variant="h6"
+                                                gutterBottom
+                                                sx={{ fontWeight: 600 }}
+                                            >
+                                                {subj.subjectName || 'Không có tên môn'}
+                                            </Typography>
 
-                                <Box>
-                                    <Typography variant="body1" sx={{ fontSize: '1.1rem', mb: 1 }}>
-                                        <strong>Tổng số buổi:</strong> {attendanceData?.totalSlots || 0}
-                                    </Typography>
-                                    <Typography variant="body1" sx={{ fontSize: '1.1rem' }}>
-                                        <strong>Số buổi vắng:</strong> {attendanceData?.absentSlots || 0}
-                                    </Typography>
-                                </Box>
-                            </Box>
+                                            <Typography
+                                                variant="subtitle1"
+                                                sx={{ mb: 2, color: '#555' }}
+                                            >
+                                                {subj.subjectCode} - {subj.className}
+                                            </Typography>
 
-                            {attendanceData?.isFailed && (
-                                <Alert severity="error" sx={{ mt: 2 }}>
-                                    ⚠️ Cảnh báo: Bạn đã vắng quá 20% số buổi học. Điểm cuối kỳ sẽ bị 0.
-                                </Alert>
-                            )}
+                                            <Box
+                                                sx={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    mb: 2
+                                                }}
+                                            >
+                                                <Box
+                                                    sx={{
+                                                        position: 'relative',
+                                                        display: 'inline-flex',
+                                                        mr: 3
+                                                    }}
+                                                >
+                                                    <CircularProgress
+                                                        variant="determinate"
+                                                        value={subj.attendanceRate || 0}
+                                                        size={100}
+                                                        thickness={4.5}
+                                                        sx={{
+                                                            color: getAttendanceColor(
+                                                                subj.attendanceRate
+                                                            )
+                                                        }}
+                                                    />
+                                                    <Box
+                                                        sx={{
+                                                            top: 0,
+                                                            left: 0,
+                                                            bottom: 0,
+                                                            right: 0,
+                                                            position: 'absolute',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center'
+                                                        }}
+                                                    >
+                                                        <Typography
+                                                            variant="h6"
+                                                            sx={{ fontWeight: 600 }}
+                                                        >
+                                                            {`${Math.round(
+                                                                subj.attendanceRate || 0
+                                                            )}%`}
+                                                        </Typography>
+                                                    </Box>
+                                                </Box>
 
-                            <Button
-                                fullWidth
-                                variant="contained"
-                                color="primary"
-                                onClick={handleOpen}
-                                startIcon={<KeyboardArrowDown />}
-                                sx={{
-                                    mt: 2,
-                                    borderRadius: 2,
-                                    textTransform: 'none',
-                                    fontWeight: 500,
-                                }}
-                            >
-                                Xem Chi Tiết
-                            </Button>
-                        </CardContent>
-                    </Card>
-                </Grid>
-            </Grid>
+                                                <Box>
+                                                    <Typography
+                                                        variant="body1"
+                                                        sx={{ fontSize: '1.1rem', mb: 1 }}
+                                                    >
+                                                        <strong>Tổng buổi:</strong>{' '}
+                                                        {subj.totalSlots || 0}
+                                                    </Typography>
+                                                    <Typography
+                                                        variant="body1"
+                                                        sx={{ fontSize: '1.1rem' }}
+                                                    >
+                                                        <strong>Vắng:</strong>{' '}
+                                                        {subj.absentSlots || 0}
+                                                    </Typography>
+                                                </Box>
+                                            </Box>
 
-            {/* Popup chi tiết */}
-            <Dialog
-                open={dialogOpen}
-                onClose={handleClose}
-                maxWidth="md"
-                fullWidth
-                TransitionComponent={Grow}
-                TransitionProps={{ in: dialogOpen }}
-            >
+                                            {subj.attendanceRate < 80 && (
+                                                <Alert severity="error" sx={{ mt: 2 }}>
+                                                    ⚠️ Cảnh báo: Vắng quá 20% buổi học, có thể bị 0 điểm.
+                                                </Alert>
+                                            )}
+
+                                            <Button
+                                                fullWidth
+                                                variant="contained"
+                                                color="primary"
+                                                onClick={() =>
+                                                    openDetailForClass(subj.classId)
+                                                }
+                                                startIcon={<KeyboardArrowDown />}
+                                                sx={{
+                                                    mt: 2,
+                                                    borderRadius: 2,
+                                                    textTransform: 'none',
+                                                    fontWeight: 500
+                                                }}
+                                            >
+                                                Xem Chi Tiết
+                                            </Button>
+                                        </CardContent>
+                                    </Card>
+                                </Grid>
+                            ))}
+                        </Grid>
+                    </Box>
+                ))
+            )}
+
+            {/* Chi tiết điểm danh */}
+            <Dialog open={detailOpen} onClose={closeDetail} maxWidth="md" fullWidth>
                 <DialogTitle sx={{ fontWeight: 600, backgroundColor: '#f5f5f5' }}>
-                    Chi Tiết Điểm Danh - {attendanceData.className}
+                    Chi Tiết Điểm Danh
                 </DialogTitle>
                 <DialogContent>
-                    <TableContainer sx={{ mt: 1 }}>
-                        <Table>
-                            <TableHead>
-                                <TableRow sx={{ backgroundColor: '#e3f2fd' }}>
-                                    <TableCell><strong>Buổi</strong></TableCell>
-                                    <TableCell><strong>Lớp</strong></TableCell>
-                                    <TableCell><strong>Trạng Thái</strong></TableCell>
-                                    <TableCell><strong>Ghi Chú</strong></TableCell>
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {attendanceData?.attendanceDetails?.map((detail, index) => (
-                                    <TableRow
-                                        key={detail.scheduleId || index}
-                                        hover
-                                        sx={{ '&:hover': { backgroundColor: '#f9f9f9' } }}
-                                    >
-                                        <TableCell>{index + 1}</TableCell>
-                                        <TableCell>{attendanceData.className}</TableCell>
+                    {detailLoading ? (
+                        <Box
+                            display="flex"
+                            justifyContent="center"
+                            alignItems="center"
+                            p={2}
+                        >
+                            <CircularProgress />
+                        </Box>
+                    ) : detailError ? (
+                        <Alert severity="error">{detailError}</Alert>
+                    ) : detailData ? (
+                        <TableContainer sx={{ mt: 1 }}>
+                            <Table>
+                                <TableHead>
+                                    <TableRow sx={{ backgroundColor: '#e3f2fd' }}>
                                         <TableCell>
-                                            <Typography
-                                                sx={{
-                                                    color:
-                                                        detail.status === 'Present'
-                                                            ? '#4caf50'
-                                                            : detail.status === 'Absent'
-                                                                ? '#f44336'
-                                                                : '#ffa726',
-                                                    fontWeight: 'bold',
-                                                }} y
-                                            >
-                                                {detail.status === 'Present'
-                                                    ? 'Có mặt'
-                                                    : detail.status === 'Absent'
-                                                        ? 'Vắng mặt'
-                                                        : 'Chưa điểm danh'}
-                                            </Typography>
+                                            <strong>Buổi</strong>
                                         </TableCell>
-                                        <TableCell>{detail.note || '-'}</TableCell>
+                                        <TableCell>
+                                            <strong>Lớp</strong>
+                                        </TableCell>
+                                        <TableCell>
+                                            <strong>Trạng Thái</strong>
+                                        </TableCell>
+                                        <TableCell>
+                                            <strong>Ghi Chú</strong>
+                                        </TableCell>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </TableContainer>
+                                </TableHead>
+                                <TableBody>
+                                    {Array.isArray(detailData.attendanceDetails) &&
+                                        detailData.attendanceDetails.length > 0 ? (
+                                        detailData.attendanceDetails.map((d, i) => (
+                                            <TableRow key={i} hover>
+                                                <TableCell>{i + 1}</TableCell>
+                                                <TableCell>
+                                                    {detailData.className}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Typography
+                                                        sx={{
+                                                            color:
+                                                                d.status === 'Present'
+                                                                    ? '#4caf50'
+                                                                    : d.status ===
+                                                                        'Absent'
+                                                                        ? '#f44336'
+                                                                        : '#ffa726',
+                                                            fontWeight: 'bold'
+                                                        }}
+                                                    >
+                                                        {d.status === 'Present'
+                                                            ? 'Có mặt'
+                                                            : d.status === 'Absent'
+                                                                ? 'Vắng mặt'
+                                                                : 'Chưa điểm danh'}
+                                                    </Typography>
+                                                </TableCell>
+                                                <TableCell>{d.note || '-'}</TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={4}>
+                                                <Typography align="center">
+                                                    Không có bản ghi điểm danh
+                                                </Typography>
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+                    ) : (
+                        <Alert severity="info">Không có dữ liệu chi tiết.</Alert>
+                    )}
                 </DialogContent>
                 <DialogActions sx={{ p: 2 }}>
-                    <Button onClick={handleClose} variant="outlined" color="primary" sx={{ borderRadius: 2 }}>
+                    <Button
+                        onClick={closeDetail}
+                        variant="outlined"
+                        color="primary"
+                        sx={{ borderRadius: 2 }}
+                    >
                         Đóng
                     </Button>
                 </DialogActions>

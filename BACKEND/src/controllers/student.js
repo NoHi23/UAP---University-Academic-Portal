@@ -393,6 +393,111 @@ const getMyClassmates = async (req, res) => {
     }
 };
 
+// 7. Attendance summary grouped by semester
+const getAttendanceSummary = async (req, res) => {
+    try {
+        const student = await Student.findOne({ accountId: req.user.id });
+        if (!student) return res.status(404).json({ message: 'Student not found' });
+
+        // Find all ScheduleOfStudent records for this student
+        const enrollments = await ScheduleOfStudent.find({ studentId: student._id }).lean();
+
+        // Collect all scheduleIds referenced in attendance arrays
+        const scheduleIds = [];
+        enrollments.forEach(en => {
+            if (Array.isArray(en.attendance)) {
+                en.attendance.forEach(a => {
+                    if (a && a.scheduleId) scheduleIds.push(a.scheduleId);
+                });
+            }
+        });
+
+        if (scheduleIds.length === 0) {
+            return res.json({ success: true, data: [] });
+        }
+
+        // Load schedules with semester and subject population
+        const schedules = await Schedule.find({ _id: { $in: scheduleIds } })
+            .populate('semesterId', 'semesterName startDate endDate')
+            .populate('subjectId', 'subjectName subjectCode')
+            .populate('classId', 'className')
+            .lean();
+
+        const scheduleMap = {};
+        schedules.forEach(s => { scheduleMap[String(s._id)] = s; });
+
+        // Aggregate by semester -> subject
+        const semesters = {}; // semesterId -> { semesterInfo, subjects: { subjectId -> stats } }
+
+        enrollments.forEach(en => {
+            const classId = en.classId;
+            if (!Array.isArray(en.attendance)) return;
+            en.attendance.forEach(a => {
+                if (!a || !a.scheduleId) return;
+                const sch = scheduleMap[String(a.scheduleId)];
+                if (!sch) return; // schedule may have been removed
+
+                const sem = sch.semesterId ? sch.semesterId._id : 'unknown';
+                const semLabel = sch.semesterId || null;
+                const subj = sch.subjectId ? sch.subjectId._id : 'unknown';
+
+                if (!semesters[sem]) semesters[sem] = { semester: semLabel, subjects: {} };
+                if (!semesters[sem].subjects[subj]) {
+                    semesters[sem].subjects[subj] = {
+                        subjectId: sch.subjectId || null,
+                        subjectName: sch.subjectId ? (sch.subjectId.subjectName || '') : '',
+                        subjectCode: sch.subjectId ? (sch.subjectId.subjectCode || '') : '',
+                        classId: sch.classId ? sch.classId._id : classId || null,
+                        className: sch.classId ? sch.classId.className : '',
+                        totalSlots: 0,
+                        absentSlots: 0
+                    };
+                }
+
+                const stat = semesters[sem].subjects[subj];
+                stat.totalSlots += 1;
+                if (a.status === 'Absent') stat.absentSlots += 1;
+            });
+        });
+
+        // Build response array
+        const result = Object.keys(semesters).map(semKey => {
+            const semObj = semesters[semKey];
+            const subjects = Object.keys(semObj.subjects).map(subKey => {
+                const s = semObj.subjects[subKey];
+                const attendanceRate = s.totalSlots > 0 ? ((s.totalSlots - s.absentSlots) / s.totalSlots) * 100 : 100;
+                return {
+                    subjectId: s.subjectId,
+                    subjectName: s.subjectName,
+                    subjectCode: s.subjectCode,
+                    classId: s.classId,
+                    className: s.className,
+                    totalSlots: s.totalSlots,
+                    absentSlots: s.absentSlots,
+                    attendanceRate: Math.round(attendanceRate * 100) / 100,
+                    isFailed: attendanceRate < 80
+                };
+            });
+
+            return {
+                semester: semObj.semester,
+                subjects
+            };
+        });
+
+        // Sort semesters by startDate if available
+        result.sort((a, b) => {
+            const aa = a.semester && a.semester.startDate ? new Date(a.semester.startDate) : new Date(0);
+            const bb = b.semester && b.semester.startDate ? new Date(b.semester.startDate) : new Date(0);
+            return aa - bb;
+        });
+
+        return res.json({ success: true, data: result });
+    } catch (error) {
+        console.error('Error in getAttendanceSummary:', error);
+        return res.status(500).json({ success: false, message: 'Lỗi khi lấy tổng hợp điểm danh', error: error.message });
+    }
+};
 module.exports = {
     getProfile,
     updateProfile,
@@ -402,5 +507,6 @@ module.exports = {
     getTranscript,
     getClassList,
     getMyWeeklySchedule,
-    getMyClassmates
+    getMyClassmates,
+    getAttendanceSummary
 };
