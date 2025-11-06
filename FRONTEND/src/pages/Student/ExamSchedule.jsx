@@ -103,20 +103,34 @@ export default function ExamSchedule() {
 
             <Grid container spacing={2} sx={{ mt: 1 }}>
                 {schedules.map((s, idx) => {
-                    // If populated via ScheduleOfStudent, s.scheduleId may hold details
-                    const sched = s.scheduleId || s;
-                    const subject = sched.classId?.subjectId || sched.subjectId || (sched.classId && sched.classId.subjectId) || {};
-                    const room = sched.roomId?.roomName || sched.room || sched.roomId;
-                    const className = sched.classId?.className || sched.className || sched.classId;
+                    // API may return items in two shapes:
+                    // - { examSchedule: { ... }, attendStatus }
+                    // - or a populated Schedule-like object directly
+                    const sched = s.examSchedule || s.scheduleId || s;
+
+                    // If this is an examSchedule record, its primary fields are:
+                    // courseName, examDate, time, room, note
+                    const isExamShape = !!s.examSchedule;
+
+                    const title = isExamShape ? (sched.courseName || 'Môn học') : (sched.classId?.subjectId?.subjectName || sched.subjectId?.subjectName || sched.subjectName || 'Môn học');
+                    const code = isExamShape ? (sched.courseCode || '') : (sched.classId?.subjectId?.subjectCode || sched.subjectId?.subjectCode || sched.subjectCode || '-');
+                    const room = isExamShape ? (sched.room || sched.roomId?.roomName) : (sched.roomId?.roomName || sched.room || sched.roomId);
+                    const className = isExamShape ? (s.className || '') : (sched.classId?.className || sched.className || sched.classId);
+                    const startTime = isExamShape ? (sched.examDate || sched.time) : (sched.date || sched.time || sched.startTime);
+                    const endTime = isExamShape ? null : (sched.endTime || sched.finishTime);
+                    const note = isExamShape ? sched.note : sched.note;
+                    const attendStatus = s.attendStatus || s.attendance || null;
+
                     return (
                         <Grid item xs={12} md={6} key={idx}>
                             <Paper sx={{ p: 2 }} elevation={1}>
-                                <Typography variant="h6">{subject.subjectName || subject.subjectCode || sched.subjectName || 'Môn học'}</Typography>
-                                <Typography variant="body2">Mã môn: {subject.subjectCode || sched.subjectCode || '-'}</Typography>
-                                <Typography variant="body2">Lớp: {className || '-'}</Typography>
+                                <Typography variant="h6">{title}</Typography>
+
                                 <Typography variant="body2">Phòng: {room || '-'}</Typography>
-                                <Typography variant="body2">Thời gian bắt đầu: {fmtDate(sched.date || sched.time || sched.startTime)}</Typography>
-                                <Typography variant="body2">Thời gian kết thúc: {fmtDate(sched.endTime || sched.finishTime)}</Typography>
+                                <Typography variant="body2">Thời gian: {fmtDate(startTime)}</Typography>
+                                {endTime && <Typography variant="body2">Thời gian kết thúc: {fmtDate(endTime)}</Typography>}
+                                {note && <Typography variant="body2">Ghi chú: {note}</Typography>}
+                                {attendStatus && <Typography variant="body2">Trạng thái điểm danh: {attendStatus}</Typography>}
                                 <Box sx={{ mt: 1 }}>
                                     <Button size="small" variant="outlined" href="#">Chi tiết</Button>
                                 </Box>

@@ -11,6 +11,8 @@ const Curriculum = require('../models/curriculum');
 const Major = require('../models/major');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
+const ExamSchedule = require('../models/examSchedule');
+const ExamScheduleOfStudent = require('../models/examScheduleOfStudent');
 
 // 1. Get Profile
 const getProfile = async (req, res) => {
@@ -95,40 +97,50 @@ const updateProfile = async (req, res) => {
 
 
 
-// 3. View Exam Schedule
+// 3. View Exam Schedule (per-student)
+// The application stores exam assignments in ExamSchedule and links students via
+// ExamScheduleOfStudent. Return only exam entries assigned to the logged-in student.
 const getExamSchedule = async (req, res) => {
     try {
         const student = await Student.findOne({ accountId: req.user.id });
         if (!student) return res.status(404).json({ message: 'Student not found' });
 
-        // ScheduleOfStudent stores schedule references inside attendance[].scheduleId
-        // Collect all scheduleIds across the student's enrolled classes
-        const sosDocs = await ScheduleOfStudent.find({ studentId: student._id });
-        const scheduleIds = [];
-        sosDocs.forEach(doc => {
-            if (Array.isArray(doc.attendance)) {
-                doc.attendance.forEach(a => {
-                    if (a && a.scheduleId) scheduleIds.push(a.scheduleId);
-                });
-            }
-        });
+        // Find exam assignments for this student and populate the exam details
+        // Some existing data may have been created with the Account _id instead of Student _id,
+        // so match either the student's ObjectId or the account id from the token.
+        const possibleIds = [String(student._id)];
+        if (req.user && req.user.id) possibleIds.push(String(req.user.id));
 
-        if (scheduleIds.length === 0) {
-            return res.json({ examSchedule: [] });
+        const records = await ExamScheduleOfStudent.find({ student: { $in: possibleIds } })
+            .populate({ path: 'examSchedule', model: 'ExamSchedule' })
+            .sort({ 'examSchedule.examDate': 1 });
+
+        // Map to a shape convenient for the frontend: include attendStatus and the populated examSchedule
+        const examSchedule = records.map(r => ({
+            _id: r._id,
+            examSchedule: r.examSchedule,
+            attendStatus: r.attendStatus
+        }));
+
+        if (!examSchedule || examSchedule.length === 0) {
+            // Provide lightweight debug info to help diagnose why the student has no assigned exams
+            const assignmentsForStudent = await ExamScheduleOfStudent.countDocuments({ student: student._id });
+            const totalAssignments = await ExamScheduleOfStudent.countDocuments();
+            const sample = await ExamScheduleOfStudent.findOne().populate('examSchedule').lean();
+
+            return res.json({
+                examSchedule: [],
+                debug: {
+                    studentId: student._id,
+                    assignmentsForStudent,
+                    totalAssignments,
+                    sampleExists: !!sample,
+                    sample: sample ? { _id: sample._id, student: sample.student, examSchedule: sample.examSchedule } : null
+                }
+            });
         }
 
-        // Query Schedule documents directly and populate related refs
-        // Note: Schedule schema contains subjectId, roomId, semesterId; avoid populating non-existent fields
-        const schedules = await Schedule.find({ _id: { $in: scheduleIds } })
-            .populate({ path: 'classId', populate: { path: 'subjectId', model: 'Subject' } })
-            .populate('roomId')
-            .populate('semesterId')
-            .sort({ date: 1, slot: 1 });
-
-        // Return populated schedules directly (frontend accepts either a populated Schedule
-        // document or an object with scheduleId populated). Returning the populated
-        // Schedule documents keeps the response flexible for the UI.
-        return res.json({ examSchedule: schedules });
+        return res.json({ examSchedule });
     } catch (error) {
         return res.status(500).json({ message: error.message });
     }
