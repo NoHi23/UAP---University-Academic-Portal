@@ -65,7 +65,12 @@ import AbsenceReview from "./pages/Staff/AbsenceReview";
 import AttendanceList from './pages/Lecturer/AttendanceListPages/AttendanceList';
 import ClassesBySemesterPage from './pages/Lecturer/ClassesBySemester/Index';
 import SupportRequestPage from './pages/Lecturer/SupportRequest';
+import ExamSchedulePage from './pages/Staff/ExamSchedulePage';
+import AnnouncementList from "./pages/Staff/AnnouncementList";
 
+import AdminLayout from "./pages/Admin/AdminLayout";
+import AdminAccountList from "./pages/Admin/AdminAccountList";
+import CurriculumList from './pages/Admin/CurriculumList';
 
 import ManualClassPage from './pages/Staff/ManualClassPage';
 import StudentClassmatesPage from './pages/Student/StudentClassmatesPage';

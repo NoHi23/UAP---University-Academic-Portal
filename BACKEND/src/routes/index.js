@@ -16,8 +16,13 @@ const absenceRouter = require('./absenceRequest');
 const attendanceRouter = require('./attendance');
 const notificationRouter = require('./notification');
 const aiRouter = require('./ai');
+const adminRouter = require("./adminManagement");
+const examScheduleRouter = require('./examSchedule');
+const curriculumManagementRouter = require('./curriculumManagement');  
 
-
+router.use("/api/manage/curriculums", curriculumManagementRouter); 
+router.use('/api/exam-schedule', examScheduleRouter);
+router.use("/api/manage/admin", adminRouter);
 router.use("/api/absence", absenceRouter);
 router.use("/api/attendance", attendanceRouter);
 router.use('/api/absence', absenceRouter);
