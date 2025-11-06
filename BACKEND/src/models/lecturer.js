@@ -9,7 +9,6 @@ const lecturerSchema = new Schema({
   },
   lecturerAvatar: {
     type: String,
-    required: true,
     validate: {
       validator(v) {
         // chấp nhận data URI ảnh base64
@@ -36,6 +35,14 @@ const lecturerSchema = new Schema({
   },
   phone: {
     type: String,
+    required: true
+  },
+  address: {
+    type: String,
+    required: true
+  },
+  dateOfBirth: {
+    type: Date,
     required: true
   },
   semester: {

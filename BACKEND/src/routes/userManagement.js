@@ -14,7 +14,8 @@ router.use(verifyToken, authorize('staff', 'admin'));
 router.route('/students')
   .post(createStudentAccount)
   .get(listStudents);
-router.route('/students/import-excel', uploadExcel.single('file'), importStudentsExcel)
+router.route('/students/import-excel')
+  .post(uploadExcel.single('file'), importStudentsExcel);
 router.route('/students/:id')
   .get(getStudentById)
   .put(updateStudent)
@@ -23,7 +24,8 @@ router.route('/students/:id')
 router.route('/lecturers')
   .post(createLecturerAccount)
   .get(listLecturers);
-router.route('/lecturers/import-excel', uploadExcel.single('file'), importLecturersExcel)
+router.route('/lecturers/import-excel')
+  .post(uploadExcel.single('file'), importLecturersExcel);
 router.route('/lecturers/:id')
   .get(getLecturerById)
   .put(updateLecturer)

@@ -15,7 +15,8 @@ const StudentProfile = ({ isOpen, onClose }) => {
         citizenID: '',
         studentAvatar: '',
         semester: '',
-        semesterNo: ''
+        semesterNo: '',
+        dateOfBirth: ''
     });
     const { user } = useContext(AuthContext);
 
@@ -43,7 +44,8 @@ const StudentProfile = ({ isOpen, onClose }) => {
                     citizenID: data.citizenID || '',
                     studentAvatar: data.studentAvatar || '',
                     semester: data.semester || '',
-                    semesterNo: data.semesterNo || ''
+                    semesterNo: data.semesterNo || '',
+                    dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth).toISOString().split('T')[0] : ''
                 });
             } else {
                 console.error('Failed to fetch student profile');
@@ -63,7 +65,7 @@ const StudentProfile = ({ isOpen, onClose }) => {
 
             // Build a cleaned payload: omit empty strings/null and coerce types
             const payload = {};
-            const fields = ['firstName', 'lastName', 'phone', 'gender', 'citizenID', 'studentAvatar', 'semester', 'semesterNo'];
+            const fields = ['firstName', 'lastName', 'phone', 'gender', 'citizenID', 'studentAvatar', 'dateOfBirth', 'semester', 'semesterNo'];
             fields.forEach(f => {
                 const v = formData[f];
                 if (typeof v !== 'undefined' && v !== null && v !== '') {
@@ -205,6 +207,9 @@ const StudentProfile = ({ isOpen, onClose }) => {
                                                 readOnly
                                             />
                                         </div>
+
+                                    </div>
+                                    <div className="field-row">
                                         <div className="field-group">
                                             <label>Tên:</label>
                                             <input
@@ -215,7 +220,17 @@ const StudentProfile = ({ isOpen, onClose }) => {
                                                 placeholder="Nhập tên"
                                             />
                                         </div>
+                                        <div className="field-group">
+                                            <label>Ngày sinh:</label>
+                                            <input
+                                                type="date"
+                                                name="dateOfBirth"
+                                                value={formData.dateOfBirth}
+                                                onChange={handleInputChange}
+                                            />
+                                        </div>
                                     </div>
+
 
                                     <div className="field-row">
                                         <div className="field-group">
@@ -250,29 +265,7 @@ const StudentProfile = ({ isOpen, onClose }) => {
                                                 value={formData.citizenID}
                                                 onChange={handleInputChange}
                                                 placeholder="Nhập số CCCD"
-                                            />
-                                        </div>
-                                        <div className="field-group">
-                                            <label>Học kỳ hiện tại:</label>
-                                            <input
-                                                type="text"
-                                                name="semester"
-                                                value={formData.semester}
-                                                onChange={handleInputChange}
-                                                placeholder="Ví dụ: Fall 2025"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="field-row">
-                                        <div className="field-group">
-                                            <label>Số học kỳ:</label>
-                                            <input
-                                                type="number"
-                                                name="semesterNo"
-                                                value={formData.semesterNo}
-                                                onChange={handleInputChange}
-                                                placeholder="Ví dụ: 5"
+                                                maxLength={12}
                                             />
                                         </div>
                                         <div className="field-group">
@@ -284,7 +277,12 @@ const StudentProfile = ({ isOpen, onClose }) => {
                                             />
 
                                         </div>
+
                                     </div>
+
+
+
+
 
                                     {/* Account Info */}
                                     <div className="account-info">
@@ -297,6 +295,15 @@ const StudentProfile = ({ isOpen, onClose }) => {
                                             <label>Vai trò:</label>
                                             <span>{user?.role}</span>
                                         </div>
+                                        <div className="field-group">
+                                            <label>Kỳ học hiện tại:</label>
+                                            <span>
+                                                {studentData?.semester
+                                                    ? `Học kỳ ${studentData.semesterNo}`
+                                                    : 'Chưa có thông tin'}
+                                            </span>
+                                        </div>
+
                                     </div>
                                 </div>
                             </div>

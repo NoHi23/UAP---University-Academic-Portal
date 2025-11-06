@@ -17,6 +17,8 @@ import {
     Fab,
     Tooltip,
     CircularProgress,
+    Pagination,
+    Stack,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import EditIcon from "@mui/icons-material/Edit";
@@ -24,19 +26,29 @@ import AddIcon from "@mui/icons-material/Add";
 import staffAPI from "../../../api/staffAPI";
 import majorAPI from "../../../api/majorAPI"; // ✅ thêm dòng này
 import CreateStudentModal from "./CreateStudentModal";
-
+import UpdateStudentModal from "./UpdateStudentModal"; // Import modal update
 
 export default function StudentAccount() {
     const [students, setStudents] = useState([]);
-    const [majors, setMajors] = useState([]); // ✅ lưu danh sách chuyên ngành
+    const [majors, setMajors] = useState([]);
     const [search, setSearch] = useState("");
     const [filterMajor, setFilterMajor] = useState("");
     const [filterCourse, setFilterCourse] = useState("");
     const [loading, setLoading] = useState(true);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [page, setPage] = useState(1);
+    const [rowsPerPage, setRowsPerPage] = useState(10); // default 10, allow 15
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+    const [selectedStudentId, setSelectedStudentId] = useState(null); // To store the ID of the student to update
 
-    const handleCreate = () => setIsModalOpen(true);
-    const handleCloseModal = () => setIsModalOpen(false);
+    const handleCreate = () => setIsCreateModalOpen(true);
+    const handleCloseCreateModal = () => setIsCreateModalOpen(false);
+
+    const handleUpdate = (studentId) => {
+        setSelectedStudentId(studentId); // Set studentId for update
+        setIsUpdateModalOpen(true); // Open the update modal
+    };
+    const handleCloseUpdateModal = () => setIsUpdateModalOpen(false); // Close the update modal
 
     const reloadStudents = async () => {
         try {
@@ -47,13 +59,11 @@ export default function StudentAccount() {
         }
     };
 
-
-    // 🧩 Lấy danh sách sinh viên
     useEffect(() => {
         const fetchStudents = async () => {
             try {
                 const res = await staffAPI.listStudents();
-                setStudents(res.data.data || []); // ✅ Lấy đúng mảng trong res.data.data
+                setStudents(res.data.data || []);
                 console.log("Danh sách sinh viên:", res.data.data);
             } catch (err) {
                 console.error("Lỗi khi tải danh sách sinh viên:", err);
@@ -64,8 +74,6 @@ export default function StudentAccount() {
         fetchStudents();
     }, []);
 
-
-    // 🎓 Lấy danh sách chuyên ngành từ API
     useEffect(() => {
         const fetchMajors = async () => {
             try {
@@ -78,7 +86,6 @@ export default function StudentAccount() {
         fetchMajors();
     }, []);
 
-    // 🔍 Lọc dữ liệu
     const filteredStudents = students.filter((s) => {
         const fullName = `${s.firstName} ${s.lastName}`.toLowerCase();
         const matchesName = fullName.includes(search.toLowerCase());
@@ -87,7 +94,17 @@ export default function StudentAccount() {
         return matchesName && matchesMajor && matchesCourse;
     });
 
-    const handleEdit = (id) => alert("Open Edit Form cho student ID: " + id);
+    // client-side pagination
+    const total = filteredStudents.length;
+    const totalPages = Math.max(1, Math.ceil(total / rowsPerPage));
+    const startIndex = (page - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    const paginated = filteredStudents.slice(startIndex, endIndex);
+
+    // reset page when filters/search change
+    useEffect(() => {
+        setPage(1);
+    }, [search, filterMajor, filterCourse, rowsPerPage]);
 
     return (
         <Box>
@@ -140,6 +157,23 @@ export default function StudentAccount() {
                 </FormControl>
             </Box>
 
+            {/* Tổng số / Kết quả lọc */}
+            <Box sx={{ mb: 2 }}>
+                {(() => {
+                    const totalStudents = students.length;
+                    const isFiltered = Boolean(search || filterMajor || filterCourse);
+                    return isFiltered ? (
+                        <Typography variant="subtitle2" color="text.secondary">
+                            {`Kết quả: ${filteredStudents.length} sinh viên (trên tổng ${totalStudents})`}
+                        </Typography>
+                    ) : (
+                        <Typography variant="subtitle2" color="text.secondary">
+                            {`Tổng số sinh viên: ${totalStudents}`}
+                        </Typography>
+                    );
+                })()}
+            </Box>
+
             {/* Bảng danh sách sinh viên */}
             {loading ? (
                 <Box sx={{ textAlign: "center", py: 10 }}>
@@ -182,7 +216,7 @@ export default function StudentAccount() {
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {filteredStudents.map((s) => (
+                            {paginated.map((s) => (
                                 <TableRow key={s._id}>
                                     <TableCell>{s.studentCode}</TableCell>
                                     <TableCell>{s.lastName}</TableCell>
@@ -194,7 +228,7 @@ export default function StudentAccount() {
                                         <IconButton
                                             color="primary"
                                             size="small"
-                                            onClick={() => handleEdit(s._id)}
+                                            onClick={() => handleUpdate(s._id)}
                                         >
                                             <EditIcon />
                                         </IconButton>
@@ -203,6 +237,39 @@ export default function StudentAccount() {
                             ))}
                         </TableBody>
                     </Table>
+                    {/* Pagination controls */}
+                    <Stack
+                        direction="row"
+                        alignItems="center"
+                        justifyContent="space-between"
+                        sx={{ p: 2 }}
+                    >
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                            <Typography variant="body2">số lượng/ trang:</Typography>
+                            <FormControl size="small">
+                                <Select
+                                    value={rowsPerPage}
+                                    onChange={(e) => {
+                                        setRowsPerPage(Number(e.target.value));
+                                    }}
+                                >
+                                    <MenuItem value={10}>10</MenuItem>
+                                    <MenuItem value={15}>15</MenuItem>
+                                </Select>
+                            </FormControl>
+                            <Typography variant="body2">{`Hiển thị ${Math.min(startIndex + 1, total)}-${Math.min(
+                                endIndex,
+                                total
+                            )} of ${total}`}</Typography>
+                        </Box>
+
+                        <Pagination
+                            count={totalPages}
+                            page={page}
+                            onChange={(_, value) => setPage(value)}
+                            color="primary"
+                        />
+                    </Stack>
                 </Paper>
             )}
 
@@ -211,7 +278,7 @@ export default function StudentAccount() {
                 <Fab
                     color="primary"
                     aria-label="add"
-                    onClick={handleCreate}
+                    onClick={() => setIsCreateModalOpen(true)}
                     sx={{
                         position: "fixed",
                         bottom: 40,
@@ -222,9 +289,17 @@ export default function StudentAccount() {
                     <AddIcon />
                 </Fab>
             </Tooltip>
+
+            {/* Modals */}
             <CreateStudentModal
-                isOpen={isModalOpen}
-                onClose={handleCloseModal}
+                isOpen={isCreateModalOpen}
+                onClose={handleCloseCreateModal}
+                onSuccess={reloadStudents}
+            />
+            <UpdateStudentModal
+                isOpen={isUpdateModalOpen}
+                onClose={handleCloseUpdateModal}
+                studentId={selectedStudentId}
                 onSuccess={reloadStudents}
             />
         </Box>

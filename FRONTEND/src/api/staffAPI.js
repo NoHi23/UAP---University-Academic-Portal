@@ -13,10 +13,8 @@ const staffAPI = {
     },
 
     //  Import sinh viên bằng Excel
-    importStudentsExcel: (formData) => {
-        return api.post(`${BASE_URL}/students/import-excel`, formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-        });
+    importStudentsExcel: (rows, params = {}) => {
+        return api.post(`${BASE_URL}/students/import-excel`, rows, { params });
     },
 
     //  Lấy danh sách sinh viên
@@ -39,6 +37,11 @@ const staffAPI = {
         return api.delete(`${BASE_URL}/students/${id}`);
     },
 
+    //  Reset mật khẩu sinh viên
+    resetPassword: (id, personalEmail) => {
+        return api.post(`${BASE_URL}/resetPassword/${id}`, { personalEmail });
+    },
+
     // ===========================
     //  LECTURER ACCOUNT
     // ===========================
@@ -49,10 +52,9 @@ const staffAPI = {
     },
 
     //  Import giảng viên bằng Excel
-    importLecturersExcel: (formData) => {
-        return api.post(`${BASE_URL}/lecturers/import-excel`, formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-        });
+    // Accept either FormData (file upload) or rows array (parsed client-side)
+    importLecturersExcel: (rows, params = {}) => {
+        return api.post(`${BASE_URL}/lecturers/import-excel`, rows, { params });
     },
 
     //  Lấy danh sách giảng viên
@@ -74,6 +76,7 @@ const staffAPI = {
     deleteLecturer: (id) => {
         return api.delete(`${BASE_URL}/lecturers/${id}`);
     },
+
 };
 
 export default staffAPI;

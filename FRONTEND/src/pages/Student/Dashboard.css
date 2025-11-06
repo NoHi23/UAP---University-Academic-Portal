@@ -26,7 +26,7 @@
     padding: 20px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
-
+    
 /* Lưới layout chính */
 .main-grid {
     display: grid;
@@ -38,24 +38,25 @@
 /* Thẻ thông tin cá nhân */
 .profile-card {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    text-align: center;
+    text-align: left;
+    gap: 16px;
 }
 
 .profile-card .avatar {
-    width: 80px;
-    height: 80px;
+    width: 96px;
+    height: 96px;
     border-radius: 50%;
-    margin-bottom: 15px;
+    margin: 0;
     object-fit: cover;
+    flex-shrink: 0;
 }
 
 .profile-details p {
-    margin: 5px 0;
-    font-size: 0.9rem;
+    margin: 4px 0;
+    font-size: 0.95rem;
     color: #555;
-    text-align: left;
 }
 
 .btn-detail {
@@ -81,13 +82,13 @@
 .stat-card .stat-number {
     font-size: 3rem;
     font-weight: bold;
-    color: #007bff;
+    color: black;
     margin: 10px 0;
 }
 
 .stat-card a {
     text-decoration: none;
-    color: #007bff;
+    color: black;
 }
 
 .features-grid {
@@ -117,7 +118,7 @@
 .feature-card svg {
     font-size: 2rem;
     margin-bottom: 10px;
-    color: #007bff;
+    color: var(--text-color);
 }
 
 /* Nút vào UC5 */

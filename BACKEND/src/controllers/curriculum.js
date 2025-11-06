@@ -73,7 +73,8 @@ const getCurriculumDetails = async (req, res) => {
                 type: d.type || s.type || null,
                 lecturer: d.lecturer || s.lecturer || null,
                 description: d.description || s.description || null,
-                learningOutcomes: (d.learningOutcomes && d.learningOutcomes.length) ? d.learningOutcomes : (s.learningOutcomes || [])
+                learningOutcomes: (d.learningOutcomes && d.learningOutcomes.length) ? d.learningOutcomes : (s.learningOutcomes || []),
+                preRequisite: s.preRequisite || []
             };
         });
 
@@ -84,8 +85,37 @@ const getCurriculumDetails = async (req, res) => {
     }
 };
 
+// GET /api/curriculums/by-subject?subjectId=...
+const getCurriculumDetailsBySubject = async (req, res) => {
+    try {
+        const { subjectId } = req.query;
+        if (!subjectId) return res.status(400).json({ message: 'subjectId is required' });
+
+        console.log('[getCurriculumDetailsBySubject] subjectId=', subjectId);
+        // populate both possible name fields to be safe
+        const details = await CurriculumDetail.find({ subjectId }).populate('curriculumId', 'curriculumName name yearApplied majorId');
+
+        const mapped = details.map(d => ({
+            _id: d._id,
+            curriculumId: d.curriculumId?._id || d.curriculumId,
+            curriculumName: d.curriculumId?.curriculumName || d.curriculumId?.name || null,
+            yearApplied: d.curriculumId?.yearApplied || null,
+            majorId: d.curriculumId?.majorId || null,
+            semester: d.semester
+        }));
+
+        console.log('[getCurriculumDetailsBySubject] found', mapped.length, 'items:', mapped);
+
+        return res.status(200).json({ data: mapped });
+    } catch (error) {
+        console.error('Error fetching curriculum details by subject', error);
+        return res.status(500).json({ message: 'Lấy chi tiết khung chương trình theo subject thất bại', error: error.message });
+    }
+};
+
 module.exports = {
     getAllCurriculums,
     getCurriculumById,
     getCurriculumDetails
+    , getCurriculumDetailsBySubject
 };

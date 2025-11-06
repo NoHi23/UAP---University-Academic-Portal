@@ -19,15 +19,6 @@
     flex-direction: column;
 }
 
-.schedule-card.success {
-    background-color: #3cb442; /* Màu xanh lá cây */
-    border-left: 5px solid #1d4f21;
-}
-
-.schedule-card.error {
-    background-color: #d32f2f; /* Màu đỏ */
-    border-left: 5px solid #b71c1c;
-}
 
 .schedule-card .card-code {
     font-weight: bold !important;
@@ -46,3 +37,37 @@
 .schedule-card .MuiSvgIcon-root {
     font-size: 0.8rem !important;
 }
+.schedule-card.present {
+    background-color: #4dc553;
+    border-left-style: solid;
+    border-left-width: 5px;
+    border-left-color: #2b662f;
+}
+.schedule-card.absent {
+    background-color: #d64646;
+    border-left-style: solid;
+    border-left-width: 5px;
+    border-left-color: #8d1111; 
+}
+
+.schedule-card.not-yet {
+    background-color: #a9b1b6;
+    border-left-style: solid;
+    border-left-width: 5px;
+    border-left-color: #464747; 
+}
+
+.schedule-card .card-code,
+.schedule-card .card-time,
+.schedule-card .card-room,
+.schedule-card .MuiSvgIcon-root {
+    color: white !important;
+}
+
+.legend-chip {
+    color: white !important;
+    font-weight: bold !important;
+}
+.legend-chip.present { background-color: #4dc553 !important; }
+.legend-chip.absent { background-color: #d64646 !important; }
+.legend-chip.not-yet { background-color: #a9b1b6 !important; }

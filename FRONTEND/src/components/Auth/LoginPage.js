@@ -16,7 +16,7 @@ const LoginPage = () => {
 
   const handleLoginSuccess = (loggedInUser) => {
     notifySuccess(`Chào mừng ${loggedInUser.name} đã quay trở lại!`);
-
+    
     switch (loggedInUser.role) {
       case 'admin':
         navigate('/admin/dashboard');
@@ -24,8 +24,8 @@ const LoginPage = () => {
       case 'student':
         navigate('/student/dashboard');
         break;
-      case 'lecture':
-        navigate('/lecture/dashboard');
+      case 'lecturer':
+        navigate('/lecturer/dashboard');
         break;
       case 'staff':
         navigate('/staff/dashboard');

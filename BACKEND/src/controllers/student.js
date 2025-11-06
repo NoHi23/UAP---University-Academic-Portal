@@ -1,7 +1,7 @@
 const Student = require('../models/student');
 const Account = require('../models/account');
-const ScheduleOfStudent = require('../models/scheduleOfStudent');
 const Schedule = require('../models/schedule');
+const ScheduleOfStudent = require('../models/scheduleOfStudent');
 const Class = require('../models/class');
 const Subject = require('../models/subject');
 const Grade = require('../models/grade');
@@ -33,13 +33,10 @@ const getProfile = async (req, res) => {
 // 2. Update Profile
 const updateProfile = async (req, res) => {
     try {
+        // Use findOneAndUpdate so we only validate fields the client sends.
         const student = await Student.findOne({ accountId: req.user.id });
-
-        // Chỉ cho phép cập nhật nếu đã có Student record
         if (!student) {
-            return res.status(404).json({
-                message: 'Student not found. Vui lòng liên hệ admin để tạo tài khoản sinh viên.'
-            });
+            return res.status(404).json({ message: 'Student not found. Vui lòng liên hệ admin để tạo tài khoản sinh viên.' });
         }
 
         const {
@@ -50,15 +47,27 @@ const updateProfile = async (req, res) => {
             citizenID,
             studentAvatar,
             semester,
-            semesterNo
+            semesterNo,
+            address,
+            dateOfBirth
         } = req.body;
 
-        // Cập nhật các trường có thể thay đổi
-        if (firstName) student.firstName = firstName;
-        if (lastName) student.lastName = lastName;
-        if (phone) student.phone = phone;
-        if (typeof gender !== 'undefined') student.gender = gender;
-        if (citizenID) student.citizenID = citizenID;
+        const updates = {};
+        if (firstName) updates.firstName = firstName;
+        if (lastName) updates.lastName = lastName;
+        if (phone) updates.phone = phone;
+        if (typeof gender !== 'undefined') updates.gender = gender;
+        if (citizenID) updates.citizenID = citizenID;
+        if (address) updates.address = address;
+        if (semester) updates.semester = semester;
+        if (semesterNo) updates.semesterNo = semesterNo;
+
+        if (dateOfBirth) {
+            const parsed = new Date(dateOfBirth);
+            if (isNaN(parsed.getTime())) return res.status(400).json({ message: 'dateOfBirth is not a valid date' });
+            updates.dateOfBirth = parsed;
+        }
+
         if (studentAvatar) {
             // validate data URI base64 OR http(s) url
             const isDataUri = /^data:image\/(png|jpe?g|gif|webp);base64,/.test(studentAvatar);
@@ -66,13 +75,19 @@ const updateProfile = async (req, res) => {
             if (!isDataUri && !isUrl) {
                 return res.status(400).json({ message: 'studentAvatar phải là data URI base64 (ảnh) hoặc URL hợp lệ' });
             }
-            student.studentAvatar = studentAvatar;
+            updates.studentAvatar = studentAvatar;
         }
-        if (semester) student.semester = semester;
-        if (semesterNo) student.semesterNo = semesterNo;
 
-        await student.save();
-        return res.json({ message: 'Profile updated successfully', student });
+        // Only set fields provided by the client. This avoids triggering schema-level
+        // required validations for fields that already exist on the DB but are not
+        // being updated by the client.
+        const updatedStudent = await Student.findOneAndUpdate(
+            { accountId: req.user.id },
+            { $set: updates },
+            { new: true, runValidators: true }
+        );
+
+        return res.json({ message: 'Profile updated successfully', student: updatedStudent });
     } catch (error) {
         return res.status(500).json({ message: error.message });
     }
@@ -181,16 +196,35 @@ const getExamSchedule = async (req, res) => {
     try {
         const student = await Student.findOne({ accountId: req.user.id });
         if (!student) return res.status(404).json({ message: 'Student not found' });
-        const schedules = await ScheduleOfStudent.find({ studentId: student._id }).populate({
-            path: 'scheduleId',
-            populate: [
-                { path: 'classId', model: 'Class', populate: { path: 'subjectId', model: 'Subject' } },
-                { path: 'roomId', model: 'Room' },
-                { path: 'timeSlotId', model: 'TimeSlot' },
-                { path: 'weekId', model: 'Week' },
-                { path: 'semesterId', model: 'Semester' }
-            ]
+
+        // ScheduleOfStudent stores schedule references inside attendance[].scheduleId
+        // Collect all scheduleIds across the student's enrolled classes
+        const sosDocs = await ScheduleOfStudent.find({ studentId: student._id });
+        const scheduleIds = [];
+        sosDocs.forEach(doc => {
+            if (Array.isArray(doc.attendance)) {
+                doc.attendance.forEach(a => {
+                    if (a && a.scheduleId) scheduleIds.push(a.scheduleId);
+                });
+            }
         });
+
+        if (scheduleIds.length === 0) {
+            return res.json({ examSchedule: [] });
+        }
+
+        // Query Schedule documents directly and populate related refs
+        const schedules = await Schedule.find({ _id: { $in: scheduleIds } })
+            .populate({ path: 'classId', populate: { path: 'subjectId', model: 'Subject' } })
+            .populate('roomId')
+            .populate('timeSlotId')
+            .populate('weekId')
+            .populate('semesterId')
+            .sort({ date: 1, slot: 1 });
+
+        // Return populated schedules directly (frontend accepts either a populated Schedule
+        // document or an object with scheduleId populated). Returning the populated
+        // Schedule documents keeps the response flexible for the UI.
         return res.json({ examSchedule: schedules });
     } catch (error) {
         return res.status(500).json({ message: error.message });
@@ -260,7 +294,6 @@ const getClassList = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
-
 const getMyWeeklySchedule = async (req, res) => {
     try {
         const student = await Student.findOne({ accountId: req.user.id });
@@ -270,35 +303,93 @@ const getMyWeeklySchedule = async (req, res) => {
 
         const targetDate = req.query.date ? new Date(req.query.date) : new Date();
 
-        const dayOfWeek = targetDate.getDay(); // 0=CN, 1=T2,...
+        const dayOfWeek = targetDate.getDay();
         const firstDay = new Date(targetDate);
-        firstDay.setDate(targetDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1)); // Lấy ngày Thứ Hai
-
+        firstDay.setDate(targetDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1));
         const lastDay = new Date(firstDay);
-        lastDay.setDate(firstDay.getDate() + 6); // Lấy ngày Chủ Nhật
+        lastDay.setDate(firstDay.getDate() + 6);
 
         firstDay.setHours(0, 0, 0, 0);
         lastDay.setHours(23, 59, 59, 999);
-        // ------------------------------------
 
         const studentEnrollments = await ScheduleOfStudent.find({ studentId: student._id });
+        if (!studentEnrollments || studentEnrollments.length === 0) {
+            return res.status(200).json({ success: true, data: [] });
+        }
+
         const enrolledClassIds = studentEnrollments.map(e => e.classId);
 
         const schedules = await Schedule.find({
             classId: { $in: enrolledClassIds },
-            date: { $gte: firstDay, $lte: lastDay } // Điều kiện date vẫn giữ nguyên
+            date: { $gte: firstDay, $lte: lastDay }
         })
             .populate('subjectId', 'subjectName subjectCode')
-            .populate('lecturerId', 'firstName lastName')
+            .populate('lecturerId', 'firstName lastName email lecturerCode')
             .populate('roomId', 'roomName')
             .populate('classId', 'className')
-            .sort({ date: 1, slot: 1 });
+            .sort({ date: 1, slot: 1 })
+            .lean();
 
-        res.status(200).json({ success: true, data: schedules });
+        const schedulesWithAttendance = schedules.map(schedule => {
+            const enrollmentForThisClass = studentEnrollments.find(e => e.classId.equals(schedule.classId._id));
+
+            let attendanceStatus = 'Not Yet';
+            if (enrollmentForThisClass) {
+                const attendanceRecord = enrollmentForThisClass.attendance.find(att =>
+                    att.scheduleId && att.scheduleId.equals(schedule._id)
+                );
+                if (attendanceRecord) {
+                    attendanceStatus = attendanceRecord.status;
+                }
+            }
+
+            return {
+                ...schedule,
+                attendanceStatus: attendanceStatus
+            };
+        });
+        res.status(200).json({ success: true, data: schedulesWithAttendance });
 
     } catch (error) {
         console.error("Lỗi khi lấy lịch học của sinh viên:", error);
         res.status(500).json({ success: false, message: 'Lỗi máy chủ' });
+    }
+};
+
+const getMyClassmates = async (req, res) => {
+    try {
+        const { classId } = req.params;
+        const student = await Student.findOne({ accountId: req.user.id });
+        if (!student) return res.status(404).json({ message: "Không tìm thấy sinh viên." });
+
+        const targetClass = await Class.findById(classId).select('className');
+        if (!targetClass) {
+            return res.status(404).json({ message: "Không tìm thấy lớp học này." });
+        }
+
+        const isEnrolled = await ScheduleOfStudent.exists({ studentId: student._id, classId: classId });
+        if (!isEnrolled) {
+            return res.status(403).json({ message: "Bạn không thuộc lớp học này." });
+        }
+
+        const enrollments = await ScheduleOfStudent.find({ classId: classId })
+            .populate({
+                path: 'studentId',
+                select: 'studentCode firstName lastName studentAvatar'
+            });
+
+        const students = enrollments.map(e => e.studentId);
+
+        res.status(200).json({
+            success: true,
+            count: students.length,
+            data: students,
+            className: targetClass.className
+        });
+
+    } catch (error) {
+        console.error("Lỗi khi lấy danh sách bạn học:", error);
+        res.status(500).json({ success: false, message: 'Lỗi server' });
     }
 };
 
@@ -310,5 +401,6 @@ module.exports = {
     getGradesReport,
     getTranscript,
     getClassList,
-    getMyWeeklySchedule
+    getMyWeeklySchedule,
+    getMyClassmates
 };

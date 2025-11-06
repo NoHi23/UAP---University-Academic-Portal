@@ -12,7 +12,7 @@ const accountSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['student', 'lecture', 'staff', 'admin'],
+    enum: ['student', 'lecturer', 'staff', 'admin'],
     default: 'student'
   },
   personalEmail: {
@@ -26,7 +26,7 @@ const accountSchema = new mongoose.Schema({
   },
   isFirstLogin: {
     type: Boolean,
-    default: true 
+    default: true
   }
 }, {
   timestamps: true

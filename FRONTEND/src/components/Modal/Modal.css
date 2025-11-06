@@ -12,17 +12,26 @@
 }
 
 .modal-box {
-    background: #fff;
-    padding: 40px;
+    background: #ffffff;
+    padding: 30px;
     border-radius: 16px;
-    width: 800px;
-    /* tăng chiều rộng */
-    max-width: 90%;
-    /* vẫn giữ responsive */
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+    /* Responsive width: use viewport width but cap at sensible max */
+    width: min(95vw, 1200px);
+    max-width: 1200px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
     position: relative;
     animation: fadeIn 0.3s ease-in-out;
+    border-top: 6px solid #282e4e;
+    margin: 0 auto;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    /* ensure children can take full width */
 }
+
+
+
 
 
 .modal-header {
@@ -38,16 +47,15 @@
     color: #b91c1c;
 }
 
-.modal-close {
-    background: none;
-    border: none;
-    font-size: 20px;
-    color: #b91c1c;
-    cursor: pointer;
-}
+/* modal-close initial styles removed and consolidated below */
 
 .modal-content {
     margin-top: 10px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    /* center children horizontally while allowing full-width elements to stretch */
+    align-items: center;
 }
 
 /* ======================== */
@@ -57,16 +65,25 @@
 .create-student-form {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 10px;
     margin-top: 10px;
     font-family: "Inter", sans-serif;
+    width: 100%;
 }
 
 /* Lưới form: chia đều các cột linh hoạt */
 .form-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: 20px;
+    width: 100%;
+}
+
+/* Make grid single-column on narrow viewports to avoid cramped layout */
+@media (max-width: 720px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* Input và Select có khoảng cách đồng đều */
@@ -85,7 +102,8 @@
 
 /* Nút Submit */
 .create-student-form button[type="submit"] {
-    align-self: flex-end;
+    align-self: center;
+    /* Đảm bảo nút căn giữa */
     background-color: #282e4e;
     color: #f4e3cf;
     font-weight: 600;
@@ -125,18 +143,7 @@
     cursor: pointer;
 }
 
-/* Cải thiện modal box */
-.modal-box {
-    background: #ffffff;
-    padding: 30px;
-    border-radius: 16px;
-    width: 850px;
-    max-width: 95%;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-    position: relative;
-    animation: fadeIn 0.3s ease-in-out;
-    border-top: 6px solid #282e4e;
-}
+/* Removed duplicate empty rules */
 
 /* Header modal */
 .modal-header h3 {
@@ -148,8 +155,12 @@
 }
 
 .modal-close {
+    background: none;
+    border: none;
+    font-size: 20px;
     color: #b91c1c;
     font-weight: 600;
+    cursor: pointer;
     transition: 0.25s;
 }
 
@@ -157,7 +168,6 @@
     transform: scale(1.1);
     color: #7f1d1d;
 }
-
 
 @keyframes fadeIn {
     from {

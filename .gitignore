@@ -2,6 +2,9 @@
 BACKEND/node_modules/
 FRONTEND/node_modules/
 
+# Ignore node_modules created at repo root (sometimes npm was run in the repo root)
+node_modules/
+
 # Ngoài ra có thể bỏ qua các file hệ thống khác (khuyến nghị)
 *.log
 dist/

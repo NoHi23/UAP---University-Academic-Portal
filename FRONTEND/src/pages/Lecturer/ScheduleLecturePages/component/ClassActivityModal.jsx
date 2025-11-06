@@ -1,19 +1,26 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogTitle, IconButton, DialogContent, Box, Card, CardContent, Typography } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import GroupIcon from '@mui/icons-material/Group';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
+import DetailSlotModal from './DetailSlotModal';
+import SlotNotificationModal from './SlotNotificationModal';
 import { useNavigate } from 'react-router-dom';
 
-const ClassActivityModal = ({ open, onClose, schedule }) => {
+const ClassActivityModal = ({ open, onClose, schedule, opendetailmodal }) => {
   const subject = schedule?.subjectId?.subjectName || schedule?.subjectId?.subjectCode || '';
   const className = schedule?.classId?.className || schedule?.classId?.name || '';
   const room = schedule?.roomId?.roomName || '';
   const time = schedule?.timeDisplay || '';
 
+  const [openDetail, setOpenDetail] = useState(false);
+  const [detailScheduleId, setDetailScheduleId] = useState(null);
+  const [openNotify, setOpenNotify] = useState(false);
+  const [notifyScheduleId, setNotifyScheduleId] = useState(null);
   const navigate = useNavigate();
 
   return (
+    <>
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="h6" color="primary" sx={{ fontWeight: 700 }}>Chi tiết hoạt động lớp học</Typography>
@@ -27,12 +34,14 @@ const ClassActivityModal = ({ open, onClose, schedule }) => {
           <Box sx={{ display: 'flex', gap: 2 }}>
             {/* Left: View details */}
             <Card sx={{ flex: 1, cursor: 'pointer' }} onClick={() => {
-                // close modal then navigate to detail page
+                // close this modal then open detail modal
                 try {
                   const id = schedule?._id || schedule?.id;
                   onClose && onClose();
-                  if (id) navigate(`/lecture/view-detail-schedule/${id}`);
-                  else console.warn('No schedule id to navigate to', schedule);
+                  if (id) {
+                    setDetailScheduleId(id);
+                    setOpenDetail(true);
+                  } else console.warn('No schedule id to show details', schedule);
                 } catch (err) {
                   console.error(err);
                 }
@@ -49,7 +58,13 @@ const ClassActivityModal = ({ open, onClose, schedule }) => {
             </Card>
 
             {/* Right: Attendance */}
-            <Card sx={{ flex: 1, cursor: 'pointer' }} onClick={() => { console.log('Open attendance for', schedule); }}>
+            <Card sx={{ flex: 1, cursor: 'pointer' }} onClick={() => {
+                try {
+                  const id = schedule?._id || schedule?.id;
+                  onClose && onClose();
+                  if (id) navigate(`/lecturer/attendance/${id}`);
+                } catch (err) { console.error(err); }
+              }}>
               <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4 }}>
                 <Box sx={{ width: 96, height: 96, mb: 1, borderRadius: 2, backgroundColor: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <HowToRegIcon sx={{ fontSize: 56, color: 'primary.main' }} />
@@ -58,10 +73,36 @@ const ClassActivityModal = ({ open, onClose, schedule }) => {
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>Điểm danh lớp và theo dõi danh sách sinh viên</Typography>
               </CardContent>
             </Card>
+            {/* Middle: Notification */}
+            <Card sx={{ flex: 1, cursor: 'pointer' }} onClick={() => {
+                try {
+                  const id = schedule?._id || schedule?.id;
+                  onClose && onClose();
+                  if (id) {
+                    setNotifyScheduleId(id);
+                    setOpenNotify(true);
+                  }
+                } catch (err) { console.error(err); }
+              }}>
+              <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4 }}>
+                <Box sx={{ width: 96, height: 96, mb: 1, borderRadius: 2, backgroundColor: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <HowToRegIcon sx={{ fontSize: 56, color: 'primary.main' }} />
+                </Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Gửi thông báo</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, textAlign: 'center' }}>
+                  Gửi thông báo tới sinh viên của buổi học này
+                </Typography>
+              </CardContent>
+            </Card>
           </Box>
         </Box>
       </DialogContent>
     </Dialog>
+    {/* Detail modal, opened when user clicks 'Xem chi tiết' */}
+    <DetailSlotModal open={openDetail} onClose={() => setOpenDetail(false)} scheduleId={detailScheduleId} />
+    {/* Notification modal, opened when user clicks 'Gửi thông báo' */}
+    <SlotNotificationModal open={openNotify} onClose={() => setOpenNotify(false)} scheduleId={notifyScheduleId} />
+    </>
   );
 };
 
