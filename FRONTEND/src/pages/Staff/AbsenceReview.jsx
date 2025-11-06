@@ -103,7 +103,9 @@ export default function AbsenceReview() {
       <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
         <Typography variant="subtitle2" sx={{ mb: 1 }}>
           <strong>Sinh viên:</strong>{" "}
-          {absence?.studentId?.fullName || "(chưa có thông tin)"}
+          {absence?.studentId
+            ? `${absence.studentId.lastName || ""} ${absence.studentId.firstName || ""}`
+            : "(chưa có thông tin)"}
         </Typography>
         <Typography variant="subtitle2" sx={{ mb: 1 }}>
           <strong>Buổi học:</strong>{" "}
@@ -117,15 +119,15 @@ export default function AbsenceReview() {
                 absence?.status === "approved"
                   ? "green"
                   : absence?.status === "rejected"
-                  ? "red"
-                  : "#f5a623",
+                    ? "red"
+                    : "#f5a623",
             }}
           >
             {absence?.status === "pending"
               ? "Chờ duyệt"
               : absence?.status === "approved"
-              ? "Đã duyệt"
-              : "Từ chối"}
+                ? "Đã duyệt"
+                : "Từ chối"}
           </span>
         </Typography>
 

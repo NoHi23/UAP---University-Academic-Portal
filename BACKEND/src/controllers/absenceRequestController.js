@@ -56,7 +56,7 @@ exports.getAllAbsences = async (req, res) => {
     const skip = (page - 1) * limit;
     const [data, total] = await Promise.all([
       AbsenceRequest.find(where)
-        .populate("studentId", "fullName studentCode")
+        .populate("studentId", "firstName lastName studentCode")
         .sort(sort)
         .skip(skip)
         .limit(parseInt(limit)),
@@ -104,7 +104,8 @@ exports.reviewAbsenceRequest = async (req, res) => {
 // --- Lấy chi tiết 1 đơn ---
 exports.getAbsenceById = async (req, res) => {
   try {
-    const doc = await AbsenceRequest.findById(req.params.id).populate("studentId", "fullName studentCode");
+    const doc = await AbsenceRequest.findById(req.params.id)
+      .populate("studentId", "firstName lastName studentCode");
     if (!doc) return res.status(404).json({ message: "Không tìm thấy đơn." });
     res.json(doc);
   } catch (error) {
