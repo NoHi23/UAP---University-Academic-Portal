@@ -91,7 +91,9 @@ export default function StudentAccount() {
         const matchesName = fullName.includes(search.toLowerCase());
         const matchesMajor = filterMajor ? s.majorId?.majorName === filterMajor : true;
         const matchesCourse = filterCourse ? s.semester === filterCourse : true;
-        return matchesName && matchesMajor && matchesCourse;
+        const q = (search || "").toLowerCase().trim();
+        const matchesCode = (s.studentCode || "").toLowerCase().includes(q);
+        return (matchesName || matchesCode) && matchesMajor && matchesCourse;
     });
 
     // client-side pagination
@@ -126,7 +128,7 @@ export default function StudentAccount() {
                 }}
             >
                 <TextField
-                    placeholder="Tìm kiếm theo tên..."
+                    placeholder="Tìm kiếm theo tên hoặc mã sinh viên..."
                     size="small"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
