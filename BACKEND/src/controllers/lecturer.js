@@ -4,6 +4,7 @@ const Account = require('../models/account');
 const ScheduleOfLecture = require('../models/scheduleOfLecture');
 const Schedule = require('../models/schedule');
 const Support = require('../models/support');
+const ScheduleOfStudent = require('../models/scheduleOfStudent');
 
 const Semester = require('../models/semester');
 const Subject = require('../models/subject');
