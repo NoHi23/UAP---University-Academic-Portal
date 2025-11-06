@@ -1,7 +1,12 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
+
 const cloSchema = new Schema({
+  cloName: {
+    type: Number,
+    required: true
+  },
   cloDetails: {
     type: String,
     required: true,
@@ -20,6 +25,8 @@ const cloSchema = new Schema({
   timestamps: true
 });
 
+// Unique cloName per subjectId
+cloSchema.index({ subjectId: 1, cloName: 1 }, { unique: true });
 cloSchema.index({ subjectId: 1, cloDetails: 1 }, { unique: true });
 
 

@@ -83,9 +83,27 @@ export default function MaterialImport({ subjectId, onImported, readOnly }) {
   return (
     <Box sx={{ mt: 3 }}>
       <Typography variant="h6">Materials</Typography>
+
       <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 1 }}>
         {!readOnly && (
-          <Button variant="outlined" onClick={() => setOpen(true)}>Manage Subject / Import</Button>
+          <>
+            <Button variant="outlined" onClick={() => setOpen(true)}>Manage Subject / Import</Button>
+            <Button variant="contained" color="success" onClick={async () => {
+              try {
+                const res = await materialAPI.exportExcel(subjectId ? { subjectId } : {});
+                const url = window.URL.createObjectURL(new Blob([res.data]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', 'materials.xlsx');
+                document.body.appendChild(link);
+                link.click();
+                link.parentNode.removeChild(link);
+                window.URL.revokeObjectURL(url);
+              } catch (err) {
+                alert('Xuất Excel thất bại!');
+              }
+            }}>Xuất Excel</Button>
+          </>
         )}
       </Box>
 

@@ -1,5 +1,6 @@
 import api from '../services/api';
 
+
 const sessionMaterialAPI = {
   bulk: (payload, options = {}) => {
     const params = {};
@@ -9,7 +10,12 @@ const sessionMaterialAPI = {
   },
   getAll: (params = {}) => {
     return api.get('staff/session-materials', { params });
-  }
+  },
+  exportExcel: (params = {}) =>
+    api.get('staff/session-materials/export-excel', {
+      params,
+      responseType: 'blob',
+    }),
 };
 
 export default sessionMaterialAPI;
