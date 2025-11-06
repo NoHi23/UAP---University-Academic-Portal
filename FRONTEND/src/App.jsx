@@ -64,8 +64,12 @@ import AbsenceList from "./pages/Staff/AbsenceList";
 import AbsenceReview from "./pages/Staff/AbsenceReview";
 import AttendanceList from './pages/Lecturer/AttendanceListPages/AttendanceList';
 import ClassesBySemesterPage from './pages/Lecturer/ClassesBySemester/Index';
+import AnnouncementList from "./pages/Staff/AnnouncementList";
 
 import SupportListLecturer from './pages/Lecturer/SupportRequest/SupportList';
+import AdminLayout from "./pages/Admin/AdminLayout";
+import AdminAccountList from "./pages/Admin/AdminAccountList";
+import CurriculumList from './pages/Admin/CurriculumList';
 
 
 import ManualClassPage from './pages/Staff/ManualClassPage';
@@ -149,7 +153,6 @@ function App() {
                   <Route path="material" element={<MaterialManager />} />
                   <Route path="material/:id" element={<SubjectDetail />} />
                   <Route path="exam-schedule" element={<ExamSchedulePage />} />
-
                   <Route path="material/:id" element={<SubjectDetail />} />
                   <Route path="ai-tools" element={<AiToolManagementPage />} />
                   <Route path="absence" element={<AbsenceList />} />
