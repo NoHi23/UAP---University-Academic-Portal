@@ -112,7 +112,6 @@ function App() {
                     <Route path="notifications" element={<SlotNotificationsPage />} />
                     <Route path="chat" element={<AiChatPage />} />
                     <Route path="timetable" element={<Timetable />} />
-                    <Route path="exams" element={<ExamSchedule />} />
                     <Route path="curriculums" element={<CurriculumsPage />} />
                     <Route path="curriculums/:id" element={<CurriculumDetailsPage />} />
                     <Route path="announcements" element={<StudentAnnouncements />} />
@@ -133,6 +132,7 @@ function App() {
                   <Route path="/student/absence/new" element={<RequestAbsenceCreate />} />
                   <Route path="/student/classmates/:classId" element={<StudentClassmatesPage />} />
                   <Route path="/student/notifications/slot/:scheduleId" element={<StudentSlotNotificationPage />} />
+                  <Route path="/student/scheduleExam" element={<ExamSchedule />} />
                   <Route path="chat" element={<AiChatLayout />}>
                     <Route index element={<AiChatPage />} />
                     <Route path=":chatId" element={<AiChatPage />} />

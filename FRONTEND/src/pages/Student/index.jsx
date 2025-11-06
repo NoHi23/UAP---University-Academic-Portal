@@ -14,7 +14,6 @@ const StudentLayout = () => {
                 component="main"
                 sx={{
                     flexGrow: 1,
-                    backgroundColor: '#f5f5f5',
                     minHeight: 'calc(100vh - 64px)'
                 }}
             >
