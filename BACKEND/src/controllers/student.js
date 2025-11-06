@@ -93,103 +93,7 @@ const updateProfile = async (req, res) => {
     }
 };
 
-// 2. View Timetable
-const getTimetable = async (req, res) => {
-    try {
-        const student = await Student.findOne({ accountId: req.user.id });
-        if (!student) return res.status(404).json({ message: 'Student not found' });
 
-        // Mock data giống format của lecturer schedule để hiển thị table
-        const mockTimetable = [
-            {
-                id: 1,
-                subjectCode: 'PRJ301',
-                subjectName: 'Lập trình Java',
-                className: 'SE1801',
-                room: 'DE-C205',
-                time: '2025-10-14T07:30:00',
-                endTime: '2025-10-14T09:50:00',
-                slot: 1,
-                timeRange: '7:30-9:50',
-                attendance: false,
-                status: 'upcoming'
-            },
-            {
-                id: 2,
-                subjectCode: 'DBI202',
-                subjectName: 'Cơ sở dữ liệu',
-                className: 'SE1801',
-                room: 'DE-C301',
-                time: '2025-10-15T10:00:00',
-                endTime: '2025-10-15T12:20:00',
-                slot: 2,
-                timeRange: '10:00-12:20',
-                attendance: false,
-                status: 'upcoming'
-            },
-            {
-                id: 3,
-                subjectCode: 'MAD101',
-                subjectName: 'Toán rời rạc',
-                className: 'SE1801',
-                room: 'DE-C401',
-                time: '2025-10-16T07:30:00',
-                endTime: '2025-10-16T09:50:00',
-                slot: 1,
-                timeRange: '7:30-9:50',
-                attendance: true,
-                status: 'completed'
-            },
-            {
-                id: 4,
-                subjectCode: 'ENG101',
-                subjectName: 'Tiếng Anh chuyên ngành',
-                className: 'SE1801',
-                room: 'DE-C501',
-                time: '2025-10-17T15:20:00',
-                endTime: '2025-10-17T17:40:00',
-                slot: 4,
-                timeRange: '15:20-17:40',
-                attendance: false,
-                status: 'absent'
-            },
-            {
-                id: 5,
-                subjectCode: 'WEB501',
-                subjectName: 'Phát triển Web',
-                className: 'SE1801',
-                room: 'AL-R303',
-                time: '2025-10-18T10:50:00',
-                endTime: '2025-10-18T12:20:00',
-                slot: 3,
-                timeRange: '10:50-12:20',
-                attendance: false,
-                status: 'upcoming'
-            },
-            {
-                id: 6,
-                subjectCode: 'PRO192',
-                subjectName: 'Lập trình hướng đối tượng',
-                className: 'SE1801',
-                room: 'DE-C222',
-                time: '2025-10-16T15:20:00',
-                endTime: '2025-10-16T17:40:00',
-                slot: 4,
-                timeRange: '15:20-17:40',
-                attendance: false,
-                status: 'upcoming'
-            }
-        ];
-
-        return res.json({
-            timetable: mockTimetable,
-            message: "Thời khóa biểu sinh viên"
-        });
-
-    } catch (error) {
-        return res.status(500).json({ message: error.message });
-    }
-};
 
 // 3. View Exam Schedule
 const getExamSchedule = async (req, res) => {
@@ -214,11 +118,10 @@ const getExamSchedule = async (req, res) => {
         }
 
         // Query Schedule documents directly and populate related refs
+        // Note: Schedule schema contains subjectId, roomId, semesterId; avoid populating non-existent fields
         const schedules = await Schedule.find({ _id: { $in: scheduleIds } })
             .populate({ path: 'classId', populate: { path: 'subjectId', model: 'Subject' } })
             .populate('roomId')
-            .populate('timeSlotId')
-            .populate('weekId')
             .populate('semesterId')
             .sort({ date: 1, slot: 1 });
 
@@ -496,6 +399,103 @@ const getAttendanceSummary = async (req, res) => {
     } catch (error) {
         console.error('Error in getAttendanceSummary:', error);
         return res.status(500).json({ success: false, message: 'Lỗi khi lấy tổng hợp điểm danh', error: error.message });
+    }
+};
+// 2. View Timetable
+const getTimetable = async (req, res) => {
+    try {
+        const student = await Student.findOne({ accountId: req.user.id });
+        if (!student) return res.status(404).json({ message: 'Student not found' });
+
+        // Mock data giống format của lecturer schedule để hiển thị table
+        const mockTimetable = [
+            {
+                id: 1,
+                subjectCode: 'PRJ301',
+                subjectName: 'Lập trình Java',
+                className: 'SE1801',
+                room: 'DE-C205',
+                time: '2025-10-14T07:30:00',
+                endTime: '2025-10-14T09:50:00',
+                slot: 1,
+                timeRange: '7:30-9:50',
+                attendance: false,
+                status: 'upcoming'
+            },
+            {
+                id: 2,
+                subjectCode: 'DBI202',
+                subjectName: 'Cơ sở dữ liệu',
+                className: 'SE1801',
+                room: 'DE-C301',
+                time: '2025-10-15T10:00:00',
+                endTime: '2025-10-15T12:20:00',
+                slot: 2,
+                timeRange: '10:00-12:20',
+                attendance: false,
+                status: 'upcoming'
+            },
+            {
+                id: 3,
+                subjectCode: 'MAD101',
+                subjectName: 'Toán rời rạc',
+                className: 'SE1801',
+                room: 'DE-C401',
+                time: '2025-10-16T07:30:00',
+                endTime: '2025-10-16T09:50:00',
+                slot: 1,
+                timeRange: '7:30-9:50',
+                attendance: true,
+                status: 'completed'
+            },
+            {
+                id: 4,
+                subjectCode: 'ENG101',
+                subjectName: 'Tiếng Anh chuyên ngành',
+                className: 'SE1801',
+                room: 'DE-C501',
+                time: '2025-10-17T15:20:00',
+                endTime: '2025-10-17T17:40:00',
+                slot: 4,
+                timeRange: '15:20-17:40',
+                attendance: false,
+                status: 'absent'
+            },
+            {
+                id: 5,
+                subjectCode: 'WEB501',
+                subjectName: 'Phát triển Web',
+                className: 'SE1801',
+                room: 'AL-R303',
+                time: '2025-10-18T10:50:00',
+                endTime: '2025-10-18T12:20:00',
+                slot: 3,
+                timeRange: '10:50-12:20',
+                attendance: false,
+                status: 'upcoming'
+            },
+            {
+                id: 6,
+                subjectCode: 'PRO192',
+                subjectName: 'Lập trình hướng đối tượng',
+                className: 'SE1801',
+                room: 'DE-C222',
+                time: '2025-10-16T15:20:00',
+                endTime: '2025-10-16T17:40:00',
+                slot: 4,
+                timeRange: '15:20-17:40',
+                attendance: false,
+                status: 'upcoming'
+            }
+        ];
+
+        return res.json({
+            timetable: mockTimetable,
+            message: "Thời khóa biểu sinh viên"
+        });
+
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
     }
 };
 module.exports = {

@@ -83,8 +83,8 @@ const SlotNotificationsPage = () => {
                                 {noti.type === 'slot' && (
                                     <div className="slot-info">
                                         <p><FaBook /> {noti.raw?.scheduleId?.subjectId?.subjectName} ({noti.raw?.scheduleId?.classId?.className})</p>
-                                        <p><FaCalendarDay /> Ngày học: {noti.raw?.scheduleId?.weekId?.startDate ? new Date(noti.raw.scheduleId.weekId.startDate).toLocaleDateString('vi-VN') : 'N/A'}</p>
-                                        <p><FaClock /> Slot: {noti.raw?.scheduleId?.timeSlotId?.slot}</p>
+                                        <p><FaCalendarDay /> Ngày học: {noti.raw?.scheduleId?.date ? dayjs(noti.raw.scheduleId.date).format('DD/MM/YYYY') : 'N/A'}</p>
+                                        <p><FaClock /> Slot: {noti.raw?.scheduleId?.slot || 'N/A'}</p>
                                     </div>
                                 )}
 
