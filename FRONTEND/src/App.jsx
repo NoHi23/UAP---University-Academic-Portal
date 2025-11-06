@@ -60,9 +60,12 @@ import RequestAbsenceCreate from "./pages/Student/RequestAbsenceCreate";
 
 import AbsenceList from "./pages/Staff/AbsenceList";
 import AbsenceReview from "./pages/Staff/AbsenceReview";
+import ExamSchedulePage from './pages/Staff/ExamSchedulePage';
 import AnnouncementList from "./pages/Staff/AnnouncementList";
 
-
+import AdminLayout from "./pages/Admin/AdminLayout";
+import AdminAccountList from "./pages/Admin/AdminAccountList";
+import CurriculumList from './pages/Admin/CurriculumList';
 function App() {
   const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
@@ -122,11 +125,12 @@ function App() {
                   <Route path="supports" element={<SupportRequestList />} />
                   <Route path="support/:id" element={<AnswerSupport />} />
                   <Route path="scheduling" element={<SchedulingPage />} />
+                  <Route path="exam-schedule" element={<ExamSchedulePage />} />
 
                   <Route path="/staff/absence" element={<AbsenceList />} />
                   <Route path="/staff/absence/:id" element={<AbsenceReview />} />
                   <Route path="announcements" element={<AnnouncementList />} />
-                  
+
                 </Route>
 
 
@@ -147,6 +151,15 @@ function App() {
                   <Route path="attendance/:scheduleId" element={<AttendancePage />} />
 
                 </Route>
+
+                <Route path="/admin" element={<AdminLayout />}>
+                  <Route path="dashboard" element={<h2>Dashboard Admin</h2>} />
+                  <Route path="accounts" element={<AdminAccountList />} />
+                  <Route path="curriculums" element={<CurriculumList />} />
+                  <Route path="announcements" element={<h2>Quản lý thông báo (chưa làm)</h2>} />
+                  <Route path="statistics" element={<h2>Thống kê hệ thống</h2>} />
+                </Route>
+
               </Routes>
               <BackToTopButton />
             </AuthProvider>

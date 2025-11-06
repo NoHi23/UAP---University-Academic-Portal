@@ -13,8 +13,13 @@ const majorRouter = require('./major')
 const curriculumRouter = require('./curriculum');
 const schedulingRouter = require('./scheduling');
 const absenceRouter = require('./absenceRequest');
+const adminRouter = require("./adminManagement");
+const examScheduleRouter = require('./examSchedule');
+const curriculumManagementRouter = require('./curriculumManagement');  
 
-
+router.use("/api/manage/curriculums", curriculumManagementRouter); 
+router.use('/api/exam-schedule', examScheduleRouter);
+router.use("/api/manage/admin", adminRouter);
 router.use("/api/absence", absenceRouter);
 router.use('/api/absence', absenceRouter);
 router.use('/api/account', accountRouter);

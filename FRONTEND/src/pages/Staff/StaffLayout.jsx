@@ -31,6 +31,7 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 
 
 import { notifySuccess, showConfirmDialog } from '../../services/notificationService';
@@ -165,6 +166,7 @@ export default function StaffLayout() {
         { text: 'Quản lý tài liệu', icon: <MenuBookIcon />, path: '/staff/material' },
         { text: 'Tạo Lịch tự động', icon: <EventNoteIcon />, path: '/staff/scheduling' },
         { text: 'Duyệt đơn học vụ', icon: <AssignmentTurnedInIcon />, path: '/staff/absence' },
+        { text: "Tạo lịch thi", icon: <CalendarMonthIcon />, path: '/staff/exam-schedule' },
     ];
 
     // =========================

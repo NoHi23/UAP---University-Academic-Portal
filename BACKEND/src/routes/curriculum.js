@@ -10,4 +10,5 @@ router.get('/', ctrl.getAllCurriculums);
 router.get('/:id', ctrl.getCurriculumById);
 router.get('/:id/details', ctrl.getCurriculumDetails);
 
+
 module.exports = router;

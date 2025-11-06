@@ -24,7 +24,7 @@ const curriculumDetailSchema = new Schema({
   subjectEnglish: { type: String },
   credits: { type: Number },
   type: { type: String },
-  lecturer: { type: String },
+  lecturer: { type: String }, 
   description: { type: String },
   learningOutcomes: { type: [String], default: [] }
 }, {
