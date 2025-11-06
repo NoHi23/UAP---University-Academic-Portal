@@ -10,7 +10,10 @@ const curriculumAPI = {
     // 📚 Lấy chi tiết chương trình học với thông tin chi tiết
     getDetails: (id) => api.get(`curriculums/${id}/details`),
     // 📌 Lấy các CurriculumDetail theo subjectId
-    getBySubject: (subjectId) => api.get('curriculums/by-subject', { params: { subjectId } }),
+getBySubject: (subjectId) => api.get('curriculums/by-subject', { params: { subjectId } }),
+create: (data) => api.post("/manage/admin/curriculums", data),
+  update: (id, data) => api.put(`/manage/admin/curriculums/${id}`, data),
+  delete: (id) => api.delete(`/manage/admin/curriculums/${id}`),
 };
 
 export default curriculumAPI;
