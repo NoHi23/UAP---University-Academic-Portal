@@ -53,7 +53,7 @@ import SubjectDetail from './pages/Staff/MaterialManager/SubjectDetail';
 
 import LecturerTimetablePage from './pages/Lecturer/LecturerTimetablePage';
 import AttendancePage from './pages/Lecturer/AttendancePage';
-
+import ExamSchedulePage from './pages/Staff/ExamSchedulePage';
 // import StaffMaterialsPage from './pages/Staff/StaffMaterialsPage'; // unused
 import StudentTimetablePage from './pages/Student/StudentTimetablePage'
 
@@ -66,10 +66,12 @@ import AttendanceList from './pages/Lecturer/AttendanceListPages/AttendanceList'
 import ClassesBySemesterPage from './pages/Lecturer/ClassesBySemester/Index';
 import ExamSchedulePage from './pages/Staff/ExamSchedulePage';
 import AnnouncementList from "./pages/Staff/AnnouncementList";
+
 import SupportListLecturer from './pages/Lecturer/SupportRequest/SupportList';
 import AdminLayout from "./pages/Admin/AdminLayout";
 import AdminAccountList from "./pages/Admin/AdminAccountList";
 import CurriculumList from './pages/Admin/CurriculumList';
+
 
 import ManualClassPage from './pages/Staff/ManualClassPage';
 import StudentClassmatesPage from './pages/Student/StudentClassmatesPage';
@@ -151,6 +153,8 @@ function App() {
                   <Route path="scheduling" element={<SchedulingPage />} />
                   <Route path="material" element={<MaterialManager />} />
                   <Route path="material/:id" element={<SubjectDetail />} />
+                  <Route path="exam-schedule" element={<ExamSchedulePage />} />
+
                   <Route path="material/:id" element={<SubjectDetail />} />
                   <Route path="ai-tools" element={<AiToolManagementPage />} />
                   <Route path="absence" element={<AbsenceList />} />

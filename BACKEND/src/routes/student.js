@@ -45,5 +45,7 @@ router.get('/notifications', getAllNotifications);
 router.get('/classes/:classId/classmates', getMyClassmates);
 
 router.get('/notifications/slot/:scheduleId', getNotificationsForSlot);
+// Attendance summary grouped by semester
+router.get('/attendance/summary', studentController.getAttendanceSummary);
 
 module.exports = router;

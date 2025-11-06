@@ -66,12 +66,10 @@ const getMySlotNotificationsForLecturer = async (req, res) => {
         const notifications = await SlotNotification.find({ scheduleId: { $in: scheduleIds } })
             .populate({
                 path: 'scheduleId',
-                select: 'classId subjectId timeSlotId weekId',
+                select: 'classId subjectId date slot',
                 populate: [
                     { path: 'classId', select: 'className' },
-                    { path: 'subjectId', select: 'subjectName subjectCode' },
-                    { path: 'timeSlotId', select: 'slot startDate endDate' },
-                    { path: 'weekId', select: 'startDate endDate' }
+                    { path: 'subjectId', select: 'subjectName subjectCode' }
                 ]
             })
             .populate('senderId', 'email role')
@@ -172,12 +170,10 @@ const getAllNotifications = async (req, res) => {
             .populate('senderId', 'email role')
             .populate({
                 path: 'scheduleId',
-                select: 'classId subjectId timeSlotId weekId',
+                select: 'classId subjectId date slot',
                 populate: [
                     { path: 'classId', select: 'className' },
-                    { path: 'subjectId', select: 'subjectName subjectCode' },
-                    { path: 'timeSlotId', select: 'slot startDate endDate' },
-                    { path: 'weekId', select: 'startDate endDate' }
+                    { path: 'subjectId', select: 'subjectName subjectCode' }
                 ]
             })
             .sort({ createdAt: -1 })
