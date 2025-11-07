@@ -1,5 +1,5 @@
 const express = require('express')
-const { login, loginWithGoogle, getProfile, register, getAllUsers, updateProfile, updateUserRole, changePassword } = require('../controllers/account');
+const { login, loginWithGoogle, getProfile, register, getAllUsers, updateProfile, updateUserRole, changePassword, forgotPassword, resetPassword } = require('../controllers/account');
 const { verifyToken, authorize } = require('../middleware/authorization');
 const usersRouter = express.Router();
 
@@ -7,6 +7,9 @@ usersRouter.post('/register', register);
 
 usersRouter.post('/login', login)
 usersRouter.post('/login-google', loginWithGoogle);
+usersRouter.post('/forgot-password', forgotPassword);
+
+usersRouter.post('/reset-password/:token', resetPassword);
 
 usersRouter.get("/profile", verifyToken, getProfile);
 usersRouter.get('/', verifyToken, authorize('admin'), getAllUsers);

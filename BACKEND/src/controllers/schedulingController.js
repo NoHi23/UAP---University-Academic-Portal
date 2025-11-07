@@ -10,13 +10,19 @@ const ScheduleOfStudent = require('../models/scheduleOfStudent');
 const ScheduleOfLecture = require('../models/scheduleOfLecture');
 const Grade = require('../models/grade');
 const Semester = require('../models/semester');
-const GradeSummary = require('../models/gradeSummary')
-const GradeComponent = require('../models/gradeComponent')
+const GradeSummary = require('../models/gradeSummary');
+const GradeComponent = require('../models/gradeComponent');
 
-// Get student schedule
+
+const createLogger = (processLogs) => (msg) => {
+    const timestamp = new Date().toLocaleTimeString('vi-VN', { hour12: false });
+    const formatted = `[${timestamp}] ${msg}`;
+    processLogs.push(formatted);
+    console.log(formatted);
+};
+
 const getStudentSchedule = async (req, res) => {
     try {
-        // Find student by accountId
         const student = await Student.findOne({ accountId: req.user.id });
         if (!student) {
             return res.status(404).json({
@@ -25,7 +31,6 @@ const getStudentSchedule = async (req, res) => {
             });
         }
 
-        // Get all class schedules of student
         const studentSchedules = await ScheduleOfStudent.find({ studentId: student._id })
             .populate({
                 path: 'classId',
@@ -49,7 +54,7 @@ const getStudentSchedule = async (req, res) => {
             subjectCode: schedule.classId.subjectId.subjectCode,
             subjectName: schedule.classId.subjectId.subjectName,
             schedules: schedule.attendance
-                .filter(att => att.scheduleId) // Filter out null scheduleIds
+                .filter(att => att.scheduleId)
                 .map(att => ({
                     id: att.scheduleId._id,
                     date: att.scheduleId.date,
@@ -75,12 +80,10 @@ const getStudentSchedule = async (req, res) => {
     }
 };
 
-// Get class attendance for all students
 const getClassAttendance = async (req, res) => {
     try {
         const classId = req.params.classId;
 
-        // Get class information
         const classInfo = await Class.findById(classId)
             .populate('subjectId', 'subjectCode subjectName')
             .populate('lecturerId', 'firstName lastName');
@@ -92,7 +95,6 @@ const getClassAttendance = async (req, res) => {
             });
         }
 
-        // Get all students' attendance records
         const studentsAttendance = await ScheduleOfStudent.find({ classId })
             .populate('studentId', 'studentCode firstName lastName')
             .populate('attendance.scheduleId');
@@ -104,7 +106,6 @@ const getClassAttendance = async (req, res) => {
             });
         }
 
-        // Format data
         const formattedData = {
             className: classInfo.className,
             subjectCode: classInfo.subjectId.subjectCode,
@@ -114,13 +115,15 @@ const getClassAttendance = async (req, res) => {
                 id: record.studentId._id,
                 studentCode: record.studentId.studentCode,
                 fullName: `${record.studentId.firstName} ${record.studentId.lastName}`,
-                attendance: record.attendance.map(att => ({
-                    scheduleId: att.scheduleId._id,
-                    date: att.scheduleId.date,
-                    slot: att.scheduleId.slot,
-                    status: att.status,
-                    note: att.note || ''
-                }))
+                attendance: record.attendance
+                    .filter(att => att.scheduleId)
+                    .map(att => ({
+                        scheduleId: att.scheduleId._id,
+                        date: att.scheduleId.date,
+                        slot: att.scheduleId.slot,
+                        status: att.status,
+                        note: att.note || ''
+                    }))
             }))
         };
 
@@ -154,25 +157,19 @@ const getWeekNumber = (d) => {
 const checkPrerequisites = async (studentId, targetSemester, curriculumId) => {
     if (targetSemester <= 1) return true;
     const previousSemester = targetSemester - 1;
-
     const prevSemesterSubjects = await CurriculumDetail.find({
         curriculumId,
         semester: previousSemester
     }).select('subjectId');
-
     if (prevSemesterSubjects.length === 0) return true;
-
     const prevSubjectIds = prevSemesterSubjects.map(s => s.subjectId);
-
     for (const subjectId of prevSubjectIds) {
         const gradesForSubject = await Grade.find({ studentId, subjectId }).populate('componentId');
         const componentsForSubject = await GradeComponent.find({ subjectId });
-
         if (gradesForSubject.length === 0 || componentsForSubject.length === 0) {
             console.log(`[DEBUG] Sinh viên ${studentId} thiếu điểm hoặc cấu hình cho môn ${subjectId}`);
             return false;
         }
-
         let totalScore = 0;
         let totalWeight = 0;
         componentsForSubject.forEach(component => {
@@ -182,7 +179,6 @@ const checkPrerequisites = async (studentId, targetSemester, curriculumId) => {
                 totalWeight += (component.weightPercentage / 100);
             }
         });
-
         const finalScore = (totalWeight > 0) ? (totalScore / totalWeight) : 0;
         if (finalScore < 4) {
             console.log(`[DEBUG] Sinh viên ${studentId} trượt môn ${subjectId} (Điểm: ${finalScore.toFixed(2)})`);
@@ -194,13 +190,16 @@ const checkPrerequisites = async (studentId, targetSemester, curriculumId) => {
 
 const findAvailableCombination = (date, slot, students, lecturers, rooms, conflictSet) => {
     for (const lecturer of lecturers) {
+        const dateStr = date.toISOString().split('T')[0];
+        const lecturerConflictKey = `${lecturer._id}-${dateStr}-${slot}`;
+        if (conflictSet.has(lecturerConflictKey)) {
+            continue;
+        }
         for (const room of rooms) {
-            const dateStr = date.toISOString().split('T')[0];
-            const lecturerConflictKey = `${lecturer._id}-${dateStr}-${slot}`;
             const roomConflictKey = `${room._id}-${dateStr}-${slot}`;
-
-            if (conflictSet.has(lecturerConflictKey) || conflictSet.has(roomConflictKey)) continue;
-
+            if (conflictSet.has(roomConflictKey)) {
+                continue;
+            }
             let studentConflict = false;
             for (const student of students) {
                 if (conflictSet.has(`${student._id}-${dateStr}-${slot}`)) {
@@ -216,46 +215,32 @@ const findAvailableCombination = (date, slot, students, lecturers, rooms, confli
     return null;
 };
 
-// --- HÀM HELPER: TÌM SLOT HỌC HỢP LỆ (ĐÃ SỬA LỖI LOGIC) ---
 const findValidScheduleSlot = (students, lecturers, rooms, conflictSet, semesterStartDate, scheduledSlotsForThisClass, startDayOffset = 0) => {
     const startDate = new Date(semesterStartDate);
-    
     for (let i = 0; i < 15 * 7; i++) {
-        const dayOffset = (i + startDayOffset) % (15 * 7); 
-        
+        const dayOffset = (i + startDayOffset) % (15 * 7);
         const currentDate = new Date(startDate);
         currentDate.setDate(startDate.getDate() + dayOffset);
-
         const currentWeekNumber = getWeekNumber(currentDate);
         const slotsInCurrentWeek = scheduledSlotsForThisClass.filter(slot => getWeekNumber(new Date(slot.date)) === currentWeekNumber);
-
         const isLookingForSecondSlotOfPair = scheduledSlotsForThisClass.length % 2 !== 0;
-
         if (slotsInCurrentWeek.length >= 2 && !isLookingForSecondSlotOfPair) {
             continue;
         }
-        
         const dayOfWeek = currentDate.getDay();
-        // SỬA LỖI 2: Chỉ xếp lịch từ T2-T6 (bỏ T7 và CN)
         if (dayOfWeek === 0 || dayOfWeek === 6) continue;
-
         if (isLookingForSecondSlotOfPair) {
             const firstSlotInPair = scheduledSlotsForThisClass[scheduledSlotsForThisClass.length - 1];
             const timeDiff = currentDate.getTime() - new Date(firstSlotInPair.date).getTime();
             if (timeDiff < (2 * 24 * 60 * 60 * 1000)) continue;
-
             let partnerSlot;
             if (firstSlotInPair.slot % 2 !== 0) partnerSlot = firstSlotInPair.slot + 1;
             else partnerSlot = firstSlotInPair.slot - 1;
-
-            // SỬA LỖI 3: Chỉ cho phép slot 1-4
-            if (partnerSlot < 1 || partnerSlot > 4) continue; 
-
+            if (partnerSlot < 1 || partnerSlot > 4) continue;
             const result = findAvailableCombination(currentDate, partnerSlot, students, lecturers, rooms, conflictSet);
             if (result) return result;
         } else {
-            // SỬA LỖI 3: Chỉ bắt đầu bằng slot 1 và 3 (bỏ slot 5)
-            for (const startSlot of [1, 3]) { 
+            for (const startSlot of [1, 3]) {
                 const result = findAvailableCombination(currentDate, startSlot, students, lecturers, rooms, conflictSet);
                 if (result) return result;
             }
@@ -264,20 +249,25 @@ const findValidScheduleSlot = (students, lecturers, rooms, conflictSet, semester
     return null;
 };
 
-// --- CONTROLLER CHÍNH: XẾP LỊCH TỰ ĐỘNG ---
 const generateSchedule = async (req, res) => {
     let processLogs = [];
+
     try {
         const { semesterId, majorId } = req.body;
         if (!semesterId || !majorId) return res.status(400).json({ message: 'Vui lòng cung cấp học kỳ và chuyên ngành.' });
 
         processLogs.push(`[BẮT ĐẦU] Xếp lịch cho Major ID: ${majorId}, Semester ID: ${semesterId}`);
+        console.log(`[BẮT ĐẦU] Xếp lịch cho Major ID: ${majorId}, Semester ID: ${semesterId}`);
+
         const semester = await Semester.findById(semesterId);
         const curriculum = await Curriculum.findOne({ majorId: majorId, status: 'active' });
         if (!curriculum) return res.status(404).json({ message: 'Không tìm thấy chương trình học đang hoạt động.' });
 
         processLogs.push(`[DỌN DẸP] Xóa dữ liệu lịch học cũ của học kỳ ${semester.semesterName}...`);
-        const oldClasses = await Class.find({ className: { $regex: semester.semesterName } });
+        console.log(`[DỌN DẸP] Xóa dữ liệu lịch học cũ của học kỳ ${semester.semesterName}...`);
+
+        const oldClasses = await Class.find({ className: { $regex: semester.semesterName, $options: "i" } });
+
         if (oldClasses.length > 0) {
             const oldClassIds = oldClasses.map(c => c._id);
             await Schedule.deleteMany({ classId: { $in: oldClassIds } });
@@ -285,71 +275,105 @@ const generateSchedule = async (req, res) => {
             await ScheduleOfLecture.deleteMany({ classId: { $in: oldClassIds } });
             await Class.deleteMany({ _id: { $in: oldClassIds } });
             processLogs.push(`[DỌN DẸP] Đã xóa ${oldClassIds.length} lớp học cũ.`);
+            console.log(`[DỌN DẸP] Đã xóa ${oldClassIds.length} lớp học cũ.`);
+
         }
 
         const studentsInMajor = await Student.find({ majorId });
         let eligibleStudents = [];
         for (const student of studentsInMajor) {
-            const targetSemester = (student.semesterNo || 0) + 1;
+            const targetSemester = (student.semesterNo || 1);
             const hasPassed = await checkPrerequisites(student._id, targetSemester, curriculum._id);
             if (hasPassed) eligibleStudents.push({ student, targetSemester });
         }
-        if (eligibleStudents.length === 0) return res.status(404).json({ message: 'Không có sinh viên nào đủ điều kiện.' });
+        if (eligibleStudents.length === 0) {
+            processLogs.push(`[LỖI] Không có sinh viên nào đủ điều kiện.`);
+            console.log(`[LỖI] Không có sinh viên nào đủ điều kiện.`);
+            return res.status(404).json({ message: 'Không có sinh viên nào đủ điều kiện để xếp lịch.', logs: processLogs });
+        }
         processLogs.push(`[BƯỚC 1] Tìm thấy ${eligibleStudents.length} sinh viên đủ điều kiện.`);
-
+        console.log(`[BƯỚC 1] Tìm thấy ${eligibleStudents.length} sinh viên đủ điều kiện.`);
         const lecturersForMajor = await Lecturer.find({ majorId });
         const allRooms = await Room.find({ status: true });
         if (lecturersForMajor.length === 0) return res.status(404).json({ message: 'Không có giảng viên.' });
         if (allRooms.length === 0) return res.status(404).json({ message: 'Không có phòng học khả dụng.' });
 
         const commonSemester = eligibleStudents[0].targetSemester;
-        const subjectsForSemester = await CurriculumDetail.find({ 
-            curriculumId: curriculum._id, 
-            semester: commonSemester 
+        const subjectsForSemester = await CurriculumDetail.find({
+            curriculumId: curriculum._id,
+            semester: commonSemester
         }).populate('subjectId');
-        
         if (subjectsForSemester.length === 0) return res.status(404).json({ message: `Không có môn học cho kỳ ${commonSemester}.` });
-        
+
         const subjectNames = subjectsForSemester.map(s => s.subjectId ? s.subjectId.subjectCode : 'LỖI_REF').join(', ');
         processLogs.push(`[BƯỚC 2] Các môn cần xếp cho kỳ ${commonSemester}: ${subjectNames}`);
-
+        console.log(`[BƯỚC 2] Các môn cần xếp cho kỳ ${commonSemester}: ${subjectNames}`);
         let classesToSchedule = [];
         for (const detail of subjectsForSemester) {
             if (!detail.subjectId) {
                 processLogs.push(`[CẢNH BÁO] Bỏ qua CurriculumDetail ${detail._id} vì SubjectId không hợp lệ.`);
+                console.warn(`[CẢNH BÁO] Bỏ qua CurriculumDetail ${detail._id} vì SubjectId không hợp lệ.`);
                 continue;
             }
             const studentsForSubject = eligibleStudents.filter(s => s.targetSemester === commonSemester);
-            
-            const CLASS_SIZE = 5; // Giới hạn 5 sinh viên/lớp
+            const CLASS_SIZE = 10;
             const numberOfClasses = Math.ceil(studentsForSubject.length / CLASS_SIZE);
-            
             for (let i = 0; i < numberOfClasses; i++) {
                 const classStudents = studentsForSubject.slice(i * CLASS_SIZE, (i + 1) * CLASS_SIZE);
+                const randomLecturer = lecturersForMajor[Math.floor(Math.random() * lecturersForMajor.length)];
                 const newClass = new Class({
                     className: `${detail.subjectId.subjectCode}-${semester.semesterName}-${i + 1}`,
-                    subjectId: detail.subjectId._id, roomId: allRooms[0]._id, lecturerId: lecturersForMajor[0]._id
+                    subjectId: detail.subjectId._id,
+                    roomId: allRooms[0]._id,
+                    lecturerId: randomLecturer._id
                 });
                 await newClass.save();
-                classesToSchedule.push({ class: newClass, students: classStudents.map(s => s.student) });
-                processLogs.push(`   -> Đã tạo lớp ${newClass.className} với ${classStudents.length} sinh viên.`);
+                classesToSchedule.push({
+                    class: newClass,
+                    students: classStudents.map(s => s.student),
+                    assignedLecturer: randomLecturer
+                });
+                processLogs.push(`   -> Đã tạo lớp ${newClass.className} với ${classStudents.length} SV, GV: ${randomLecturer.lastName}`);
+                console.log(`   -> Đã tạo lớp ${newClass.className} với ${classStudents.length} SV, GV: ${randomLecturer.lastName}`);
             }
         }
 
         processLogs.push('[BƯỚC 3] Bắt đầu thuật toán xếp lịch...');
+        console.log('[BƯỚC 3] Bắt đầu thuật toán xếp lịch...');
+        // --- SỬA LỖI 2: TẢI TRƯỚC TẤT CẢ LỊCH BẬN VÀO CONFLICTSET ---
         const conflictSet = new Set();
-        
+        const allExistingSchedules = await Schedule.find({}, 'date slot lecturerId roomId').lean();
+
+        for (const s of allExistingSchedules) {
+            const dateStr = s.date.toISOString().split('T')[0];
+            conflictSet.add(`${s.lecturerId}-${dateStr}-${s.slot}`);
+            conflictSet.add(`${s.roomId}-${dateStr}-${s.slot}`);
+            // (Chúng ta sẽ không pre-load lịch sinh viên vì họ có thể học 2 chuyên ngành,
+            // nhưng lịch GV và Phòng là đủ để tránh lỗi E11000)
+        }
+        processLogs.push(`[BƯỚC 3.1] Đã tải ${allExistingSchedules.length} lịch bận (GV/Phòng) vào bộ nhớ đệm.`);
+        console.log(`[BƯỚC 3.1] Đã tải ${allExistingSchedules.length} lịch bận (GV/Phòng) vào bộ nhớ đệm.`);
+        // -----------------------------------------------------------
+
         for (const [idx, classToSchedule] of classesToSchedule.entries()) {
             processLogs.push(` -> Đang xếp lịch cho lớp: ${classToSchedule.class.className}`);
+            console.log(` -> Đang xếp lịch cho lớp: ${classToSchedule.class.className}`);
             let createdSchedules = [];
             let scheduledSlotsForThisClass = [];
-            
+            const classLecturerAsArray = [classToSchedule.assignedLecturer];
+
             for (let i = 0; i < 20; i++) {
-                // SỬA LỖI 1: Thêm `idx` vào hàm để xoay vòng ngày
-                const startDayOffset = (idx * 2) % 5; // 0, 2, 4, 1, 3... (T2, T4, T6, T3, T5)
-                
-                const validSlot = findValidScheduleSlot(classToSchedule.students, lecturersForMajor, allRooms, conflictSet, semester.startDate, scheduledSlotsForThisClass, startDayOffset);
-                
+                const startDayOffset = (idx * 2) % 5;
+                const validSlot = findValidScheduleSlot(
+                    classToSchedule.students,
+                    classLecturerAsArray,
+                    allRooms,
+                    conflictSet,
+                    semester.startDate,
+                    scheduledSlotsForThisClass,
+                    startDayOffset
+                );
+
                 if (validSlot) {
                     const timeInfo = slotTimes.find(t => t.slot === validSlot.slot);
                     if (!timeInfo) {
@@ -369,7 +393,7 @@ const generateSchedule = async (req, res) => {
                     conflictSet.add(`${validSlot.roomId}-${dateStr}-${validSlot.slot}`);
                     classToSchedule.students.forEach(student => conflictSet.add(`${student._id}-${dateStr}-${validSlot.slot}`));
                 } else {
-                    const errorMsg = `   - LỖI: Không thể tìm thấy buổi học thứ ${i + 1} cho lớp ${classToSchedule.class.className}. Dừng xếp lịch.`;
+                    const errorMsg = `   - LỖI: Không thể tìm thấy buổi học thứ ${i + 1} cho lớp ${classToSchedule.class.className} (GV: ${classToSchedule.assignedLecturer.lastName}). Dừng xếp lịch.`;
                     console.error(errorMsg); processLogs.push(errorMsg);
                     break;
                 }
@@ -377,26 +401,24 @@ const generateSchedule = async (req, res) => {
 
             if (createdSchedules.length > 0) {
                 processLogs.push(`[BƯỚC 4] Đang tạo bản ghi ghi danh cho lớp ${classToSchedule.class.className}`);
+                console.log(`[BƯỚC 4] Đang tạo bản ghi ghi danh cho lớp ${classToSchedule.class.className}`);
                 for (const student of classToSchedule.students) {
                     const attendanceRecords = createdSchedules.map(schedule => ({ scheduleId: schedule._id }));
                     await ScheduleOfStudent.create({ studentId: student._id, classId: classToSchedule.class._id, attendance: attendanceRecords });
                 }
                 const lastSchedule = createdSchedules[createdSchedules.length - 1];
                 await Class.findByIdAndUpdate(classToSchedule.class._id, {
-                    lecturerId: lastSchedule.lecturerId,
                     roomId: lastSchedule.roomId
                 });
-                const distinctLecturerIds = [...new Set(createdSchedules.map(s => s.lecturerId.toString()))];
-                for (const lecId of distinctLecturerIds) {
-                    const schedulesForLecturer = createdSchedules.filter(s => s.lecturerId.toString() === lecId);
-                    for (const schedule of schedulesForLecturer) {
-                         await ScheduleOfLecture.create({ scheduleId: schedule._id, lecturerId: lecId });
-                    }
+                const lecturerId = classToSchedule.assignedLecturer._id;
+                for (const schedule of createdSchedules) {
+                    await ScheduleOfLecture.create({ scheduleId: schedule._id, lecturerId: lecturerId });
                 }
             }
         }
 
         processLogs.push('[HOÀN TẤT] Quá trình xếp lịch đã xong.');
+        console.log('[HOÀN TẤT] Quá trình xếp lịch đã xong.');
         res.status(200).json({ message: 'Hoàn tất quá trình xếp lịch!', classesScheduledCount: classesToSchedule.length, logs: processLogs });
 
     } catch (error) {
@@ -405,8 +427,177 @@ const generateSchedule = async (req, res) => {
     }
 };
 
+
+const scheduleManualClass = async (req, res) => {
+    let processLogs = [];
+    try {
+        const {
+            semesterId,
+            lecturerId,
+            roomId,
+            className,
+            studentIds,
+            numberOfSlots,
+            subjectId,
+            newSubjectName,
+            newSubjectCode,
+            newSubjectNoCredit,
+            majorId
+        } = req.body;
+
+        if (!semesterId || !lecturerId || !roomId || !className || !studentIds || !numberOfSlots || !subjectId || !majorId) {
+            return res.status(400).json({ message: 'Thiếu thông tin. Vui lòng cung cấp đủ (kỳ, GV, phòng, tên lớp, sinh viên, số buổi, môn học, chuyên ngành).' });
+        }
+        if (studentIds.length === 0) {
+            return res.status(400).json({ message: 'Bạn phải chọn ít nhất một sinh viên.' });
+        }
+        const semester = await Semester.findById(semesterId);
+        if (!semester) return res.status(404).json({ message: 'Học kỳ không tồn tại.' });
+
+        processLogs.push(`[BƯỚC 1] Bắt đầu tạo lớp thủ công: ${className}`);
+        console.log(`[BƯỚC 1] Bắt đầu tạo lớp thủ công: ${className}`);
+        let finalSubjectId;
+        if (subjectId === 'NEW') {
+            if (!newSubjectName || !newSubjectCode || !newSubjectNoCredit) {
+                return res.status(400).json({ message: 'Phải nhập Tên môn, Mã môn và Số tín chỉ cho môn học mới.' });
+            }
+            try {
+                const newSubject = await Subject.create({
+                    subjectName: newSubjectName,
+                    subjectCode: newSubjectCode,
+                    subjectNoCredit: Number(newSubjectNoCredit),
+                    majorId: majorId,
+                });
+                finalSubjectId = newSubject._id;
+                processLogs.push(`Đã tạo môn học mới: ${newSubjectCode}`);
+                console.log(`Đã tạo môn học mới: ${newSubjectCode}`);
+            } catch (err) {
+                if (err.code === 11000) return res.status(400).json({ message: 'Mã môn học mới đã tồn tại.' });
+                throw err;
+            }
+        } else {
+            finalSubjectId = subjectId;
+        }
+
+        // --- BƯỚC 3: LẤY CURRICULUM ID TỪ SINH VIÊN ĐẦU TIÊN ---
+        // (Giả định tất cả sinh viên được add thủ công chung 1 curriculum)
+        const firstStudent = await Student.findById(studentIds[0]).select('curriculumId');
+        if (!firstStudent) return res.status(404).json({ message: 'Sinh viên đầu tiên không hợp lệ.' });
+        const curriculumId = firstStudent.curriculumId;
+
+        // --- BƯỚC 4: TẠO LỚP (CLASS) ---
+        const newClass = new Class({
+            className,
+            subjectId: finalSubjectId,
+            roomId,
+            lecturerId,
+            curriculumId: curriculumId // Rất quan trọng cho logic "lên kỳ"
+        });
+        await newClass.save();
+        processLogs.push(`Đã tạo lớp ${className} (ID: ${newClass._id}).`);
+        console.log(`Đã tạo lớp ${className} (ID: ${newClass._id}).`);
+        // --- BƯỚC 5: TẢI LỊCH BẬN (CONFLICT SET) ---
+        const conflictSet = new Set();
+        const allExistingSchedules = await Schedule.find({}, 'date slot lecturerId roomId').lean();
+        for (const s of allExistingSchedules) {
+            const dateStr = s.date.toISOString().split('T')[0];
+            conflictSet.add(`${s.lecturerId}-${dateStr}-${s.slot}`);
+            conflictSet.add(`${s.roomId}-${dateStr}-${s.slot}`);
+        }
+        // Lấy lịch bận của chính các sinh viên được thêm vào
+        const studentSchedules = await Schedule.find({ studentId: { $in: studentIds } });
+        for (const s of studentSchedules) {
+            const dateStr = s.date.toISOString().split('T')[0];
+            conflictSet.add(`${s.studentId}-${dateStr}-${s.slot}`);
+        }
+        processLogs.push(`[BƯỚC 2] Đã tải ${allExistingSchedules.length} lịch bận (GV/Phòng) và ${studentSchedules.length} lịch bận (SV).`);
+        console.log(`[BƯỚC 2] Đã tải ${allExistingSchedules.length} lịch bận (GV/Phòng) và ${studentSchedules.length} lịch bận (SV).`);
+        // --- BƯỚC 6: XẾP LỊCH (TẠO 20 BUỔI HỌC) ---
+        processLogs.push(`[BƯỚC 3] Bắt đầu tìm ${numberOfSlots} buổi học...`);
+        console.log(`[BƯỚC 3] Bắt đầu tìm ${numberOfSlots} buổi học...`);
+        const createdSchedules = [];
+        let scheduledSlotsForThisClass = [];
+
+        // Lấy đúng GV và Phòng đã chọn
+        const assignedLecturer = [await Lecturer.findById(lecturerId)];
+        const assignedRoom = [await Room.findById(roomId)];
+        const students = await Student.find({ _id: { $in: studentIds } });
+
+        for (let i = 0; i < numberOfSlots; i++) {
+            const validSlot = findValidScheduleSlot(
+                students,
+                assignedLecturer, // Chỉ tìm cho 1 GV
+                assignedRoom,     // Chỉ tìm cho 1 Phòng
+                conflictSet,
+                semester.startDate,
+                scheduledSlotsForThisClass,
+                0 // Bắt đầu tìm từ đầu
+            );
+
+            if (validSlot) {
+                const timeInfo = slotTimes.find(t => t.slot === validSlot.slot);
+                const newSchedule = new Schedule({
+                    ...validSlot,
+                    semesterId,
+                    subjectId: finalSubjectId,
+                    classId: newClass._id,
+                    startTime: timeInfo.startTime,
+                    endTime: timeInfo.endTime
+                });
+                await newSchedule.save();
+                createdSchedules.push(newSchedule);
+                scheduledSlotsForThisClass.push(validSlot);
+
+                // Cập nhật conflict set ngay lập tức
+                const dateStr = validSlot.date.toISOString().split('T')[0];
+                conflictSet.add(`${validSlot.lecturerId}-${dateStr}-${validSlot.slot}`);
+                conflictSet.add(`${validSlot.roomId}-${dateStr}-${validSlot.slot}`);
+                students.forEach(student => conflictSet.add(`${student._id}-${dateStr}-${validSlot.slot}`));
+            } else {
+                const errorMsg = `LỖI: Chỉ tìm được ${i} / ${numberOfSlots} buổi học. Không tìm thấy slot trống.`;
+                processLogs.push(errorMsg);
+                console.error(errorMsg);
+                break; // Dừng lại nếu không tìm được
+            }
+        }
+
+        if (createdSchedules.length === 0) {
+            return res.status(400).json({ message: 'Không thể tìm thấy bất kỳ slot trống nào cho Giảng viên/Phòng học này.', logs: processLogs });
+        }
+
+        // --- BƯỚC 7: GHI DANH SINH VIÊN VÀ GIẢNG VIÊN ---
+        processLogs.push(`[BƯỚC 4] Đã tạo ${createdSchedules.length} buổi học. Ghi danh ${students.length} sinh viên...`);
+        console.log(`[BƯỚC 4] Đã tạo ${createdSchedules.length} buổi học. Ghi danh ${students.length} sinh viên...`);
+        const attendanceRecords = createdSchedules.map(schedule => ({ scheduleId: schedule._id }));
+
+        for (const studentId of studentIds) {
+            await ScheduleOfStudent.create({
+                studentId: studentId,
+                classId: newClass._id,
+                attendance: attendanceRecords
+            });
+        }
+        for (const schedule of createdSchedules) {
+            await ScheduleOfLecture.create({ scheduleId: schedule._id, lecturerId: lecturerId });
+        }
+
+        processLogs.push('[HOÀN TẤT] Xếp lớp thủ công thành công.');
+        console.log('[HOÀN TẤT] Xếp lớp thủ công thành công.');
+        res.status(200).json({
+            message: `Xếp lớp thủ công thành công! Đã tạo ${createdSchedules.length} buổi học cho ${students.length} sinh viên.`,
+            logs: processLogs
+        });
+
+    } catch (error) {
+        console.error("Lỗi khi xếp lớp thủ công:", error);
+        processLogs.push(`[LỖI SERVER] ${error.message}`);
+        res.status(500).json({ message: 'Lỗi server khi đang xếp lịch.', error: error.message, logs: processLogs });
+    }
+};
+
 module.exports = {
     getStudentSchedule,
     getClassAttendance,
-    generateSchedule
+    generateSchedule,
+    scheduleManualClass
 };

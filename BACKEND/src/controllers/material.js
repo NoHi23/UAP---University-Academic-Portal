@@ -16,7 +16,7 @@ const getStudentMaterials = async (req, res) => {
 
         const curriculumDetails = await CurriculumDetail.find({
             curriculumId: curriculumId,
-            cdSemester: semesterNo.toString()
+            semester: semesterNo.toString()
         });
 
         if (!curriculumDetails || curriculumDetails.length === 0) {

@@ -2,17 +2,18 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const transactionSchema = new Schema({
-    tuitionFeeId: {
-        type: Schema.Types.ObjectId,
-        ref: 'TuitionFee',
-        required: true
-    },
     studentId: {
         type: Schema.Types.ObjectId,
         ref: 'Student',
         required: true
     },
-    transactionCode: {
+    feeId: { // Khoản phí mà giao dịch này đang thanh toán
+        type: Schema.Types.ObjectId,
+        ref: 'TuitionFee',
+        required: true
+    },
+    // Mã đơn hàng (orderId) chúng ta tự tạo, duy nhất
+    orderId: {
         type: String,
         required: true,
         unique: true
@@ -21,20 +22,21 @@ const transactionSchema = new Schema({
         type: Number,
         required: true
     },
-    paymentMethod: {
-        type: String,
-        default: 'vietqr_transfer'
-    },
     status: {
         type: String,
-        enum: ['pending', 'completed', 'failed'],
-        default: 'pending'
+        enum: ['Pending', 'Success', 'Failed'],
+        default: 'Pending'
     },
-    bankTransactionId: {
+    paymentMethod: {
+        type: String,
+        default: 'VNPAY'
+    },
+    transactionCode: {
         type: String
+    },
+    paymentResponse: {
+        type: Schema.Types.Mixed
     }
-}, {
-    timestamps: true
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model("Transaction", transactionSchema);

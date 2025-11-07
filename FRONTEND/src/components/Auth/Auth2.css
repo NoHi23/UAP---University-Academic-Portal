@@ -1,0 +1,186 @@
+/* --- Bố cục chung cho các trang Auth phụ (Quên MK, Reset MK) --- */
+.auth2-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* --- Khung Form --- */
+.auth2-form {
+  background: #ffffff;
+  padding: 2.5rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 450px;
+  text-align: left;
+}
+
+/* --- Tiêu đề và Mô tả --- */
+.auth2-form h2 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  color: #333;
+  font-weight: 700;
+  text-align: center;
+}
+
+.auth2-form p {
+  color: #666;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-size: 0.95rem;
+}
+
+/* --- Ô Input --- */
+.auth2-form input {
+  width: 100%;
+  padding: 14px 16px;
+  margin-bottom: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.auth2-form input:focus {
+  outline: none;
+  border-color: var(--text-color);
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+/* --- Nút Bấm --- */
+.auth2-form button {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 8px;
+  background-color: var(--text-color);
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+  margin-top: 0.5rem;
+}
+
+.auth2-form button:hover {
+  background-color: var(--text-color-2);
+}
+
+.auth2-form button:disabled {
+  background-color: #aaa;
+  cursor: not-allowed;
+}
+
+/* --- Link Quay lại --- */
+.auth2-links {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: center;
+  font-size: 0.9rem;
+}
+
+.auth2-links a {
+  color: var(--text-color);
+  text-decoration: none;
+}
+
+.auth2-links a:hover {
+  text-decoration: underline;
+}
+
+/* --- Thông báo (dùng chung cho lỗi hoặc thành công) --- */
+.auth2-message-success {
+  color: #155724;
+  background-color: #d4edda;
+  border: 1px solid #c3e6cb;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  text-align: center;
+  font-size: 0.95rem;
+}
+
+.auth2-message-error {
+  color: #721c24;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  text-align: center;
+  font-size: 0.95rem;
+}
+
+
+/* --- CSS CHO THANH ĐỘ MẠNH MẬT KHẨU --- */
+.strength-meter-container {
+    margin-top: -10px; /* Nằm sát trên ô input */
+    margin-bottom: 15px;
+    text-align: right;
+}
+
+.strength-bar-background {
+    width: 100%;
+    background-color: #eee;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.strength-bar-foreground {
+    height: 100%;
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.strength-text {
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+/* --- CSS CHO THÔNG BÁO TRÙNG KHỚP --- */
+.password-match-status {
+    text-align: left;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-top: -10px;
+    margin-bottom: 15px;
+    height: 20px; /* Giữ layout ổn định */
+}
+
+.password-match {
+    color: #28a745; /* Xanh lá */
+}
+
+.password-mismatch {
+    color: #dc3545; /* Đỏ */
+}
+
+
+.status-icon {
+    font-size: 1.1rem;
+    animation: pop-in 0.3s ease-out forwards;
+}
+
+
+@keyframes pop-in {
+    0% {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+    75% {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.status-icon {
+    font-size: 1.1rem;
+    animation: pop-in 0.3s ease-out forwards;
+}

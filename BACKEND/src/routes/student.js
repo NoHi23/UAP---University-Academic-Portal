@@ -1,49 +1,59 @@
 const express = require('express');
 const router = express.Router();
 const { verifyToken, authorize } = require('../middleware/authorization');
-const { getMyWeeklySchedule, getMyClassmates } = require('../controllers/student')
+
+// Import từ studentController
+const { 
+    getMyWeeklySchedule, 
+    getMyClassmates,
+    getProfile, 
+    updateProfile, 
+    getGradesReport, 
+    getTranscript,
+    getExamSchedule 
+} = require('../controllers/student'); // Giả sử tên file là studentController.js
+
+// Import từ các controller khác
 const { getStudentMaterials } = require('../controllers/material');
-const { createPaymentUrl, getTransactionHistory, getTuitionInfo } = require('../controllers/paymentController');
 const { submitRequest, getMyRequests } = require('../controllers/requestController');
 const { getEvaluableClasses, submitEvaluation } = require('../controllers/evaluationController');
 const { getMySlotNotifications, getNotificationsForSlot, getMyRequestNotifications, getAllNotifications } = require('../controllers/notificationController');
-const { getProfile, updateProfile, getGradesReport, getTranscript } = require('../controllers/student');
-const studentController = require('../controllers/student');
 
+// Import từ paymentController (Logic mới)
+const {
+  getMyTuitionFees,
+  getMyTransactionHistory,
+  createPaymentUrl
+} = require('../controllers/paymentController');
+
+// Bảo vệ tất cả các route
 router.use(verifyToken, authorize('student'));
+
+// === TUITION & PAYMENT (LOGIC MỚI) ===
+router.get('/tuition/my-fees', getMyTuitionFees);
+router.get('/tuition/transactions', getMyTransactionHistory);
+router.post('/tuition/create-payment-url', createPaymentUrl); // Sử dụng tên hàm chuẩn
+
+// === SCHEDULE & EXAMS ===
 router.get('/schedules/my-week', getMyWeeklySchedule);
-router.get('/exams', studentController.getExamSchedule);
+router.get('/exams', getExamSchedule);
 
-
-// Student profile endpoints (protected)
+// === PROFILE & GRADES ===
 router.get('/profile', getProfile);
 router.put('/profile', updateProfile);
-
-router.get('/materials/me', getStudentMaterials);
-
-// Student grades / transcript
 router.get('/grades', getGradesReport);
 router.get('/transcript', getTranscript);
 
-router.get('/tuition/me', getTuitionInfo);
-router.post('/tuition/create-payment-url', createPaymentUrl);
-router.get('/transactions/me', getTransactionHistory);
-
+// === OTHER ===
+router.get('/materials/me', getStudentMaterials);
 router.post('/requests', submitRequest);
 router.get('/requests/me', getMyRequests);
-
 router.get('/evaluations/classes-to-review', getEvaluableClasses);
 router.post('/evaluations', submitEvaluation);
-
 router.get('/notifications/slots', getMySlotNotifications);
-
 router.get('/notifications/requests', getMyRequestNotifications);
-
-// Combined notifications (slot + request)
 router.get('/notifications', getAllNotifications);
-
 router.get('/classes/:classId/classmates', getMyClassmates);
-
 router.get('/notifications/slot/:scheduleId', getNotificationsForSlot);
 
 module.exports = router;
