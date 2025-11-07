@@ -3,7 +3,7 @@ require('dotenv').config();
 // Log environment variables for debugging (remove in production)
 console.log('EMAIL_USER:', process.env.EMAIL_USER);
 console.log('EMAIL_PASS:', process.env.EMAIL_PASS ? '[REDACTED]' : 'undefined');
-
+const dayjs = require('dayjs');
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
   port: 587,
@@ -286,5 +286,91 @@ const sendResetPasswordEmail = async ({ to, fullName, schoolEmail, newPassword }
 }
 
 
+const sendPasswordResetEmail = async ({ to, token }) => {
+  // Sửa 'http://localhost:3000' thành URL frontend của bạn nếu cần
+  const resetUrl = `http://localhost:3000/reset-password/${token}`;
 
-module.exports = { sendWelcomeEmail, sendResetPasswordEmail };
+  const mailOptions = {
+    from: `UAP - University Academic Portal <${process.env.EMAIL_USER}>`,
+    to: to,
+    subject: '[UAP] Yêu cầu đặt lại mật khẩu',
+    html: `
+            <div style="font-family: Arial, sans-serif; line-height: 1.6; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
+                <h2 style="color: #333;">Bạn đã yêu cầu đặt lại mật khẩu?</h2>
+                <p>Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản UAP của bạn. Vui lòng nhấp vào nút bên dưới để đặt lại mật khẩu.</p>
+                <p>Lưu ý: Link này sẽ hết hạn sau <strong>10 phút</strong>.</p>
+                <a href="${resetUrl}" style="background-color: #007bff; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
+                    Đặt lại mật khẩu
+                </a>
+                <p style="margin-top: 20px;">Nếu bạn không yêu cầu việc này, vui lòng bỏ qua email này.</p>
+                <hr/>
+                <p style="font-size: 0.9em; color: #777;">Nếu nút bấm không hoạt động, vui lòng sao chép và dán link sau vào trình duyệt:<br/> <a href="${resetUrl}">${resetUrl}</a></p>
+            </div>
+        `
+  };
+
+  await transporter.sendMail(mailOptions);
+  console.log(`[Email] Đã gửi link reset mật khẩu tới ${to}`);
+};
+
+const formatCurrency = (value) => {
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+};
+const sendPaymentNotificationEmail = async ({ to, studentName, semesterName, amount, deadline }) => {
+  const mailOptions = {
+    from: `UAP - University Academic Portal <${process.env.EMAIL_USER}>`,
+    to: to,
+    subject: `[UAP] Thông báo Học phí Kỳ ${semesterName}`,
+    html: `
+            <div style="font-family: Arial, sans-serif; line-height: 1.6; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
+                <h2 style="color: #333;">Thông báo Học phí</h2>
+                <p>Chào ${studentName || 'bạn'},</p>
+                <p>Nhà trường thông báo khoản thu học phí cho học kỳ <b>${semesterName}</b> đã được tạo trên hệ thống.</p>
+                <p>Chi tiết khoản thu:</p>
+                <ul style="list-style-type: none; padding-left: 0;">
+                    <li><strong>Số tiền:</strong> <span style="color: #dc3545; font-weight: bold;">${formatCurrency(amount)}</span></li>
+                    <li><strong>Hạn chót thanh toán:</strong> ${dayjs(deadline).format('DD/MM/YYYY')}</li>
+                </ul>
+                <p>Vui lòng truy cập cổng thông tin sinh viên để xem chi tiết và hoàn thành thanh toán trước hạn.</p>
+                <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/student/payment" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                    Thanh toán ngay
+                </a>
+            </div>
+        `
+  };
+  await transporter.sendMail(mailOptions);
+};
+
+const sendTuitionReminderEmail = async ({ to, studentName, semesterName, amount, deadline, customMessage }) => {
+  const mailOptions = {
+    from: `UAP - University Academic Portal <${process.env.EMAIL_USER}>`,
+    to: to,
+    subject: `[UAP] Nhắc nhở Thanh toán Học phí Kỳ ${semesterName}`,
+    html: `
+            <div style="font-family: Arial, sans-serif; line-height: 1.6; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
+                <h2 style="color: #dc3545;">Nhắc nhở Đóng học phí</h2>
+                <p>Chào ${studentName || 'bạn'},</p>
+                
+                ${customMessage ? `
+                    <p style="font-style: italic; background-color: #f8f9fa; padding: 10px; border-radius: 5px;">
+                        <b>Thông báo từ phòng kế toán:</b><br/>
+                        ${customMessage}
+                    </p>
+                ` : `
+                    <p>Hệ thống ghi nhận bạn vẫn chưa hoàn thành khoản thu học phí cho kỳ <b>${semesterName}</b>.</p>
+                `}
+                
+                <p>Chi tiết khoản thu:</p>
+                <ul style="list-style-type: none; padding-left: 0;">
+                    <li><strong>Số tiền:</strong> <span style="color: #dc3545; font-weight: bold;">${formatCurrency(amount)}</span></li>
+                    <li><strong>Hạn chót thanh toán:</strong> ${dayjs(deadline).format('DD/MM/YYYY')}</li>
+                </ul>
+                <p>Vui lòng hoàn thành thanh toán sớm để không ảnh hưởng đến việc học. Các sinh viên chưa hoàn thành học phí có thể sẽ bị khóa lịch học.</p>
+            </div>
+        `
+  };
+  await transporter.sendMail(mailOptions);
+};
+module.exports = {
+  sendWelcomeEmail, sendResetPasswordEmail, sendPasswordResetEmail, sendPaymentNotificationEmail, sendTuitionReminderEmail
+};

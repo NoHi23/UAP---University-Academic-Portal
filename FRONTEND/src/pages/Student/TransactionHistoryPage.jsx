@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import {
+    Container, Paper, Typography, Box, CircularProgress, Alert,
+    Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip
+} from '@mui/material';
+import { FaHistory } from 'react-icons/fa';
 import api from '../../services/api';
-import FullScreenLoader from '../../components/Common/FullScreenLoader';
-import { FaHistory, FaCheckCircle, FaTimesCircle, FaHourglassHalf } from 'react-icons/fa';
-import { IconButton } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { Link } from 'react-router-dom';
-import './TransactionHistoryPage.css';
+import dayjs from 'dayjs';
+
+const formatCurrency = (value) => {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+};
 
 const TransactionHistoryPage = () => {
     const [transactions, setTransactions] = useState([]);
@@ -14,76 +18,73 @@ const TransactionHistoryPage = () => {
 
     useEffect(() => {
         const fetchHistory = async () => {
+            setLoading(true);
             try {
-                const response = await api.get('/student/transactions/me');
+                // API này sẽ lấy cả giao dịch thành công và thất bại
+                const response = await api.get('/student/tuition/transactions');
                 setTransactions(response.data.data);
             } catch (err) {
                 setError('Không thể tải lịch sử giao dịch.');
-                console.error(err);
             } finally {
                 setLoading(false);
             }
         };
-
         fetchHistory();
     }, []);
 
-    const renderStatusIcon = (status) => {
-        switch (status) {
-            case 'completed':
-                return <span className="status-badge status-completed"><FaCheckCircle /> Thành công</span>;
-            case 'failed':
-                return <span className="status-badge status-failed"><FaTimesCircle /> Thất bại</span>;
-            case 'pending':
-                return <span className="status-badge status-pending"><FaHourglassHalf /> Đang chờ</span>;
-            default:
-                return <span className="status-badge">{status}</span>;
-        }
-    };
-
-    if (loading) return <FullScreenLoader loading={true} />;
-    if (error) return <div className="error-message">{error}</div>;
+    if (loading) return <Container sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}><CircularProgress /></Container>;
+    if (error) return <Container sx={{ textAlign: 'center', mt: 5 }}><Alert severity="error">{error}</Alert></Container>;
 
     return (
-        <div className="history-page-container" style={{ position: 'relative' }}>
-            <IconButton component={Link} to="/student/dashboard" sx={{ position: 'absolute', top: 12, left: 12 }}>
-                <ArrowBackIcon />
-            </IconButton>
-            <header className="history-header">
-                <h1><FaHistory /> Lịch sử giao dịch</h1>
-            </header>
+        <Container maxWidth="lg" sx={{ py: 3 }}>
+            <Paper elevation={3} sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                    <FaHistory size={28} color="#1976d2" />
+                    <Typography variant="h5" fontWeight={600}>
+                        Lịch sử Giao dịch
+                    </Typography>
+                </Box>
 
-            {transactions.length === 0 ? (
-                <div className="info-message">Bạn chưa có giao dịch nào.</div>
-            ) : (
-                <div className="history-table-container">
-                    <table className="history-table">
-                        <thead>
-                            <tr>
-                                <th>Mã giao dịch</th>
-                                <th>Học kỳ</th>
-                                <th>Số tiền</th>
-                                <th>Trạng thái</th>
-                                <th>Ngày giao dịch</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {transactions.map(tx => (
-                                <tr key={tx._id}>
-                                    <td data-label="Mã giao dịch">{tx.transactionCode}</td>
-                                    <td data-label="Học kỳ">{tx.tuitionFeeId?.semesterNo || 'N/A'}</td>
-                                    <td data-label="Số tiền" className="amount">
-                                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(tx.amount)}
-                                    </td>
-                                    <td data-label="Trạng thái">{renderStatusIcon(tx.status)}</td>
-                                    <td data-label="Ngày giao dịch">{new Date(tx.createdAt).toLocaleString('vi-VN')}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
-        </div>
+                <TableContainer component={Paper} variant="outlined">
+                    <Table size="small">
+                        <TableHead>
+                            <TableRow>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Ngày giao dịch</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Mã giao dịch</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Nội dung</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }} align="right">Số tiền</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }} align="center">Trạng thái</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {transactions.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={5} align="center">
+                                        Bạn chưa có giao dịch nào.
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                transactions.map(tx => (
+                                    <TableRow key={tx._id}>
+                                        <TableCell>{dayjs(tx.createdAt).format('DD/MM/YYYY HH:mm')}</TableCell>
+                                        <TableCell>{tx.transactionCode}</TableCell>
+                                        <TableCell>Thanh toán học phí (VNPAY)</TableCell>
+                                        <TableCell align="right">{formatCurrency(tx.amount)}</TableCell>
+                                        <TableCell align="center">
+                                            <Chip 
+                                                label={tx.status} 
+                                                color={tx.status === 'Success' ? 'success' : 'error'} 
+                                                size="small" 
+                                            />
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            </Paper>
+        </Container>
     );
 };
 

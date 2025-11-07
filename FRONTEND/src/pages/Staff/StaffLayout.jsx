@@ -38,8 +38,10 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 
 import { notifySuccess, showConfirmDialog } from '../../services/notificationService';
 import { Outlet, useNavigate } from 'react-router-dom';
-
-// ✅ API & hằng số trạng thái
+import AssessmentIcon from '@mui/icons-material/Assessment';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import PaymentIcon from '@mui/icons-material/Payment';
+import ReceiptIcon from '@mui/icons-material/Receipt';
 import supportAPI, { SUPPORT_STATUS } from '../../api/supportAPI';
 
 const drawerWidth = 260;
@@ -164,8 +166,12 @@ export default function StaffLayout() {
         { text: 'Quản lý lớp học', icon: <LibraryBooksIcon />, path: '/staff/class' },
         { text: "Quản lý thông báo", icon: <NotificationsIcon />, path: "/staff/announcements" },
         { text: 'Hỗ trợ', icon: <SupportAgentIcon />, path: '/staff/supports' },
+        { text: 'Bảng giá Học phí', icon: <AttachMoneyIcon />, path: '/staff/tuition-config' },
+        { text: 'Tạo Khoản thu', icon: <PaymentIcon />, path: '/staff/tuition-generate' },
+        { text: 'Quản lý Học phí', icon: <ReceiptIcon />, path: '/staff/tuition-manage' },
         { text: 'Quản lý thời khóa biểu', icon: <EventNoteIcon />, path: '/staff/schedule' },
         { text: 'Quản lý tài liệu', icon: <MenuBookIcon />, path: '/staff/material' },
+        { text: 'Quản lý Học kỳ', icon: <AssessmentIcon />, path: '/staff/semesters' },
         { text: 'Tạo Lịch tự động', icon: <EventNoteIcon />, path: '/staff/scheduling' },
         { text: 'Xếp lớp thủ công', icon: <PlaylistAddIcon />, path: '/staff/manual-class' },
         { text: 'Duyệt đơn học vụ', icon: <AssignmentTurnedInIcon />, path: '/staff/absence' },

@@ -14,6 +14,7 @@ const bcrypt = require('bcrypt');
 const ExamSchedule = require('../models/examSchedule');
 const ExamScheduleOfStudent = require('../models/examScheduleOfStudent');
 
+const TuitionFee = require('../models/tuitionFeeModel');
 // 1. Get Profile
 const getProfile = async (req, res) => {
     try {
@@ -214,6 +215,15 @@ const getMyWeeklySchedule = async (req, res) => {
         const student = await Student.findOne({ accountId: req.user.id });
         if (!student) {
             return res.status(404).json({ message: "Không tìm thấy thông tin sinh viên." });
+        }
+
+        const isBlocked = await TuitionFee.exists({
+            studentId: student._id,
+            isClassHidden: true
+        });
+        if (isBlocked) {
+            console.log(`[LOGIC] Đã chặn TKB của sinh viên ${student.studentCode} do nợ học phí.`);
+            return res.status(200).json({ success: true, data: [] });
         }
 
         const targetDate = req.query.date ? new Date(req.query.date) : new Date();

@@ -1,112 +1,117 @@
 import React, { useState, useEffect } from 'react';
+import {
+    Container, Paper, Typography, Box, Button, CircularProgress,
+    Alert, Divider, Chip
+} from '@mui/material';
+import { FaMoneyBillWave, FaFileInvoiceDollar } from 'react-icons/fa';
 import api from '../../services/api';
-import FullScreenLoader from '../../components/Common/FullScreenLoader';
-import { FaMoneyBillWave, FaCheckCircle, FaExclamationCircle, FaCalendarAlt, FaHashtag, FaFileInvoiceDollar } from 'react-icons/fa';
-import { IconButton } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { Link } from 'react-router-dom';
-import './PayTuitionPage.css';
-import { notifyError } from '../../services/notificationService';
+import { notifySuccess, notifyError } from '../../services/notificationService';
+import dayjs from 'dayjs';
+
+const formatCurrency = (value) => {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+};
 
 const PayTuitionPage = () => {
-    const [tuitionInfo, setTuitionInfo] = useState(null);
+    const [fees, setFees] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState(null);
+    const [payingId, setPayingId] = useState(null); // State loading cho từng nút
 
-    useEffect(() => {
-        const fetchTuitionInfo = async () => {
-            try {
-                const response = await api.get('/student/tuition/me');
-                setTuitionInfo(response.data.data);
-            } catch (err) {
-                const message = err.response?.status === 404
-                    ? 'Hiện tại không có công nợ học phí nào.'
-                    : 'Không thể tải thông tin học phí.';
-                setError(message);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchTuitionInfo();
-    }, []);
-
-    const handlePayment = async () => {
-        setIsProcessing(true);
+    const fetchFees = async () => {
+        setLoading(true);
         try {
-            const response = await api.post('/student/tuition/create-payment-url');
-            const { paymentUrl } = response.data.data;
-
-            if (paymentUrl) {
-                window.location.href = paymentUrl;
-            }
+            // API này chỉ trả về các khoản CHƯA ĐÓNG và CÒN HẠN
+            const response = await api.get('/student/tuition/my-fees');
+            setFees(response.data.data);
         } catch (err) {
-            notifyError('Không thể tạo yêu cầu thanh toán. Vui lòng thử lại.');
-            setIsProcessing(false);
+            setError('Không thể tải các khoản phí. Lịch học của bạn có thể đã bị khóa.');
+        } finally {
+            setLoading(false);
         }
     };
 
-    if (loading) return <FullScreenLoader loading={true} />;
+    useEffect(() => {
+        fetchFees();
+    }, []);
+
+    const handlePayment = async (feeId) => {
+        setPayingId(feeId); // Bắt đầu loading cho nút này
+        try {
+            // 1. Gọi API backend để lấy link VNPAY
+            const response = await api.post('/student/tuition/create-payment-url', { feeId });
+            
+            if (response.data.paymentUrl) {
+                // 2. Chuyển hướng người dùng sang trang VNPAY
+                window.location.href = response.data.paymentUrl;
+            } else {
+                notifyError('Không thể tạo link thanh toán.');
+            }
+        } catch (err) {
+            notifyError(err.response?.data?.message || 'Thanh toán thất bại.');
+            setPayingId(null); // Dừng loading
+        }
+        // Không cần `finally` ở đây vì trang sẽ chuyển hướng
+    };
+
+    if (loading) return <Container sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}><CircularProgress /></Container>;
+    if (error) return <Container sx={{ textAlign: 'center', mt: 5 }}><Alert severity="error">{error}</Alert></Container>;
 
     return (
-        <div className="tuition-page-container" style={{ position: 'relative' }}>
-            <IconButton component={Link} to="/student/dashboard" sx={{ position: 'absolute', top: 12, left: 12 }}>
-                <ArrowBackIcon />
-            </IconButton>
-            <header className="tuition-header">
-                <h1><FaFileInvoiceDollar /> Thanh toán học phí</h1>
-            </header>
+        <Container maxWidth="md" sx={{ py: 3 }}>
+            <Paper elevation={3} sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                    <FaFileInvoiceDollar size={32} color="#1976d2" />
+                    <Typography variant="h5" fontWeight={600}>
+                        Thanh toán Học phí
+                    </Typography>
+                </Box>
 
-            {error ? (
-                <div className="info-message">{error}</div>
-            ) : tuitionInfo ? (
-                <div className="tuition-card">
-                    <div className="tuition-card-header">
-                        <h2>Học phí học kỳ {tuitionInfo.semesterNo}</h2>
-                        <span className={`status-badge status-${tuitionInfo.status}`}>
-                            {tuitionInfo.status === 'paid' ? <><FaCheckCircle /> Đã thanh toán</> : <><FaExclamationCircle /> Chưa thanh toán</>}
-                        </span>
-                    </div>
-                    <div className="tuition-details-grid">
-                        <div className="detail-item">
-                            <FaHashtag />
-                            <div>
-                                <span>Tổng số tiền</span>
-                                <p>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(tuitionInfo.totalAmount)}</p>
-                            </div>
-                        </div>
-                        <div className="detail-item paid">
-                            <FaCheckCircle />
-                            <div>
-                                <span>Đã thanh toán</span>
-                                <p>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(tuitionInfo.amountPaid)}</p>
-                            </div>
-                        </div>
-                        <div className="detail-item remaining">
-                            <FaMoneyBillWave />
-                            <div>
-                                <span>Còn lại phải đóng</span>
-                                <p>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(tuitionInfo.totalAmount - tuitionInfo.amountPaid)}</p>
-                            </div>
-                        </div>
-                        <div className="detail-item deadline">
-                            <FaCalendarAlt />
-                            <div>
-                                <span>Hạn nộp</span>
-                                <p>{new Date(tuitionInfo.deadline).toLocaleDateString('vi-VN')}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="tuition-card-footer">
-                        {tuitionInfo.status === 'unpaid' && (
-                            <button onClick={handlePayment} disabled={isProcessing} className="btn-pay">
-                                {isProcessing ? 'Đang xử lý...' : 'Thanh toán qua VNPay'}
-                            </button>
-                        )}
-                    </div>
-                </div>
-            ) : null}
-        </div>
+                {fees.length === 0 ? (
+                    <Box sx={{ textAlign: 'center', my: 5 }}>
+                        <Typography variant="h6">Bạn không có khoản thu nào cần thanh toán.</Typography>
+                        <Typography color="textSecondary">Các khoản phí đã đóng hoặc quá hạn sẽ nằm trong Lịch sử Giao dịch.</Typography>
+                    </Box>
+                ) : (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                        {fees.map(fee => (
+                            <Paper key={fee._id} variant="outlined" sx={{ p: 2.5 }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <Box>
+                                        <Typography variant="h6" fontWeight={600}>
+                                            Học phí {fee.semesterId?.semesterName}
+                                        </Typography>
+                                        <Typography variant="body2" color="textSecondary">
+                                            Hạn chót: {dayjs(fee.deadline).format('DD/MM/YYYY')}
+                                        </Typography>
+                                    </Box>
+                                    <Chip label={fee.status} color="warning" variant="outlined" />
+                                </Box>
+                                <Divider sx={{ my: 2 }} />
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <Box>
+                                        <Typography color="textSecondary">Tổng cộng:</Typography>
+                                        <Typography variant="h5" fontWeight={700} color="error.main">
+                                            {formatCurrency(fee.amount)}
+                                        </Typography>
+                                    </Box>
+                                    <Button
+                                        variant="contained"
+                                        color="primary"
+                                        size="large"
+                                        disabled={payingId === fee._id}
+                                        startIcon={payingId === fee._id ? <CircularProgress size={20} color="inherit" /> : <FaMoneyBillWave />}
+                                        onClick={() => handlePayment(fee._id)}
+                                    >
+                                        {payingId === fee._id ? 'Đang xử lý...' : 'Thanh toán ngay'}
+                                    </Button>
+                                </Box>
+                            </Paper>
+                        ))}
+                    </Box>
+                )}
+            </Paper>
+        </Container>
     );
 };
 

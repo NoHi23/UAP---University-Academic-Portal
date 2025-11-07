@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, Typography } from '@mui/material';
 import ExcelImport from './ExcelImport';
 import gradeComponentAPI from '../../api/gradeComponentAPI';
+import { AuthContext } from '../../context/AuthContext';
 
 export default function GradeComponentImport({ subjectId, onImported, readOnly }) {
   const [open, setOpen] = useState(false);
+  const { user } = useContext(AuthContext);
 
   // Transform row for grade component import
   const gradeComponentTransform = (r) => {
@@ -19,12 +21,12 @@ export default function GradeComponentImport({ subjectId, onImported, readOnly }
       return undefined;
     };
     return {
-      name: mapField(['name','Name','Tên','Ten']) || '',
-      weightPercentage: mapField(['weightPercentage','WeightPercentage','weight','Weight']) || '',
-      dropLowest: mapField(['dropLowest','DropLowest']) || '',
-      reLearnTime: mapField(['reLearnTime','ReLearnTime']) || '',
-      description: mapField(['description','Description']) || '',
-      gradingGuide: mapField(['gradingGuide','GradingGuide']) || '',
+      name: mapField(['name', 'Name', 'Tên', 'Ten']) || '',
+      weightPercentage: mapField(['weightPercentage', 'WeightPercentage', 'weight', 'Weight']) || '',
+      dropLowest: mapField(['dropLowest', 'DropLowest']) || '',
+      reLearnTime: mapField(['reLearnTime', 'ReLearnTime']) || '',
+      description: mapField(['description', 'Description']) || '',
+      gradingGuide: mapField(['gradingGuide', 'GradingGuide']) || '',
     };
   };
 
@@ -34,7 +36,12 @@ export default function GradeComponentImport({ subjectId, onImported, readOnly }
       <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 1 }}>
         {!readOnly && (
           <>
-            <Button variant="outlined" onClick={() => setOpen(true)}>Import Grade Components</Button>
+
+            {!readOnly && user?.role !== 'student' && ( // <--- SỬA: Thêm điều kiện user
+              <>
+                <Button variant="outlined" onClick={() => setOpen(true)}>Import Grade Components</Button>
+              </>
+            )}
             <Button variant="contained" color="success" onClick={async () => {
               try {
                 const res = await gradeComponentAPI.exportExcel(subjectId);
@@ -61,7 +68,7 @@ export default function GradeComponentImport({ subjectId, onImported, readOnly }
             onImported={() => { setOpen(false); if (typeof onImported === 'function') onImported(); }}
             model="grade-components"
             transformRow={gradeComponentTransform}
-            requiredFields={["name","weightPercentage"]}
+            requiredFields={["name", "weightPercentage"]}
             customBulkImport={async (payload) => gradeComponentAPI.bulk(payload, subjectId)}
           />
         </DialogContent>

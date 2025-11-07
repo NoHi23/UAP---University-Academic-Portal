@@ -254,7 +254,7 @@ const Dashboard = () => {
           </div>
           <div className="feature-card" onClick={() => navigate('/student/requests')}><FaPaperPlane /><span>Đơn từ & Yêu cầu</span></div>
           <div className="feature-card" onClick={() => navigate('/student/evaluation')}><FaStar /><span>Đánh giá giảng viên</span></div>
-          <div className="feature-card" onClick={() => navigate('/student/notifications')}><FaBullhorn /><span>Thông báo</span></div>
+          <div className="feature-card" onClick={() => navigate('/student/announcements')}><FaBullhorn /><span>Thông báo</span></div>
           <div className="feature-card" onClick={() => navigate('/student/scheduleExam')}><FaClock /><span>Lịch thi</span></div>
 
 

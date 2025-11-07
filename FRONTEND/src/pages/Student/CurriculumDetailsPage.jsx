@@ -37,12 +37,12 @@ const CurriculumDetailsPage = () => {
     useEffect(() => {
         const fetch = async () => {
             try {
-                const res = await api.get(`curriculums/${id}/details`);
+                const res = await api.get(`/curriculums/${id}/details`);
                 setCurriculum(res.data.curriculum || null);
                 setDetails(res.data.details || []);
                 // fetch student's grades as well
                 try {
-                    const gRes = await api.get('student/grades');
+                    const gRes = await api.get('/student/grades');
                     setGrades(gRes.data.grades || []);
                 } catch (gErr) {
                     // non-fatal
