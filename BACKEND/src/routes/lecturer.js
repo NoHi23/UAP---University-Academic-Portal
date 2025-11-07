@@ -3,12 +3,20 @@ const { verifyToken, authorize } = require('../middleware/authorization');
 
 // ✅ Import toàn bộ controller 1 lần
 const lecturerController = require('../controllers/lecturer');
+// allow lecturers to query subjects (read-only) via MaterialManagerController
+const { getSubjects, getSubjectById } = require('../controllers/MaterialManagerController');
 const { getMySlotNotificationsForLecturer } = require('../controllers/notificationController');
 
 const lecturerRouter = express.Router();
 
 // ================== CLASSES & STUDENTS ==================
 lecturerRouter.get('/classes', verifyToken, lecturerController.getClasses);
+// GET /lecturer/subjects - allow logged-in lecturers to list subjects (read-only)
+lecturerRouter.get('/subjects', verifyToken, getSubjects);
+// GET /lecturer/subjects/:id - allow logged-in lecturers to view subject details (read-only)
+lecturerRouter.get('/subjects/:id', verifyToken, getSubjectById);
+
+lecturerRouter.get('/studentsbyclass/:classId', verifyToken, lecturerController.getStudentsByClass);
 lecturerRouter.get('/studentsbyclass/:classId', verifyToken, lecturerController.getStudentsByClass);
 
 // ================== SCHEDULE ==================

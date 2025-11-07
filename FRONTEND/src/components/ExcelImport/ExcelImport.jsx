@@ -159,7 +159,7 @@ export default function ExcelImport({ subjectId: presetSubjectId, onImported, mo
       // ensure every item has a subjectId (skip if using customBulkImport)
       if (typeof customBulkImport !== 'function') {
         const missing = payload.findIndex(p => !p.subjectId || String(p.subjectId).trim() === '');
-        if (missing !== -1 ) {
+        if (missing !== -1) {
           notifyError('Có hàng thiếu subjectId. Vui lòng đặt Subject hoặc include subjectId trong file.');
           setLoading(false);
           return;
@@ -178,7 +178,8 @@ export default function ExcelImport({ subjectId: presetSubjectId, onImported, mo
           materials: materialAPI,
           clos: cloAPI,
           'session-materials': sessionMaterialAPI,
-          students: staffAPI
+          students: staffAPI,
+          lecturers: staffAPI,
         };
         const apiClient = apiMap[model] || materialAPI;
 
@@ -186,6 +187,9 @@ export default function ExcelImport({ subjectId: presetSubjectId, onImported, mo
           res = await apiClient.bulk(payload, { replace });
         } else if (apiClient && typeof apiClient.importStudentsExcel === 'function') {
           res = await apiClient.importStudentsExcel(payload, { replace });
+        } else if (apiClient && typeof apiClient.importLecturersExcel === 'function' && model === 'lecturers') {
+          // lecturers import handler
+          res = await apiClient.importLecturersExcel(payload, { replace });
         } else {
           throw new Error('No API client available for model: ' + model);
         }
@@ -194,7 +198,17 @@ export default function ExcelImport({ subjectId: presetSubjectId, onImported, mo
       setResult(res.data);
       const labelMap = { materials: 'materials', clos: 'CLOs', 'session-materials': 'session materials', 'grade-components': 'grade components' };
       const label = labelMap[model] || 'items';
-      if (res.data?.insertedCount) notifySuccess(`Inserted ${res.data.insertedCount} ${label}`);
+      // handle partial failures or error shapes returned by backend
+      const inserted = res.data?.insertedCount || 0;
+      const failedList = res.data?.failed || res.data?.errors || [];
+      if (inserted > 0 && (!failedList || failedList.length === 0)) {
+        notifySuccess(`Inserted ${inserted} ${label}`);
+      } else if (inserted > 0 && failedList && failedList.length > 0) {
+        notifySuccess(`Inserted ${inserted} ${label}`);
+        notifyError(`Failed ${failedList.length} rows. Check preview result for details.`);
+      } else if ((!inserted || inserted === 0) && failedList && failedList.length > 0) {
+        notifyError(`Import failed for ${failedList.length} rows.`);
+      }
       if (onImported) onImported();
     } catch (err) {
       console.error('bulk import error', err);
@@ -275,11 +289,15 @@ export default function ExcelImport({ subjectId: presetSubjectId, onImported, mo
       {result && (
         <Box sx={{ mt: 2 }}>
           <Typography>Result: inserted {result.insertedCount ?? 0}</Typography>
-          {result.errors && result.errors.length > 0 && (
+          {/* backend may return errors array or failed array with different shapes */}
+          {((result.errors && result.errors.length > 0) || (result.failed && result.failed.length > 0)) && (
             <Box sx={{ mt: 1 }}>
-              <Typography color="error">Errors:</Typography>
-              {result.errors.map((e, i) => (
-                <Typography key={i} sx={{ fontSize: 13 }}>{`Row ${e.index}: ${e.errors.join('; ')}`}</Typography>
+              <Typography color="error">Errors / Failed rows:</Typography>
+              {result.errors && result.errors.length > 0 && result.errors.map((e, i) => (
+                <Typography key={`err-${i}`} sx={{ fontSize: 13 }}>{`Row ${e.index ?? 'N/A'}: ${Array.isArray(e.errors) ? e.errors.join('; ') : JSON.stringify(e.errors)}`}</Typography>
+              ))}
+              {result.failed && result.failed.length > 0 && result.failed.map((f, i) => (
+                <Typography key={`fail-${i}`} sx={{ fontSize: 13 }}>{`Row ${f.row ?? 'N/A'}: ${f.error || JSON.stringify(f)}`}</Typography>
               ))}
             </Box>
           )}

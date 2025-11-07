@@ -29,11 +29,24 @@ const getClassesBySemester = async (semesterId) => {
   return res.data;
 };
 
+const getSubjects = async (params = {}) => {
+  // returns { success, count, data }
+  const res = await api.get('/lecturer/subjects', { params });
+  return res.data;
+};
+
+const getSubjectById = async (id) => {
+  const res = await api.get(`/lecturer/subjects/${id}`);
+  return res.data;
+};
+
 const lecturerAPI = {
   getSemesters,
   getSemesterOptions,
   getStudentsByClass,
   getClassesBySemester
+  , getSubjects,
+  getSubjectById
 };
 
 export default lecturerAPI;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { AuthContext } from '../../context/AuthContext'; 
-import  api  from '../../services/api';
+import { AuthContext } from '../../context/AuthContext';
+import api from '../../services/api';
 import FullScreenLoader from '../../components/Common/FullScreenLoader';
 import { FaBook, FaUserEdit, FaLink, FaDownload } from 'react-icons/fa';
 import './MaterialsPage.css';
@@ -38,7 +38,7 @@ const MaterialsPage = () => {
         };
 
         fetchMaterials();
-    }, []); 
+    }, []);
 
     if (loading) {
         return <FullScreenLoader loading={true} />;
@@ -72,7 +72,7 @@ const MaterialsPage = () => {
                                     </div>
                                     <div className="material-card-body">
                                         <p><FaUserEdit /> <strong>Tác giả:</strong> {material.author}</p>
-                                        <p><strong>Loại:</strong> 
+                                        <p><strong>Loại:</strong>
                                             {material.isMainMaterial ? ' Tài liệu chính' : ' Tài liệu tham khảo'}
                                         </p>
                                     </div>

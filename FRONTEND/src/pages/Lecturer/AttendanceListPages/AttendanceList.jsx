@@ -58,7 +58,61 @@ const AttendanceList = () => {
       if (filterMode === 'subject' && selectedClass) q.set('subjectId', selectedClass);
       const res = await api.get(`lecturer/attendance/summary?${q.toString()}`);
       if (res?.data?.success) {
-        setResults(res.data.data || []);
+        let data = res.data.data || [];
+        // If filtering by subject, expand each subject-level row into multiple rows per class
+        if (filterMode === 'subject') {
+          const expanded = [];
+          (data || []).forEach(row => {
+            // Prefer schedules grouping by classId if available
+            const schedules = Array.isArray(row.schedules) ? row.schedules : [];
+            const classMap = {};
+            if (schedules.length) {
+              schedules.forEach(s => {
+                const cid = (s.classId && (s.classId._id || s.classId)) || s.classId || s.className || '__no_class__';
+                if (!classMap[cid]) classMap[cid] = { classId: cid, className: (s.classId && (s.classId.className || s.classId)) || s.className || '', schedules: [] };
+                classMap[cid].schedules.push(s);
+              });
+            }
+
+            // If no schedules but row has a classId field, create entry
+            if (!schedules.length && (row.classId || row.className)) {
+              const cid = (row.classId && (row.classId._id || row.classId)) || row.classId || row.className || '__no_class__';
+              classMap[cid] = { classId: cid, className: row.className || (row.classId && row.classId.className) || '', schedules: Array.isArray(row.schedules) ? row.schedules : [] };
+            }
+
+            // If still no classes found, push the original row (fallback)
+            if (Object.keys(classMap).length === 0) {
+              expanded.push(row);
+              return;
+            }
+
+            // Build per-class rows
+            Object.keys(classMap).forEach(cid => {
+              const grp = classMap[cid];
+              const totalSlots = grp.schedules.length;
+              // compute taughtSlots if schedule objects include 'taught' flag, otherwise fallback to original row value (may be aggregated)
+              const taughtSlots = grp.schedules.some(s => s.taught !== undefined) ? grp.schedules.filter(s => s.taught).length : (row.taughtSlots !== undefined ? row.taughtSlots : 0);
+              const notTaught = (totalSlots - taughtSlots) >= 0 ? (totalSlots - taughtSlots) : (row.notTaughtSlots ?? 0);
+
+              expanded.push({
+                // carry subject-level info
+                subjectId: row.subjectId,
+                subjectName: row.subjectName || (row.subject && row.subject.subjectName) || row.subjectCode || '',
+                subjectCode: row.subjectCode || (row.subject && row.subject.subjectCode) || '',
+                // class-level
+                classId: grp.classId,
+                className: grp.className || '',
+                schedules: grp.schedules,
+                totalSlots,
+                taughtSlots,
+                notTaughtSlots: notTaught
+              });
+            });
+          });
+          data = expanded;
+        }
+
+        setResults(data);
       } else {
         setResults(res?.data || []);
       }

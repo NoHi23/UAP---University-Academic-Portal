@@ -52,7 +52,8 @@ import MaterialManager from './pages/Staff/MaterialManager';
 import SubjectDetail from './pages/Staff/MaterialManager/SubjectDetail';
 
 import LecturerTimetablePage from './pages/Lecturer/LecturerTimetablePage';
-import AttendancePage from './pages/Lecturer/AttendancePage';
+import AttendancePage from './pages/Lecturer/AttendancePage/AttendancePage';
+import LecturerMaterialManager from './pages/Lecturer/MaterialManager';
 
 // import StaffMaterialsPage from './pages/Staff/StaffMaterialsPage'; // unused
 import StudentTimetablePage from './pages/Student/StudentTimetablePage'
@@ -75,6 +76,7 @@ import ChatBubble from './components/Common/ChatBubble';
 import AiToolManagementPage from './pages/Staff/AiToolManagementPage';
 import AiChatPage from './pages/Student/AiChatPage';
 import AiChatLayout from './pages/Student/AiChatLayout';
+import SubjectDetailPublic from './pages/Shared/SubjectDetailPublic';
 function App() {
   const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
@@ -112,7 +114,6 @@ function App() {
                     <Route path="notifications" element={<SlotNotificationsPage />} />
                     <Route path="chat" element={<AiChatPage />} />
                     <Route path="timetable" element={<Timetable />} />
-                    <Route path="exams" element={<ExamSchedule />} />
                     <Route path="curriculums" element={<CurriculumsPage />} />
                     <Route path="curriculums/:id" element={<CurriculumDetailsPage />} />
                     <Route path="announcements" element={<StudentAnnouncements />} />
@@ -133,10 +134,14 @@ function App() {
                   <Route path="/student/absence/new" element={<RequestAbsenceCreate />} />
                   <Route path="/student/classmates/:classId" element={<StudentClassmatesPage />} />
                   <Route path="/student/notifications/slot/:scheduleId" element={<StudentSlotNotificationPage />} />
+                  <Route path="/student/scheduleExam" element={<ExamSchedule />} />
                   <Route path="chat" element={<AiChatLayout />}>
                     <Route index element={<AiChatPage />} />
                     <Route path=":chatId" element={<AiChatPage />} />
                   </Route>
+                </Route>
+                <Route element={<ProtectedRoute />}>
+                  <Route path="/subject/:id" element={<SubjectDetail />} />
                 </Route>
                 <Route path="/staff/" element={<StaffLayout />}>
                   <Route path="dashboard" element={<StaffLayout />} />
@@ -172,7 +177,8 @@ function App() {
                   <Route path="supports" element={<SupportRequestPage />} />
                   <Route path="schedule" element={<LecturerTimetablePage />} />
                   <Route path="attendance/:scheduleId" element={<AttendancePage />} />
-                  <Route path="view-attendance-list" element={<AttendanceList />} />
+                  <Route path="material" element={<LecturerMaterialManager />} />
+                  <Route path="material/:id" element={<SubjectDetailPublic />} />
                   <Route path="view-attendance-list" element={<AttendanceList />} />
                 </Route>
 
