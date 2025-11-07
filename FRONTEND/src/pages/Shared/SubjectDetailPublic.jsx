@@ -1,26 +1,30 @@
+
+
+
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Container, Typography, Box, Button, CircularProgress, Paper, TextField, MenuItem, Autocomplete } from '@mui/material';
-import majorAPI from '../../../api/majorAPI';
-import curriculumAPI from '../../../api/curriculumAPI';
+import majorAPI from '../../api/majorAPI';
+import curriculumAPI from '../../api/curriculumAPI';
 import Grid  from '@mui/material/GridLegacy';
-import subjectAPI from '../../../api/subjectAPI';
-import lecturerAPI from '../../../api/lecturerAPI';
-import MaterialImport from '../../../components/ExcelImport/MaterialImport';
-import CLOExcellImport from '../../../components/ExcelImport/CLOExcellImport';
-import SessionMaterialImport from '../../../components/ExcelImport/sessionMaterialImport';
-import GradeComponentImport from '../../../components/ExcelImport/GradeComponentImport';
-import gradeComponentAPI from '../../../api/gradeComponentAPI';
+import subjectAPI from '../../api/subjectAPI';
+import lecturerAPI from '../../api/lecturerAPI';
+import MaterialImport from '../../components/ExcelImport/MaterialImport';
+import CLOExcellImport from '../../components/ExcelImport/CLOExcellImport';
+import SessionMaterialImport from '../../components/ExcelImport/sessionMaterialImport';
+import GradeComponentImport from '../../components/ExcelImport/GradeComponentImport';
+import gradeComponentAPI from '../../api/gradeComponentAPI';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 // Dialogs are handled inside the import components
-import { notifyError, notifySuccess } from '../../../services/notificationService';
+import { notifyError, notifySuccess } from '../../services/notificationService';
 
 
-export default function SubjectDetail() {
+export default function SubjectDetailPublic() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { search } = useLocation();
@@ -116,7 +120,7 @@ export default function SubjectDetail() {
       const isLecturerPath = window.location.pathname.startsWith('/lecturer');
       if (isLecturerPath) {
         const res = await lecturerAPI.getSubjectById(id);
-        setSubject(res.data?.data || null);
+        setSubject(res.data || null);
       } else {
         const res = await subjectAPI.getById(id);
         setSubject(res.data?.data || null);
@@ -413,3 +417,10 @@ export default function SubjectDetail() {
     </Container>
   );
 }
+
+
+
+
+
+
+ 
