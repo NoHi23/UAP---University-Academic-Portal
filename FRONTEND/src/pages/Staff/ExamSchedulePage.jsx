@@ -1,41 +1,84 @@
 import React, { useState, useEffect } from "react";
-import { Box, Button, Dialog, DialogContent, DialogTitle, TextField, FormControl, InputLabel, Select, MenuItem } from "@mui/material";
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
+} from "@mui/material";
 import { toast } from "react-toastify";
 import examScheduleAPI from "../../api/examScheduleAPI";
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from "@mui/material";
+
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper
+} from "@mui/material";
+
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+
 export default function ExamSchedulePage() {
-  const [open, setOpen] = useState(false);
+
+  /** ----------------------- STATE ------------------------ */
+  const [open, setOpen] = useState(false);          // Modal Add / Edit
+  const [openDetail, setOpenDetail] = useState(false); // Modal Detail
+
+  const [detailData, setDetailData] = useState(null);
+
   const [form, setForm] = useState({
     courseName: "",
     examDate: "",
     time: "",
     room: "",
-    note: "",
+    note: ""
   });
+
   const [schedules, setSchedules] = useState([]);
+  const [filtered, setFiltered] = useState([]);
+
   const [courses, setCourses] = useState([]);
   const [rooms, setRooms] = useState([]);
 
-  // Fetch dữ liệu lịch thi
+  const [editMode, setEditMode] = useState(false);
+  const [currentSchedule, setCurrentSchedule] = useState(null);
+
+  // Search & Filter
+  const [search, setSearch] = useState("");
+  const [filterCourse, setFilterCourse] = useState("");
+  const [filterRoom, setFilterRoom] = useState("");
+  const [filterDate, setFilterDate] = useState("");
+
+
+  /** ----------------------- API CALLS ------------------------ */
   const fetchData = async () => {
     try {
       const res = await examScheduleAPI.getAll({ limit: 1000 });
       setSchedules(res.data.data || []);
+      setFiltered(res.data.data || []);
     } catch {
       toast.error("Không thể tải danh sách lịch thi.");
     }
   };
 
-  // Fetch dữ liệu môn học và phòng thi
   const fetchSelectData = async () => {
     try {
       const [courseRes, roomRes] = await Promise.all([
         examScheduleAPI.getCourses(),
-        examScheduleAPI.getRooms(),
+        examScheduleAPI.getRooms()
       ]);
 
-      // Kiểm tra dữ liệu môn học
-      console.log("Courses:", courseRes.data);  // Kiểm tra
       setCourses(courseRes.data || []);
       setRooms(roomRes.data || []);
     } catch {
@@ -44,11 +87,29 @@ export default function ExamSchedulePage() {
   };
 
   useEffect(() => {
-    fetchData();       // Lấy danh sách lịch thi
-    fetchSelectData(); // Lấy danh sách môn học và phòng thi
+    fetchData();
+    fetchSelectData();
   }, []);
 
-  // Xử lý khi gửi form tạo lịch thi
+
+  /** ----------------------- SEARCH + FILTER ------------------------ */
+  useEffect(() => {
+    let list = [...schedules];
+
+    if (search.trim() !== "") {
+      list = list.filter(s => s.courseName.toLowerCase().includes(search.toLowerCase()));
+    }
+
+    if (filterCourse !== "") list = list.filter(s => s.courseName === filterCourse);
+    if (filterRoom !== "") list = list.filter(s => s.room === filterRoom);
+    if (filterDate !== "") list = list.filter(s => s.examDate.split("T")[0] === filterDate);
+
+    setFiltered(list);
+  }, [search, filterCourse, filterRoom, filterDate, schedules]);
+
+
+  /** ----------------------- CRUD HANDLERS ------------------------ */
+
   const handleSubmit = async () => {
     if (!form.courseName || !form.examDate || !form.time || !form.room) {
       toast.error("Vui lòng nhập đủ các trường bắt buộc.");
@@ -56,23 +117,130 @@ export default function ExamSchedulePage() {
     }
 
     try {
-      await examScheduleAPI.create(form);  // Gửi dữ liệu tạo lịch thi
-      toast.success("Tạo lịch thi thành công!");
+      if (editMode) {
+        await examScheduleAPI.update(currentSchedule._id, form);
+        toast.success("Cập nhật lịch thi thành công!");
+      } else {
+        await examScheduleAPI.create(form);
+        toast.success("Tạo lịch thi thành công!");
+      }
+
       setOpen(false);
-      fetchData();  // Lấy lại danh sách lịch thi mới
+      fetchData();
     } catch (err) {
-      toast.error(err?.response?.data?.message || "Không thể tạo lịch thi!");
+      toast.error(err?.response?.data?.message || "Không thể tạo hoặc cập nhật lịch thi!");
     }
   };
 
+  const handleDelete = async (id) => {
+    try {
+      await examScheduleAPI.delete(id);
+      toast.success("Xóa lịch thi thành công!");
+      fetchData();
+    } catch {
+      toast.error("Không thể xóa lịch thi.");
+    }
+  };
+
+  const handleViewDetails = async (id) => {
+    try {
+      const res = await examScheduleAPI.getById(id);
+      setDetailData(res.data);
+      setOpenDetail(true);
+    } catch {
+      toast.error("Không thể tải chi tiết lịch thi.");
+    }
+  };
+
+
+  /** ----------------------- EXPORT & COPY ------------------------ */
+
+  const handleCopyStudentList = (students) => {
+    navigator.clipboard.writeText(
+      students.map((s, i) => `${i + 1}. ${s.studentCode} - ${s.name}`).join("\n")
+    );
+    toast.success("Đã copy danh sách!");
+  };
+
+  const handleExportExcel = (students) => {
+    const data = students.map(s => ({ "Mã SV": s.studentCode, "Tên": s.name }));
+    const sheet = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, sheet, "Students");
+
+    saveAs(new Blob([XLSX.write(wb, { type: "array", bookType: "xlsx" })]), "DanhSachSinhVien.xlsx");
+  };
+
+  const handleExportPDF = (students) => {
+    const doc = new jsPDF();
+    doc.text("Danh sách sinh viên", 14, 15);
+
+    autoTable(doc, {
+      startY: 20,
+      head: [["Mã SV", "Tên"]],
+      body: students.map(s => [s.studentCode, s.name]),
+    });
+
+    doc.save("DanhSachSinhVien.pdf");
+  };
+
+
+  /** ----------------------- RENDER ------------------------ */
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" mb={2}>
+
+      {/* HEADER */}
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <h2>Quản lý lịch thi</h2>
-        <Button variant="contained" onClick={() => setOpen(true)}>Thêm lịch thi</Button>
+        <Button
+          variant="contained"
+          onClick={() => {
+            setEditMode(false);
+            setForm({ courseName: "", examDate: "", time: "", room: "", note: "" });
+            setOpen(true);
+          }}
+        >
+          Thêm lịch thi
+        </Button>
       </Box>
 
-      {/* Bảng lịch thi */}
+      {/* SEARCH + FILTER */}
+      <Box display="flex" gap={2} mb={3}>
+        <FormControl sx={{ width: "20%" }}>
+          <InputLabel>Môn thi</InputLabel>
+          <Select value={filterCourse} label="Môn thi" onChange={(e) => setFilterCourse(e.target.value)}>
+            <MenuItem value="">Tất cả</MenuItem>
+            {courses.map(c => <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>)}
+          </Select>
+        </FormControl>
+
+        <FormControl sx={{ width: "20%" }}>
+          <InputLabel>Phòng thi</InputLabel>
+          <Select value={filterRoom} label="Phòng thi" onChange={(e) => setFilterRoom(e.target.value)}>
+            <MenuItem value="">Tất cả</MenuItem>
+            {rooms.map(r => <MenuItem key={r.value} value={r.value}>{r.label}</MenuItem>)}
+          </Select>
+        </FormControl>
+
+        <TextField
+          label="Ngày thi"
+          type="date"
+          sx={{ width: "20%" }}
+          InputLabelProps={{ shrink: true }}
+          value={filterDate}
+          onChange={(e) => setFilterDate(e.target.value)}
+        />
+
+        <TextField
+          label="Tìm kiếm môn thi"
+          sx={{ width: "30%" }}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </Box>
+
+
+      {/* BẢNG LỊCH THI */}
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
@@ -82,46 +250,74 @@ export default function ExamSchedulePage() {
               <TableCell>Giờ thi</TableCell>
               <TableCell>Phòng thi</TableCell>
               <TableCell>Ghi chú</TableCell>
+              <TableCell>Hành động</TableCell>
             </TableRow>
           </TableHead>
+
           <TableBody>
-            {schedules.map((s) => (
+            {filtered.map((s) => (
               <TableRow key={s._id}>
                 <TableCell>{s.courseName}</TableCell>
                 <TableCell>{new Date(s.examDate).toLocaleDateString()}</TableCell>
                 <TableCell>{s.time}</TableCell>
                 <TableCell>{s.room}</TableCell>
-                <TableCell>{s.note || ""}</TableCell>
+                <TableCell>{s.note}</TableCell>
+                <TableCell>
+                  <Button onClick={() => handleViewDetails(s._id)}>XEM</Button>
+
+                  <Button
+                    onClick={() => {
+                      setCurrentSchedule(s);
+                      setForm({
+                        courseName: s.courseName,
+                        examDate: s.examDate.split("T")[0],
+                        time: s.time,
+                        room: s.room,
+                        note: s.note
+                      });
+                      setEditMode(true);
+                      setOpen(true);
+                    }}
+                  >
+                    SỬA
+                  </Button>
+
+                  <Button onClick={() => handleDelete(s._id)}>XÓA</Button>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
+
         </Table>
       </TableContainer>
 
-      {/* Form thêm lịch thi */}
+
+
+      {/* FORM ADD / EDIT */}
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Tạo lịch thi</DialogTitle>
+        <DialogTitle>{editMode ? "Sửa lịch thi" : "Tạo lịch thi"}</DialogTitle>
         <DialogContent>
-          {/* Môn thi */}
+
           <FormControl fullWidth margin="dense">
             <InputLabel>Môn thi</InputLabel>
             <Select
               value={form.courseName}
+              label="Môn thi"
               onChange={(e) => setForm({ ...form, courseName: e.target.value })}
             >
               {courses.map((course) => (
                 <MenuItem key={course.value} value={course.value}>
-                  {course.label} {/* Hiển thị môn học */}
+                  {course.label}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
 
-          {/* Phòng thi */}
           <FormControl fullWidth margin="dense">
             <InputLabel>Phòng thi</InputLabel>
             <Select
               value={form.room}
+              label="Phòng thi"
               onChange={(e) => setForm({ ...form, room: e.target.value })}
             >
               {rooms.map((room) => (
@@ -132,33 +328,30 @@ export default function ExamSchedulePage() {
             </Select>
           </FormControl>
 
-          {/* Ngày thi */}
           <TextField
-            label="Ngày thi"
-            type="date"
-            fullWidth
             margin="dense"
+            label="Ngày thi"
+            fullWidth
+            type="date"
             InputLabelProps={{ shrink: true }}
             value={form.examDate}
             onChange={(e) => setForm({ ...form, examDate: e.target.value })}
           />
 
-          {/* Giờ thi */}
           <TextField
-            label="Giờ thi"
-            type="time"
-            fullWidth
             margin="dense"
+            label="Giờ thi"
+            fullWidth
+            type="time"
             InputLabelProps={{ shrink: true }}
             value={form.time}
             onChange={(e) => setForm({ ...form, time: e.target.value })}
           />
 
-          {/* Ghi chú */}
           <TextField
+            margin="dense"
             label="Ghi chú"
             fullWidth
-            margin="dense"
             value={form.note}
             onChange={(e) => setForm({ ...form, note: e.target.value })}
           />
@@ -168,6 +361,51 @@ export default function ExamSchedulePage() {
           </Button>
         </DialogContent>
       </Dialog>
+
+
+
+      {/* MODAL DETAIL */}
+      <Dialog open={openDetail} onClose={() => setOpenDetail(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Chi tiết lịch thi</DialogTitle>
+        <DialogContent>
+          {detailData && (
+            <>
+              <p><b>Môn:</b> {detailData.exam.courseName}</p>
+              <p><b>Phòng:</b> {detailData.exam.room}</p>
+              <p><b>Ngày:</b> {new Date(detailData.exam.examDate).toLocaleDateString()}</p>
+              <p><b>Giờ:</b> {detailData.exam.time}</p>
+
+              <h4>Danh sách sinh viên</h4>
+
+              <Box display="flex" gap={2} mb={2}>
+                <Button variant="outlined" onClick={() => handleCopyStudentList(detailData.students)}>📋 Copy</Button>
+                <Button variant="contained" color="success" onClick={() => handleExportExcel(detailData.students)}>📥 Excel</Button>
+                <Button variant="contained" color="error" onClick={() => handleExportPDF(detailData.students)}>📄 PDF</Button>
+              </Box>
+
+              <TableContainer component={Paper}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Mã SV</TableCell>
+                      <TableCell>Tên</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {detailData.students.map((sv) => (
+                      <TableRow key={sv._id}>
+                        <TableCell>{sv.studentCode}</TableCell>
+                        <TableCell>{sv.name}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
     </Box>
   );
 }

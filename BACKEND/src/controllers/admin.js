@@ -1,30 +1,40 @@
 const Account = require("../models/account");
 const Student = require("../models/student");
 const Lecturer = require("../models/lecturer");
-const Staff = require("../models/staff"); // cần có model staff
-const Major = require("../models/major");
+const Staff = require("../models/staff");
 const bcrypt = require("bcryptjs");
-const XLSX = require("xlsx");
-const { sendWelcomeEmail } = require('../services/emailService');
-const {
-  makeStudentEmail,
-  makeLecturerEmail,
-  makeStaffEmail,
-  generateInitialPassword,
-} = require("../helpers/staff.helpers");
 
-// 🧩 Lấy danh sách account theo role
+// ✅ Hàm tự tạo password
+const generateInitialPassword = () => {
+  return Math.random().toString(36).slice(-8);
+};
+
+// ✅ Hàm tạo email hệ thống theo role
+const makeEmail = (personalEmail, role) => {
+  const username = personalEmail.split("@")[0]
+    .normalize("NFD")                    // Bỏ dấu tiếng Việt
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]/g, "")        // Xóa ký tự đặc biệt
+    .toLowerCase();
+
+  return `${username}@${role}.edu.vn`;
+};
+
+
+
+// 🧩 Lấy danh sách account
 exports.listAccounts = async (req, res) => {
   try {
     const { role, q = "", page = 1, limit = 10 } = req.query;
     const filter = {};
 
     if (role && role !== "all") filter.role = role;
-    if (q)
+    if (q) {
       filter.$or = [
         { email: { $regex: q, $options: "i" } },
         { personalEmail: { $regex: q, $options: "i" } },
       ];
+    }
 
     const skip = (page - 1) * limit;
     const total = await Account.countDocuments(filter);
@@ -44,31 +54,31 @@ exports.listAccounts = async (req, res) => {
   }
 };
 
-// 🧩 Tạo tài khoản mới (admin có thể tạo mọi loại)
-
+// 🧩 Tạo tài khoản mới
 exports.createAccount = async (req, res) => {
   try {
-    const { name, role, personalEmail, majorCode } = req.body;
+    const { role, personalEmail } = req.body;
 
-    // Kiểm tra dữ liệu đầu vào
     if (!personalEmail || personalEmail === "undefined") {
       return res.status(400).json({ message: "Email cá nhân không hợp lệ." });
     }
 
-    if (!["student", "lecture", "staff"].includes(role)) {
-      return res.status(400).json({ message: "Role không hợp lệ" });
+    if (!["student", "lecturer", "staff"].includes(role)) {
+      return res.status(400).json({ message: "Role không hợp lệ (student | lecturer | staff)" });
     }
 
-    // Sinh email theo role
-    let email = "";
-    if (role === "student") email = makeStudentEmail(personalEmail);
-    if (role === "lecture") email = makeLecturerEmail(personalEmail);
-    if (role === "staff") email = makeStaffEmail(personalEmail);
-
+    const email = makeEmail(personalEmail, role);
     const password = generateInitialPassword();
     const hash = await bcrypt.hash(password, 10);
 
-    // Tạo tài khoản chung
+    const existAccount = await Account.findOne({ email });
+    if (existAccount) {
+      return res.status(400).json({
+        success: false,
+        message: "Email hệ thống đã tồn tại, vui lòng dùng email cá nhân khác hoặc xóa tài khoản cũ trước khi tạo.",
+      });
+    }
+    // Tạo tài khoản Account
     const newAcc = await Account.create({
       email,
       password: hash,
@@ -76,50 +86,69 @@ exports.createAccount = async (req, res) => {
       personalEmail,
     });
 
-    // Tạo bản ghi chi tiết tương ứng (student, lecturer, staff)
+    // Tạo bảng chi tiết theo role ✅ (đúng field theo model bạn đang có)
     if (role === "student") {
       await Student.create({
-        studentId: email.split("@")[0],  // Gán studentId bằng email
-        account: newAcc._id,
-        major: majorCode,
-      });
-    } else if (role === "lecture") {
-      await Lecturer.create({
-        lecturerCode: email.split("@")[0],  // Gán lecturerCode bằng email
-        account: newAcc._id,
-      });
-    } else if (role === "staff") {
-      await Staff.create({
-        staffCode: email.split("@")[0],  // Gán staffCode bằng email
-        account: newAcc._id,
+        studentCode: email.split("@")[0].toUpperCase(),
+        firstName: "Unknown",
+        lastName: "User",
+        citizenID: 0,
+        gender: true,
+        phone: "0000000000",
+        address: "Unknown",
+        dateOfBirth: new Date(),
+        semester: "N/A",
+        semesterNo: 1,
+        curriculumId: null,
+        accountId: newAcc._id,
+        majorId: null,
       });
     }
 
-    sendWelcomeEmail(personalEmail, email, password);
+    if (role === "lecturer") {
+      await Lecturer.create({
+        lecturerCode: email.split("@")[0].toUpperCase(),
+        accountId: newAcc._id,
+      });
+    }
 
-    res.status(201).json({
+    if (role === "staff") {
+      await Staff.create({
+        staffCode: email.split("@")[0].toUpperCase(),
+        accountId: newAcc._id,
+
+        firstName: req.body.firstName || "Unknown",
+        lastName: req.body.lastName || "Staff",
+        phone: req.body.phone || "0000000000",
+      });
+    }
+
+
+    return res.status(201).json({
       success: true,
       message: `Tạo tài khoản ${role} thành công`,
       data: newAcc,
+      defaultPassword: password, // trả về để test, sau này có thể ẩn đi
     });
+
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Lỗi khi tạo tài khoản" });
+    console.error("🔥 Lỗi createAccount:", error);
+    return res.status(500).json({ message: "Lỗi khi tạo tài khoản", error: error.message });
   }
 };
 
-
-
-// 🧩 Cập nhật thông tin tài khoản
+// 🧩 Cập nhật account
 exports.updateAccount = async (req, res) => {
   try {
     const { id } = req.params;
     const { status, personalEmail, role } = req.body;
+
     const updated = await Account.findByIdAndUpdate(
       id,
       { status, personalEmail, role },
       { new: true }
     );
+
     res.status(200).json({ success: true, data: updated });
   } catch (error) {
     res.status(500).json({ message: "Lỗi khi cập nhật tài khoản" });
@@ -133,42 +162,52 @@ exports.deleteAccount = async (req, res) => {
     const acc = await Account.findById(id);
     if (!acc) return res.status(404).json({ message: "Không tìm thấy tài khoản" });
 
-    // Xóa dữ liệu chi tiết theo role
-    if (acc.role === "student") await Student.deleteOne({ account: id });
-    if (acc.role === "lecturer") await Lecturer.deleteOne({ account: id });
-    if (acc.role === "staff") await Staff.deleteOne({ account: id });
+    if (acc.role === "student") await Student.deleteOne({ accountId: id });
+    if (acc.role === "lecturer") await Lecturer.deleteOne({ accountId: id });
+    if (acc.role === "staff") await Staff.deleteOne({ accountId: id });
 
     await Account.findByIdAndDelete(id);
+
     res.status(200).json({ success: true, message: "Xóa tài khoản thành công" });
   } catch (error) {
     res.status(500).json({ message: "Lỗi khi xóa tài khoản" });
   }
 };
 
-// 🧩 Reset mật khẩu
+// 🧩 Reset password
 exports.resetPassword = async (req, res) => {
   try {
     const { id } = req.params;
     const password = generateInitialPassword();
     const hash = await bcrypt.hash(password, 10);
+
     const acc = await Account.findByIdAndUpdate(id, { password: hash }, { new: true });
 
-    sendWelcomeEmail(acc.personalEmail, acc.email, password);
-    res.status(200).json({ success: true, message: "Đã reset mật khẩu và gửi email" });
+    return res.status(200).json({
+      success: true,
+      message: "Reset mật khẩu thành công",
+      newPassword: password, // phù hợp khi test
+    });
+
   } catch (error) {
     res.status(500).json({ message: "Lỗi khi reset mật khẩu" });
   }
 };
 
-
-// 🧩 Chặn / Mở khóa tài khoản
+// 🧩 Chặn / Mở khóa
 exports.toggleStatus = async (req, res) => {
   try {
     const { id } = req.params;
+
     const acc = await Account.findById(id);
     if (!acc) return res.status(404).json({ message: "Không tìm thấy tài khoản" });
 
-    acc.status = !acc.status; // đổi trạng thái
+    
+    if (acc.role === "admin") {
+      return res.status(403).json({ message: "Không thể khóa tài khoản admin!" });
+    }
+
+    acc.status = !acc.status;
     await acc.save();
 
     res.status(200).json({
@@ -181,3 +220,4 @@ exports.toggleStatus = async (req, res) => {
     res.status(500).json({ message: "Lỗi khi cập nhật trạng thái tài khoản" });
   }
 };
+

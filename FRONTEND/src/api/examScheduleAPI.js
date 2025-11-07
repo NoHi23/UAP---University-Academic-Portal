@@ -5,9 +5,9 @@ const examScheduleAPI = {
   create: (data) => api.post("/exam-schedule", data),
   update: (id, data) => api.put(`/exam-schedule/${id}`, data),
   delete: (id) => api.delete(`/exam-schedule/${id}`),
-  getById: (id) => api.get(`/exam-schedule/${id}`),
-  getCourses: () => api.get("/exam-schedule/courses"),  // Lấy danh sách môn học
-  getRooms: () => api.get("/exam-schedule/rooms"),    // Lấy danh sách phòng thi
+  getById: (id) => api.get(`/exam-schedule/${id}`), // dùng cho View Detail
+  getCourses: () => api.get("/exam-schedule/courses"),
+  getRooms: () => api.get("/exam-schedule/rooms"),
 };
 
 export default examScheduleAPI;

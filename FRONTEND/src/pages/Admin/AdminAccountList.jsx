@@ -1,34 +1,10 @@
 import React, { useEffect, useState } from "react";
 import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  TextField,
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
-  Pagination,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Chip,
-  Stack,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  Box, Paper, Typography, Button, TextField, Table, TableHead, TableBody,
+  TableRow, TableCell, Pagination, Select, MenuItem, FormControl, InputLabel,
+  Chip, Stack, Dialog, DialogTitle, DialogContent, DialogActions,
 } from "@mui/material";
-import {
-  Add,
-  Delete,
-  Edit,
- 
-  Search,
-} from "@mui/icons-material";
+import { Add, Delete, Edit, Search } from "@mui/icons-material";
 import adminAPI from "../../api/adminAPI";
 import { useNavigate } from "react-router-dom";
 import { notifyError, notifySuccess } from "../../services/notificationService";
@@ -41,129 +17,115 @@ const AdminAccountList = () => {
   const [pages, setPages] = useState(1);
   const [openDialog, setOpenDialog] = useState(false);
   const [selected, setSelected] = useState(null);
-  const [form, setForm] = useState({ name: "", personalEmail: "", role: "student" });
+
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+    personalEmail: "",
+    role: "student",
+  });
 
   const navigate = useNavigate();
 
-  // 🧩 Load danh sách account
   const loadData = async (pageNum = 1, q = "", r = "all") => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        navigate("/login");
-        return;
-      }
       const res = await adminAPI.getAll({ page: pageNum, limit: 10, q, role: r });
       setAccounts(res.data.data);
       setPage(pageNum);
       setPages(res.data.pagination.pages);
-    } catch (error) {
-      console.error(error);
+    } catch {
       notifyError("Không thể tải danh sách tài khoản");
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
   const handleSearch = () => loadData(1, query, role);
   const handlePageChange = (e, value) => loadData(value, query, role);
 
-  // 🧩 Dialog: Mở / Đóng
   const handleOpenDialog = (item = null) => {
     setSelected(item);
     if (item) {
       setForm({
-        name: item.name || "",
-        personalEmail: item.personalEmail || "",
-        role: item.role || "student",
+        email: item.email,
+        personalEmail: item.personalEmail,
+        role: item.role,
+        password: "", // Không cần update password
       });
     } else {
-      setForm({ name: "", personalEmail: "", role: "student" });
+      setForm({ email: "", password: "", personalEmail: "", role: "student" });
     }
     setOpenDialog(true);
   };
+
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setSelected(null);
   };
 
-  // 🧩 Lưu tài khoản (tạo mới / cập nhật)
- const handleSave = async () => {
-  // Kiểm tra trường personalEmail
-  if (!form.personalEmail || form.personalEmail === "undefined") {
-    notifyError("Email cá nhân không hợp lệ.");
-    return;
-  }
-
-  try {
-    if (selected) {
-      await adminAPI.update(selected._id, form);
-      notifySuccess("Cập nhật tài khoản thành công");
-    } else {
-      await adminAPI.create(form); // Gửi dữ liệu lên backend để tạo tài khoản
-      notifySuccess("Tạo tài khoản thành công");
+  const handleSave = async () => {
+    if (!form.personalEmail) {
+      notifyError("Email cá nhân không hợp lệ");
+      return;
     }
-    handleCloseDialog();
-    loadData(page, query, role);
-  } catch (error) {
-    notifyError("Lưu thông tin thất bại");
-  }
-};
 
+    try {
+      if (selected) {
+        // CẬP NHẬT (không gửi email/password)
+        await adminAPI.update(selected._id, {
+          personalEmail: form.personalEmail,
+          role: form.role,
+        });
+        notifySuccess("Cập nhật tài khoản thành công");
+      } else {
+        // TẠO MỚI (bắt buộc có email + password)
+        if (!form.email || !form.password) {
+          notifyError("Email và mật khẩu là bắt buộc khi tạo tài khoản.");
+          return;
+        }
+        await adminAPI.create(form);
+        notifySuccess("Tạo tài khoản thành công");
+      }
 
-  // 🧩 Xóa tài khoản
+      handleCloseDialog();
+      loadData(page, query, role);
+    } catch (err) {
+      notifyError(err.response?.data?.message || "Lưu thông tin thất bại");
+    }
+  };
+
   const handleDelete = async (id) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa tài khoản này?")) return;
+    if (!window.confirm("Bạn có chắc muốn xóa tài khoản này?")) return;
     try {
       await adminAPI.delete(id);
       notifySuccess("Xóa tài khoản thành công");
       loadData(page, query, role);
-    } catch (error) {
+    } catch {
       notifyError("Xóa tài khoản thất bại");
     }
   };
 
-  
-  // 🧩 Chặn / Mở khóa tài khoản
   const handleToggleStatus = async (id) => {
-    if (!window.confirm("Bạn có chắc chắn muốn thay đổi trạng thái tài khoản này?")) return;
     try {
       const res = await adminAPI.toggleStatus(id);
-      notifySuccess(res.data.message || "Cập nhật trạng thái thành công");
+      notifySuccess(res.data.message);
       loadData(page, query, role);
-    } catch (error) {
+    } catch {
       notifyError("Cập nhật trạng thái thất bại");
     }
   };
 
   return (
     <Paper sx={{ p: 3 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h5" fontWeight="bold">
-          👤 Quản Lý Tài Khoản Toàn Hệ Thống
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => handleOpenDialog()}
-        >
+      <Box display="flex" justifyContent="space-between" mb={3}>
+        <Typography variant="h5" fontWeight="bold">👤 Quản Lý Tài Khoản</Typography>
+        <Button variant="contained" startIcon={<Add />} onClick={() => handleOpenDialog()}>
           Tạo tài khoản
         </Button>
       </Box>
 
-      {/* 🔍 Tìm kiếm + Lọc */}
       <Stack direction="row" spacing={2} mb={2}>
-        <TextField
-          label="Tìm kiếm theo email"
-          variant="outlined"
-          size="small"
-          fullWidth
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-        />
+        <TextField fullWidth label="Tìm kiếm email" size="small" value={query} onChange={(e) => setQuery(e.target.value)} />
         <FormControl size="small" sx={{ minWidth: 160 }}>
           <InputLabel>Role</InputLabel>
           <Select value={role} label="Role" onChange={(e) => setRole(e.target.value)}>
@@ -173,12 +135,11 @@ const AdminAccountList = () => {
             <MenuItem value="staff">Nhân viên</MenuItem>
           </Select>
         </FormControl>
-        <Button variant="contained" color="secondary" startIcon={<Search />} onClick={handleSearch}>
+        <Button variant="contained" startIcon={<Search />} onClick={handleSearch}>
           Lọc
         </Button>
       </Stack>
 
-      {/* 📋 Bảng dữ liệu */}
       <Table>
         <TableHead>
           <TableRow>
@@ -189,113 +150,68 @@ const AdminAccountList = () => {
             <TableCell align="center">Thao tác</TableCell>
           </TableRow>
         </TableHead>
+
         <TableBody>
           {accounts.map((acc) => (
             <TableRow key={acc._id}>
               <TableCell>{acc.email}</TableCell>
-              <TableCell>
-                <Chip
-                  label={
-                    acc.role === "student"
-                      ? "Sinh viên"
-                      : acc.role === "lecturer"
-                        ? "Giảng viên"
-                        : acc.role === "staff"
-                          ? "Nhân viên"
-                          : "Khác"
-                  }
-                  color={
-                    acc.role === "student"
-                      ? "primary"
-                      : acc.role === "lecturer"
-                        ? "secondary"
-                        : "success"
-                  }
-                  size="small"
-                />
-              </TableCell>
+              <TableCell>{acc.role}</TableCell>
               <TableCell>{acc.personalEmail}</TableCell>
               <TableCell>
-                {acc.status ? (
-                  <Chip label="Hoạt động" color="success" size="small" />
-                ) : (
-                  <Chip label="Bị khóa" color="default" size="small" />
-                )}
+                <Chip label={acc.status ? "Hoạt động" : "Bị khóa"} color={acc.status ? "success" : "default"} />
               </TableCell>
-              <TableCell align="center">
-                <Stack direction="row" spacing={1} justifyContent="center">
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    color={acc.status ? "error" : "success"}
-                    onClick={() => handleToggleStatus(acc._id)}
-                  >
+              <TableCell>
+                <Stack direction="row" justifyContent="center" spacing={1}>
+                  <Button size="small" color={acc.status ? "error" : "success"} onClick={() => handleToggleStatus(acc._id)}>
                     {acc.status ? "Chặn" : "Mở khóa"}
                   </Button>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    color="secondary"
-                    startIcon={<Edit />}
-                    onClick={() => handleOpenDialog(acc)}
-                  >
-                    Sửa
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    color="error"
-                    startIcon={<Delete />}
-                    onClick={() => handleDelete(acc._id)}
-                  >
-                    Xóa
-                  </Button>
-                 
+                  <Button size="small" startIcon={<Edit />} onClick={() => handleOpenDialog(acc)}>Sửa</Button>
+                  <Button size="small" color="error" startIcon={<Delete />} onClick={() => handleDelete(acc._id)}>Xóa</Button>
                 </Stack>
-
               </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
 
-      {/* 📄 Phân trang */}
-      <Box display="flex" justifyContent="center" mt={3}>
-        <Pagination count={pages} page={page} onChange={handlePageChange} color="primary" />
+      <Box mt={2} display="flex" justifyContent="center">
+        <Pagination count={pages} page={page} onChange={handlePageChange} />
       </Box>
 
-      {/* 💬 Dialog Tạo/Sửa */}
       <Dialog open={openDialog} onClose={handleCloseDialog} fullWidth maxWidth="sm">
         <DialogTitle>{selected ? "Chỉnh sửa tài khoản" : "Tạo tài khoản mới"}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} mt={1}>
-            <TextField
-              label="Email cá nhân"
-              fullWidth
-              value={form.personalEmail}
-              onChange={(e) => setForm({ ...form, personalEmail: e.target.value })}
-            />
+            {!selected && (
+              <>
+                <TextField label="Email (đăng nhập)" fullWidth value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })} />
+
+                <TextField label="Mật khẩu" type="password" fullWidth value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })} />
+              </>
+            )}
+
+            <TextField label="Email cá nhân" fullWidth value={form.personalEmail}
+              onChange={(e) => setForm({ ...form, personalEmail: e.target.value })} />
+
             <FormControl fullWidth>
               <InputLabel>Role</InputLabel>
-              <Select
-                value={form.role}
-                label="Role"
-                onChange={(e) => setForm({ ...form, role: e.target.value })}
-              >
+              <Select value={form.role} label="Role"
+                onChange={(e) => setForm({ ...form, role: e.target.value })}>
                 <MenuItem value="student">Sinh viên</MenuItem>
-                <MenuItem value="lecture">Giảng viên</MenuItem>
+                <MenuItem value="lecturer">Giảng viên</MenuItem>  {/* ✅ sửa đúng */}
                 <MenuItem value="staff">Nhân viên</MenuItem>
+                <MenuItem value="admin">Admin</MenuItem>
               </Select>
             </FormControl>
 
-
           </Stack>
         </DialogContent>
+
         <DialogActions>
           <Button onClick={handleCloseDialog}>Hủy</Button>
-          <Button variant="contained" onClick={handleSave}>
-            Lưu
-          </Button>
+          <Button variant="contained" onClick={handleSave}>Lưu</Button>
         </DialogActions>
       </Dialog>
     </Paper>
