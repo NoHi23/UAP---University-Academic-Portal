@@ -3,14 +3,15 @@ const router = express.Router();
 const { verifyToken, authorize } = require('../middleware/authorization');
 
 // Import từ studentController
-const { 
-    getMyWeeklySchedule, 
-    getMyClassmates,
-    getProfile, 
-    updateProfile, 
-    getGradesReport, 
-    getTranscript,
-    getExamSchedule 
+const {
+  getMyWeeklySchedule,
+  getMyClassmates,
+  getProfile,
+  updateProfile,
+  getGradesReport,
+  getTranscript,
+  getExamSchedule,
+  getAttendanceSummary
 } = require('../controllers/student'); // Giả sử tên file là studentController.js
 
 // Import từ các controller khác
@@ -21,8 +22,8 @@ const { getMySlotNotifications, getNotificationsForSlot, getMyRequestNotificatio
 
 // Import từ paymentController (Logic mới)
 const {
-  getMyTuitionFees,
-  getMyTransactionHistory,
+  getMyTuitionFees,
+  getMyTransactionHistory,
   createPaymentUrl
 } = require('../controllers/paymentController');
 
@@ -56,6 +57,6 @@ router.get('/notifications', getAllNotifications);
 router.get('/classes/:classId/classmates', getMyClassmates);
 router.get('/notifications/slot/:scheduleId', getNotificationsForSlot);
 // Attendance summary grouped by semester
-router.get('/attendance/summary', studentController.getAttendanceSummary);
+router.get('/attendance/summary', getAttendanceSummary);
 
 module.exports = router;
