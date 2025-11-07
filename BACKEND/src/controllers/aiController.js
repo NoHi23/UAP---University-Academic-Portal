@@ -18,7 +18,6 @@ const getGenerativeModel = async (userRole) => {
 
     const geminiTools = allowedTools.map(tool => {
         let description = tool.description;
-
         let toolParameters = { type: "OBJECT", properties: {}, required: [] };
         if (tool.parameters && tool.parameters.properties) {
             toolParameters.properties = tool.parameters.properties;
@@ -37,10 +36,10 @@ const getGenerativeModel = async (userRole) => {
         model: "gemini-2.0-flash",
         tools: geminiTools,
         systemInstruction: `Bạn là một trợ lý AI hiệu quả. Bối cảnh: Hôm nay là ngày ${today}.
-        QUY TẮC QUAN TRỌNG: Nhiệm vụ chính của bạn là gọi các công cụ (tools) được cung cấp.
-        Khi người dùng hỏi một câu có thể được trả lời bằng công cụ (ví dụ: hỏi lịch, hỏi điểm), 
-        bạn PHẢI tự động gọi công cụ đó ngay lập tức với các tham số đã được trích xuất.
-        KHÔNG ĐƯỢC HỎI LẠI ĐỂ XÁC NHẬN. Hãy tự tin hành động.`,
+        QUY TẮC: Nhiệm vụ chính của bạn là gọi các công cụ (tools) được cung cấp.
+        1. Nếu người dùng cung cấp ĐẦY ĐỦ tham số (ví dụ: "lịch học ngày mai"), bạn PHẢI tự động gọi công cụ.
+        2. Nếu người dùng KHÔNG cung cấp đủ tham số (ví dụ: "lấy lịch học"), bạn PHẢI hỏi lại để lấy thông tin còn thiếu (ví dụ: "Bạn muốn xem lịch ngày nào?").
+        3. KHÔNG ĐƯỢC tự ý gọi hàm nếu thiếu tham số bắt buộc.`,
         safetySettings: safetySettings
     });
 };
@@ -84,9 +83,6 @@ const chatWithAI = async (req, res) => {
             const toolResult = await executeTool(call.name, call.args, accountId);
 
             console.log(`[DEBUG] Kết quả từ tool: ${JSON.stringify(toolResult)}`);
-
-            // Một số SDK/model mong muốn 'functionResponse.response' là string (ví dụ JSON string).
-            // Stringify toolResult để tránh model không trả text do mismatch kiểu dữ liệu hoặc safety filter.
             const functionResponsePayload = JSON.stringify(toolResult);
 
             console.log('[DEBUG] Gửi lại kết quả tool cho model (stringified)');
@@ -95,7 +91,6 @@ const chatWithAI = async (req, res) => {
             console.log('[DEBUG] result2:', { hasResponse: !!result2.response, responseText: result2.response ? result2.response.text() : null });
 
             if (!result2.response || !result2.response.text()) {
-                // Nếu model không trả text, lưu kết quả tool vào lịch sử và trả trực tiếp cho user
                 console.warn('AI không phản hồi sau khi nhận kết quả tool. Trả về kết quả raw của tool cho user.');
                 const fallbackText = typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult);
                 chatHistory.messages.push({ role: 'model', content: fallbackText });
@@ -104,7 +99,6 @@ const chatWithAI = async (req, res) => {
             }
 
             const finalResponse = result2.response.text();
-
             chatHistory.messages.push({ role: 'model', content: finalResponse });
             await chatHistory.save();
             return res.status(200).json({ reply: finalResponse, chatId: chatHistory._id });
@@ -115,6 +109,7 @@ const chatWithAI = async (req, res) => {
             return res.status(200).json({ reply: replyText, chatId: chatHistory._id });
         }
 
+        // (Đây là dòng 118 của bạn)
         throw new Error("AI không phản hồi. (Có thể do Safety Filter)");
     } catch (error) {
         console.error("Lỗi AI Chat:", error);
@@ -129,13 +124,11 @@ const getChatHistoryList = async (req, res) => {
             .select('messages createdAt updatedAt')
             .sort({ updatedAt: -1 })
             .limit(20);
-
         const historyList = histories.map(h => ({
             _id: h._id,
             title: h.messages[0] ? h.messages[0].content.substring(0, 40) + '...' : 'Cuộc trò chuyện mới',
             updatedAt: h.updatedAt
         }));
-
         res.status(200).json({ success: true, data: historyList });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Lỗi server' });
@@ -146,7 +139,6 @@ const getChatHistoryById = async (req, res) => {
     try {
         const { chatId } = req.params;
         const accountId = req.user.id;
-
         const chatHistory = await ChatHistory.findOne({ _id: chatId, accountId });
         if (!chatHistory) {
             return res.status(404).json({ message: "Không tìm thấy cuộc trò chuyện." });
@@ -169,6 +161,7 @@ const getNewChat = async (req, res) => {
         res.status(500).json({ success: false, message: 'Lỗi server' });
     }
 };
+
 module.exports = {
     chatWithAI,
     getChatHistoryList,
