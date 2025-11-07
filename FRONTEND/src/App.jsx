@@ -65,7 +65,7 @@ import AbsenceList from "./pages/Staff/AbsenceList";
 import AbsenceReview from "./pages/Staff/AbsenceReview";
 import AttendanceList from './pages/Lecturer/AttendanceListPages/AttendanceList';
 import ClassesBySemesterPage from './pages/Lecturer/ClassesBySemester/Index';
-import SupportRequestPage from './pages/Lecturer/SupportRequest';
+// import SupportRequestPage from './pages/Lecturer/SupportRequest';
 import ExamSchedulePage from './pages/Staff/ExamSchedulePage';
 import AnnouncementList from "./pages/Staff/AnnouncementList";
 import SupportListLecturer from './pages/Lecturer/SupportRequest/SupportList';
@@ -187,9 +187,9 @@ function App() {
 
                  
                 
-                  <Route path="/admin" element={<AdminLayout />}>
+                  <Route path="/admin/" element={<AdminLayout />}>
                     <Route path="curriculum" element={<CurriculumList />} />  
-                    <Route path="account" element={<AdminAccountList />} />
+                    <Route path="accounts" element={<AdminAccountList />} />
                   </Route>
                 
 
