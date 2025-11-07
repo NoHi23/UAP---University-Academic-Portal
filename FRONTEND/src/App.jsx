@@ -13,6 +13,7 @@ import LoginPage from './components/Auth/LoginPage';
 import RegisterPage from './components/Auth/RegisterPage';
 
 
+
 import ProtectedRoute from './components/Routing/ProtectedRoute';
 import BackToTopButton from './components/Common/BackToTopButton';
 import { GoogleOAuthProvider } from '@react-oauth/google';
@@ -37,7 +38,7 @@ import EnterGrades from './pages/Lecturer/EnterGrades';
 import StudentGrades from './pages/Lecturer/StudentGrades';
 import PayTuitionPage from './pages/Student/PayTuitionPage';
 import TransactionHistoryPage from './pages/Student/TransactionHistoryPage';
-import RequestsPage from './pages/Student/RequestsPage';
+import RequestsPage from './pages/Student/SupportRequest/RequestsPage';
 import EvaluationPage from './pages/Student/EvaluationPage';
 import SlotNotificationsPage from './pages/Student/SlotNotificationsPage';
 import LecturerAnnouncements from './pages/Lecturer/ViewAnoucement/AnnoucementList';
@@ -55,6 +56,7 @@ import LecturerTimetablePage from './pages/Lecturer/LecturerTimetablePage';
 import AttendancePage from './pages/Lecturer/AttendancePage/AttendancePage';
 import LecturerMaterialManager from './pages/Lecturer/MaterialManager';
 
+import ExamSchedulePage from './pages/Staff/ExamSchedulePage';
 // import StaffMaterialsPage from './pages/Staff/StaffMaterialsPage'; // unused
 import StudentTimetablePage from './pages/Student/StudentTimetablePage'
 
@@ -65,7 +67,13 @@ import AbsenceList from "./pages/Staff/AbsenceList";
 import AbsenceReview from "./pages/Staff/AbsenceReview";
 import AttendanceList from './pages/Lecturer/AttendanceListPages/AttendanceList';
 import ClassesBySemesterPage from './pages/Lecturer/ClassesBySemester/Index';
-import SupportRequestPage from './pages/Lecturer/SupportRequest';
+// import SupportRequestPage from './pages/Lecturer/SupportRequest';
+import AnnouncementList from "./pages/Staff/AnnouncementList";
+
+import SupportListLecturer from './pages/Lecturer/SupportRequest/SupportList';
+import AdminLayout from "./pages/Admin/AdminLayout";
+import AdminAccountList from "./pages/Admin/AdminAccountList";
+import CurriculumList from './pages/Admin/CurriculumList';
 
 
 import ManualClassPage from './pages/Staff/ManualClassPage';
@@ -77,6 +85,15 @@ import AiToolManagementPage from './pages/Staff/AiToolManagementPage';
 import AiChatPage from './pages/Student/AiChatPage';
 import AiChatLayout from './pages/Student/AiChatLayout';
 import SubjectDetailPublic from './pages/Shared/SubjectDetailPublic';
+import SemesterManagementPage from './pages/Staff/SemesterManagementPage';
+import ForgotPasswordPage from './components/Auth/ForgotPasswordPage';
+import ResetPasswordPage from './components/Auth/ResetPasswordPage';
+import StudentMaterialDetail from './pages/Student/StudentMaterialDetail';
+
+import TuitionConfigPage from './pages/Staff/TuitionConfigPage';
+import TuitionGenerationPage from './pages/Staff/TuitionGenerationPage';
+import TuitionManagementPage from './pages/Staff/TuitionManagementPage';
+
 function App() {
   const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
@@ -103,13 +120,15 @@ function App() {
               <Routes>
                 <Route path='/' element={<LoginPage />} />
                 <Route path='/register' element={<RegisterPage />} />
+                <Route path='/forgot-password' element={<ForgotPasswordPage />} />
+                <Route path='/reset-password/:token' element={<ResetPasswordPage />} />
                 <Route element={<ProtectedRoute />}>
                   <Route path="/student" element={<StudentLayout />}>
                     <Route path="dashboard" element={<StudentDashboard />} />
                     <Route path="materials" element={<MaterialsPage />} />
                     <Route path="payment" element={<PayTuitionPage />} />
                     <Route path="transactions" element={<TransactionHistoryPage />} />
-                    <Route path="requests" element={<RequestsPage />} />
+                    <Route path="requests" element={<SupportListLecturer />} />
                     <Route path="evaluation" element={<EvaluationPage />} />
                     <Route path="notifications" element={<SlotNotificationsPage />} />
                     <Route path="chat" element={<AiChatPage />} />
@@ -124,7 +143,7 @@ function App() {
                   <Route path="/student/materials" element={<MaterialsPage />} />
                   <Route path="/student/payment" element={<PayTuitionPage />} />
                   <Route path="/student/transactions" element={<TransactionHistoryPage />} />
-                  <Route path="/student/requests" element={<RequestsPage />} />
+                  <Route path="/student/requests" element={<SupportListLecturer />} />
                   <Route path="/student/evaluation" element={<EvaluationPage />} />
                   <Route path="/student/notifications" element={<SlotNotificationsPage />} />
                   <Route path="/student/schedule" element={<StudentTimetablePage />} />
@@ -135,6 +154,10 @@ function App() {
                   <Route path="/student/classmates/:classId" element={<StudentClassmatesPage />} />
                   <Route path="/student/notifications/slot/:scheduleId" element={<StudentSlotNotificationPage />} />
                   <Route path="/student/scheduleExam" element={<ExamSchedule />} />
+                  <Route
+                    path="/student/materials/:id"
+                    element={<StudentMaterialDetail />}
+                  />
                   <Route path="chat" element={<AiChatLayout />}>
                     <Route index element={<AiChatPage />} />
                     <Route path=":chatId" element={<AiChatPage />} />
@@ -152,12 +175,18 @@ function App() {
                   <Route path="scheduling" element={<SchedulingPage />} />
                   <Route path="material" element={<MaterialManager />} />
                   <Route path="material/:id" element={<SubjectDetail />} />
-
+                  <Route path="exam-schedule" element={<ExamSchedulePage />} />
                   <Route path="material/:id" element={<SubjectDetail />} />
+                  <Route path="semesters" element={<SemesterManagementPage />} />
                   <Route path="ai-tools" element={<AiToolManagementPage />} />
                   <Route path="absence" element={<AbsenceList />} />
                   <Route path="absence/:id" element={<AbsenceReview />} />
                   <Route path="manual-class" element={<ManualClassPage />} />
+                  <Route path="tuition-config" element={<TuitionConfigPage />} />
+                  <Route path="tuition-generate" element={<TuitionGenerationPage />} />
+                  <Route path="tuition-manage" element={<TuitionManagementPage />} /> 
+                  <Route path="/staff/exam-schedule" element={<ExamSchedulePage />} />  
+                <Route path="/staff/announcements" element={<AnnouncementList />} /> 
                 </Route>
 
                 <Route path="/lecturer/" element={<LecturerLayout />}>
@@ -174,13 +203,23 @@ function App() {
                   <Route path="announcements" element={<LecturerAnnouncements />} />
                   <Route path='my-list-class-charge' element={<ClassesBySemesterPage />} />
                   <Route path="announcements/:id" element={<LecturerAnnouncementDetail />} />
-                  <Route path="supports" element={<SupportRequestPage />} />
+                  <Route path="supports" element={<SupportListLecturer />} />
                   <Route path="schedule" element={<LecturerTimetablePage />} />
                   <Route path="attendance/:scheduleId" element={<AttendancePage />} />
                   <Route path="material" element={<LecturerMaterialManager />} />
                   <Route path="material/:id" element={<SubjectDetailPublic />} />
                   <Route path="view-attendance-list" element={<AttendanceList />} />
                 </Route>
+
+                 
+                
+                  <Route path="/admin/" element={<AdminLayout />}>
+                    <Route path="curriculum" element={<CurriculumList />} />  
+                    <Route path="accounts" element={<AdminAccountList />} />
+                  </Route>
+                
+
+                
 
               </Routes>
               <ChatBubble />

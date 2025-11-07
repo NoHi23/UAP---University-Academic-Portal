@@ -19,9 +19,9 @@ const supportSchema = new Schema({
   },
   status: {
     type: String,
-    enum: ['open', 'in_progress', 'closed'], 
+    enum: ['open', 'in_progress', 'closed'],
     default: 'open',
-    index: true 
+    index: true
   }
 }, {
   timestamps: true

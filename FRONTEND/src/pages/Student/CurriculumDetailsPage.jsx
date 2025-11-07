@@ -15,7 +15,8 @@ import {
     Chip,
     Card,
     CardContent,
-    LinearProgress
+    LinearProgress,
+    IconButton
 } from '@mui/material';
 import {
     School as SchoolIcon,
@@ -23,7 +24,8 @@ import {
     Description as DescriptionIcon,
     Grade as GradeIcon
 } from '@mui/icons-material';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 const CurriculumDetailsPage = () => {
     const { id } = useParams();
@@ -35,12 +37,12 @@ const CurriculumDetailsPage = () => {
     useEffect(() => {
         const fetch = async () => {
             try {
-                const res = await api.get(`curriculums/${id}/details`);
+                const res = await api.get(`/curriculums/${id}/details`);
                 setCurriculum(res.data.curriculum || null);
                 setDetails(res.data.details || []);
                 // fetch student's grades as well
                 try {
-                    const gRes = await api.get('student/grades');
+                    const gRes = await api.get('/student/grades');
                     setGrades(gRes.data.grades || []);
                 } catch (gErr) {
                     // non-fatal
@@ -77,7 +79,10 @@ const CurriculumDetailsPage = () => {
     };
 
     return (
-        <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Container maxWidth="lg" sx={{ py: 4, position: 'relative' }}>
+            <IconButton component={Link} to="/student/dashboard" sx={{ mb: 2, position: 'absolute', top: 26, left: 30 }}>
+                <ArrowBackIcon />
+            </IconButton>
             {loading ? (
                 <Box sx={{ width: '100%' }}>
                     <LinearProgress />

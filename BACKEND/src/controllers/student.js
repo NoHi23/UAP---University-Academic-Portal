@@ -11,7 +11,10 @@ const Curriculum = require('../models/curriculum');
 const Major = require('../models/major');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
+const ExamSchedule = require('../models/examSchedule');
+const ExamScheduleOfStudent = require('../models/examScheduleOfStudent');
 
+const TuitionFee = require('../models/tuitionFeeModel');
 // 1. Get Profile
 const getProfile = async (req, res) => {
     try {
@@ -93,6 +96,333 @@ const updateProfile = async (req, res) => {
     }
 };
 
+
+
+// 3. View Exam Schedule (per-student)
+// The application stores exam assignments in ExamSchedule and links students via
+// ExamScheduleOfStudent. Return only exam entries assigned to the logged-in student.
+const getExamSchedule = async (req, res) => {
+    try {
+        const student = await Student.findOne({ accountId: req.user.id });
+        if (!student) return res.status(404).json({ message: 'Student not found' });
+
+        // Find exam assignments for this student and populate the exam details
+        // Some existing data may have been created with the Account _id instead of Student _id,
+        // so match either the student's ObjectId or the account id from the token.
+        const possibleIds = [String(student._id)];
+        if (req.user && req.user.id) possibleIds.push(String(req.user.id));
+
+        const records = await ExamScheduleOfStudent.find({ student: { $in: possibleIds } })
+            .populate({ path: 'examSchedule', model: 'ExamSchedule' })
+            .sort({ 'examSchedule.examDate': 1 });
+
+        // Map to a shape convenient for the frontend: include attendStatus and the populated examSchedule
+        const examSchedule = records.map(r => ({
+            _id: r._id,
+            examSchedule: r.examSchedule,
+            attendStatus: r.attendStatus
+        }));
+
+        if (!examSchedule || examSchedule.length === 0) {
+            // Provide lightweight debug info to help diagnose why the student has no assigned exams
+            const assignmentsForStudent = await ExamScheduleOfStudent.countDocuments({ student: student._id });
+            const totalAssignments = await ExamScheduleOfStudent.countDocuments();
+            const sample = await ExamScheduleOfStudent.findOne().populate('examSchedule').lean();
+
+            return res.json({
+                examSchedule: [],
+                debug: {
+                    studentId: student._id,
+                    assignmentsForStudent,
+                    totalAssignments,
+                    sampleExists: !!sample,
+                    sample: sample ? { _id: sample._id, student: sample.student, examSchedule: sample.examSchedule } : null
+                }
+            });
+        }
+
+        return res.json({ examSchedule });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+// 4. View Grades Report
+const getGradesReport = async (req, res) => {
+    try {
+        const student = await Student.findOne({ accountId: req.user.id });
+        if (!student) return res.status(404).json({ message: 'Student not found' });
+        const { semesterNo } = req.query;
+        let grades;
+        if (semesterNo) {
+            // Tìm các môn học thuộc kỳ này
+            const gradeSummaries = await GradeSummary.find({ studentId: student._id, semesterNo });
+            const gradeIds = gradeSummaries.map(gs => gs.gradeId);
+            grades = await Grade.find({ _id: { $in: gradeIds } }).populate('subjectId').populate('componentId');
+        } else {
+            grades = await Grade.find({ studentId: student._id }).populate('subjectId').populate('componentId');
+        }
+        return res.json({ grades });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+// 5. View Transcript
+const getTranscript = async (req, res) => {
+    try {
+        const student = await Student.findOne({ accountId: req.user.id });
+        if (!student) return res.status(404).json({ message: 'Student not found' });
+        const curriculumDetails = await CurriculumDetail.find({ curriculumId: student.curriculumId }).populate('subjectId');
+        const gradeSummary = await GradeSummary.find({ studentId: student._id }).populate('majorId').populate('gradeId').populate('componentId');
+        return res.json({ curriculum: curriculumDetails, transcript: gradeSummary });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+
+// 6. View Class List (danh sách lớp trong thời khóa biểu)
+const getClassList = async (req, res) => {
+    try {
+        const student = await Student.findOne({ accountId: req.user.id });
+        if (!student) return res.status(404).json({ message: 'Student not found' });
+        const schedules = await ScheduleOfStudent.find({ studentId: student._id }).populate({
+            path: 'scheduleId',
+            populate: {
+                path: 'classId',
+                model: 'Class',
+                populate: { path: 'subjectId', model: 'Subject' }
+            }
+        });
+        // Lấy danh sách lớp không trùng lặp
+        const classMap = {};
+        const classList = [];
+        schedules.forEach(sch => {
+            const cls = sch.scheduleId.classId;
+            if (cls && !classMap[cls._id]) {
+                classMap[cls._id] = true;
+                classList.push(cls);
+            }
+        });
+        return res.json({ classList });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+const getMyWeeklySchedule = async (req, res) => {
+    try {
+        const student = await Student.findOne({ accountId: req.user.id });
+        if (!student) {
+            return res.status(404).json({ message: "Không tìm thấy thông tin sinh viên." });
+        }
+
+        const isBlocked = await TuitionFee.exists({
+            studentId: student._id,
+            isClassHidden: true
+        });
+        if (isBlocked) {
+            console.log(`[LOGIC] Đã chặn TKB của sinh viên ${student.studentCode} do nợ học phí.`);
+            return res.status(200).json({ success: true, data: [] });
+        }
+
+        const targetDate = req.query.date ? new Date(req.query.date) : new Date();
+
+        const dayOfWeek = targetDate.getDay();
+        const firstDay = new Date(targetDate);
+        firstDay.setDate(targetDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1));
+        const lastDay = new Date(firstDay);
+        lastDay.setDate(firstDay.getDate() + 6);
+
+        firstDay.setHours(0, 0, 0, 0);
+        lastDay.setHours(23, 59, 59, 999);
+
+        const studentEnrollments = await ScheduleOfStudent.find({ studentId: student._id });
+        if (!studentEnrollments || studentEnrollments.length === 0) {
+            return res.status(200).json({ success: true, data: [] });
+        }
+
+        const enrolledClassIds = studentEnrollments.map(e => e.classId);
+
+        const schedules = await Schedule.find({
+            classId: { $in: enrolledClassIds },
+            date: { $gte: firstDay, $lte: lastDay }
+        })
+            .populate('subjectId', 'subjectName subjectCode')
+            .populate('lecturerId', 'firstName lastName email lecturerCode')
+            .populate('roomId', 'roomName')
+            .populate('classId', 'className')
+            .sort({ date: 1, slot: 1 })
+            .lean();
+
+        const schedulesWithAttendance = schedules.map(schedule => {
+            const enrollmentForThisClass = studentEnrollments.find(e => e.classId.equals(schedule.classId._id));
+
+            let attendanceStatus = 'Not Yet';
+            if (enrollmentForThisClass) {
+                const attendanceRecord = enrollmentForThisClass.attendance.find(att =>
+                    att.scheduleId && att.scheduleId.equals(schedule._id)
+                );
+                if (attendanceRecord) {
+                    attendanceStatus = attendanceRecord.status;
+                }
+            }
+
+            return {
+                ...schedule,
+                attendanceStatus: attendanceStatus
+            };
+        });
+        res.status(200).json({ success: true, data: schedulesWithAttendance });
+
+    } catch (error) {
+        console.error("Lỗi khi lấy lịch học của sinh viên:", error);
+        res.status(500).json({ success: false, message: 'Lỗi máy chủ' });
+    }
+};
+
+const getMyClassmates = async (req, res) => {
+    try {
+        const { classId } = req.params;
+        const student = await Student.findOne({ accountId: req.user.id });
+        if (!student) return res.status(404).json({ message: "Không tìm thấy sinh viên." });
+
+        const targetClass = await Class.findById(classId).select('className');
+        if (!targetClass) {
+            return res.status(404).json({ message: "Không tìm thấy lớp học này." });
+        }
+
+        const isEnrolled = await ScheduleOfStudent.exists({ studentId: student._id, classId: classId });
+        if (!isEnrolled) {
+            return res.status(403).json({ message: "Bạn không thuộc lớp học này." });
+        }
+
+        const enrollments = await ScheduleOfStudent.find({ classId: classId })
+            .populate({
+                path: 'studentId',
+                select: 'studentCode firstName lastName studentAvatar'
+            });
+
+        const students = enrollments.map(e => e.studentId);
+
+        res.status(200).json({
+            success: true,
+            count: students.length,
+            data: students,
+            className: targetClass.className
+        });
+
+    } catch (error) {
+        console.error("Lỗi khi lấy danh sách bạn học:", error);
+        res.status(500).json({ success: false, message: 'Lỗi server' });
+    }
+};
+
+// 7. Attendance summary grouped by semester
+const getAttendanceSummary = async (req, res) => {
+    try {
+        const student = await Student.findOne({ accountId: req.user.id });
+        if (!student) return res.status(404).json({ message: 'Student not found' });
+
+        // Find all ScheduleOfStudent records for this student
+        const enrollments = await ScheduleOfStudent.find({ studentId: student._id }).lean();
+
+        // Collect all scheduleIds referenced in attendance arrays
+        const scheduleIds = [];
+        enrollments.forEach(en => {
+            if (Array.isArray(en.attendance)) {
+                en.attendance.forEach(a => {
+                    if (a && a.scheduleId) scheduleIds.push(a.scheduleId);
+                });
+            }
+        });
+
+        if (scheduleIds.length === 0) {
+            return res.json({ success: true, data: [] });
+        }
+
+        // Load schedules with semester and subject population
+        const schedules = await Schedule.find({ _id: { $in: scheduleIds } })
+            .populate('semesterId', 'semesterName startDate endDate')
+            .populate('subjectId', 'subjectName subjectCode')
+            .populate('classId', 'className')
+            .lean();
+
+        const scheduleMap = {};
+        schedules.forEach(s => { scheduleMap[String(s._id)] = s; });
+
+        // Aggregate by semester -> subject
+        const semesters = {}; // semesterId -> { semesterInfo, subjects: { subjectId -> stats } }
+
+        enrollments.forEach(en => {
+            const classId = en.classId;
+            if (!Array.isArray(en.attendance)) return;
+            en.attendance.forEach(a => {
+                if (!a || !a.scheduleId) return;
+                const sch = scheduleMap[String(a.scheduleId)];
+                if (!sch) return; // schedule may have been removed
+
+                const sem = sch.semesterId ? sch.semesterId._id : 'unknown';
+                const semLabel = sch.semesterId || null;
+                const subj = sch.subjectId ? sch.subjectId._id : 'unknown';
+
+                if (!semesters[sem]) semesters[sem] = { semester: semLabel, subjects: {} };
+                if (!semesters[sem].subjects[subj]) {
+                    semesters[sem].subjects[subj] = {
+                        subjectId: sch.subjectId || null,
+                        subjectName: sch.subjectId ? (sch.subjectId.subjectName || '') : '',
+                        subjectCode: sch.subjectId ? (sch.subjectId.subjectCode || '') : '',
+                        classId: sch.classId ? sch.classId._id : classId || null,
+                        className: sch.classId ? sch.classId.className : '',
+                        totalSlots: 0,
+                        absentSlots: 0
+                    };
+                }
+
+                const stat = semesters[sem].subjects[subj];
+                stat.totalSlots += 1;
+                if (a.status === 'Absent') stat.absentSlots += 1;
+            });
+        });
+
+        // Build response array
+        const result = Object.keys(semesters).map(semKey => {
+            const semObj = semesters[semKey];
+            const subjects = Object.keys(semObj.subjects).map(subKey => {
+                const s = semObj.subjects[subKey];
+                const attendanceRate = s.totalSlots > 0 ? ((s.totalSlots - s.absentSlots) / s.totalSlots) * 100 : 100;
+                return {
+                    subjectId: s.subjectId,
+                    subjectName: s.subjectName,
+                    subjectCode: s.subjectCode,
+                    classId: s.classId,
+                    className: s.className,
+                    totalSlots: s.totalSlots,
+                    absentSlots: s.absentSlots,
+                    attendanceRate: Math.round(attendanceRate * 100) / 100,
+                    isFailed: attendanceRate < 80
+                };
+            });
+
+            return {
+                semester: semObj.semester,
+                subjects
+            };
+        });
+
+        // Sort semesters by startDate if available
+        result.sort((a, b) => {
+            const aa = a.semester && a.semester.startDate ? new Date(a.semester.startDate) : new Date(0);
+            const bb = b.semester && b.semester.startDate ? new Date(b.semester.startDate) : new Date(0);
+            return aa - bb;
+        });
+
+        return res.json({ success: true, data: result });
+    } catch (error) {
+        console.error('Error in getAttendanceSummary:', error);
+        return res.status(500).json({ success: false, message: 'Lỗi khi lấy tổng hợp điểm danh', error: error.message });
+    }
+};
 // 2. View Timetable
 const getTimetable = async (req, res) => {
     try {
@@ -190,209 +520,6 @@ const getTimetable = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
-
-// 3. View Exam Schedule
-const getExamSchedule = async (req, res) => {
-    try {
-        const student = await Student.findOne({ accountId: req.user.id });
-        if (!student) return res.status(404).json({ message: 'Student not found' });
-
-        // ScheduleOfStudent stores schedule references inside attendance[].scheduleId
-        // Collect all scheduleIds across the student's enrolled classes
-        const sosDocs = await ScheduleOfStudent.find({ studentId: student._id });
-        const scheduleIds = [];
-        sosDocs.forEach(doc => {
-            if (Array.isArray(doc.attendance)) {
-                doc.attendance.forEach(a => {
-                    if (a && a.scheduleId) scheduleIds.push(a.scheduleId);
-                });
-            }
-        });
-
-        if (scheduleIds.length === 0) {
-            return res.json({ examSchedule: [] });
-        }
-
-        // Query Schedule documents directly and populate related refs
-        const schedules = await Schedule.find({ _id: { $in: scheduleIds } })
-            .populate({ path: 'classId', populate: { path: 'subjectId', model: 'Subject' } })
-            .populate('roomId')
-            .populate('timeSlotId')
-            .populate('weekId')
-            .populate('semesterId')
-            .sort({ date: 1, slot: 1 });
-
-        // Return populated schedules directly (frontend accepts either a populated Schedule
-        // document or an object with scheduleId populated). Returning the populated
-        // Schedule documents keeps the response flexible for the UI.
-        return res.json({ examSchedule: schedules });
-    } catch (error) {
-        return res.status(500).json({ message: error.message });
-    }
-};
-
-// 4. View Grades Report
-const getGradesReport = async (req, res) => {
-    try {
-        const student = await Student.findOne({ accountId: req.user.id });
-        if (!student) return res.status(404).json({ message: 'Student not found' });
-        const { semesterNo } = req.query;
-        let grades;
-        if (semesterNo) {
-            // Tìm các môn học thuộc kỳ này
-            const gradeSummaries = await GradeSummary.find({ studentId: student._id, semesterNo });
-            const gradeIds = gradeSummaries.map(gs => gs.gradeId);
-            grades = await Grade.find({ _id: { $in: gradeIds } }).populate('subjectId').populate('componentId');
-        } else {
-            grades = await Grade.find({ studentId: student._id }).populate('subjectId').populate('componentId');
-        }
-        return res.json({ grades });
-    } catch (error) {
-        return res.status(500).json({ message: error.message });
-    }
-};
-
-// 5. View Transcript
-const getTranscript = async (req, res) => {
-    try {
-        const student = await Student.findOne({ accountId: req.user.id });
-        if (!student) return res.status(404).json({ message: 'Student not found' });
-        const curriculumDetails = await CurriculumDetail.find({ curriculumId: student.curriculumId }).populate('subjectId');
-        const gradeSummary = await GradeSummary.find({ studentId: student._id }).populate('majorId').populate('gradeId').populate('componentId');
-        return res.json({ curriculum: curriculumDetails, transcript: gradeSummary });
-    } catch (error) {
-        return res.status(500).json({ message: error.message });
-    }
-};
-
-
-// 6. View Class List (danh sách lớp trong thời khóa biểu)
-const getClassList = async (req, res) => {
-    try {
-        const student = await Student.findOne({ accountId: req.user.id });
-        if (!student) return res.status(404).json({ message: 'Student not found' });
-        const schedules = await ScheduleOfStudent.find({ studentId: student._id }).populate({
-            path: 'scheduleId',
-            populate: {
-                path: 'classId',
-                model: 'Class',
-                populate: { path: 'subjectId', model: 'Subject' }
-            }
-        });
-        // Lấy danh sách lớp không trùng lặp
-        const classMap = {};
-        const classList = [];
-        schedules.forEach(sch => {
-            const cls = sch.scheduleId.classId;
-            if (cls && !classMap[cls._id]) {
-                classMap[cls._id] = true;
-                classList.push(cls);
-            }
-        });
-        return res.json({ classList });
-    } catch (error) {
-        return res.status(500).json({ message: error.message });
-    }
-};
-const getMyWeeklySchedule = async (req, res) => {
-    try {
-        const student = await Student.findOne({ accountId: req.user.id });
-        if (!student) {
-            return res.status(404).json({ message: "Không tìm thấy thông tin sinh viên." });
-        }
-
-        const targetDate = req.query.date ? new Date(req.query.date) : new Date();
-
-        const dayOfWeek = targetDate.getDay();
-        const firstDay = new Date(targetDate);
-        firstDay.setDate(targetDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1));
-        const lastDay = new Date(firstDay);
-        lastDay.setDate(firstDay.getDate() + 6);
-
-        firstDay.setHours(0, 0, 0, 0);
-        lastDay.setHours(23, 59, 59, 999);
-
-        const studentEnrollments = await ScheduleOfStudent.find({ studentId: student._id });
-        if (!studentEnrollments || studentEnrollments.length === 0) {
-            return res.status(200).json({ success: true, data: [] });
-        }
-
-        const enrolledClassIds = studentEnrollments.map(e => e.classId);
-
-        const schedules = await Schedule.find({
-            classId: { $in: enrolledClassIds },
-            date: { $gte: firstDay, $lte: lastDay }
-        })
-            .populate('subjectId', 'subjectName subjectCode')
-            .populate('lecturerId', 'firstName lastName email lecturerCode')
-            .populate('roomId', 'roomName')
-            .populate('classId', 'className')
-            .sort({ date: 1, slot: 1 })
-            .lean();
-
-        const schedulesWithAttendance = schedules.map(schedule => {
-            const enrollmentForThisClass = studentEnrollments.find(e => e.classId.equals(schedule.classId._id));
-
-            let attendanceStatus = 'Not Yet';
-            if (enrollmentForThisClass) {
-                const attendanceRecord = enrollmentForThisClass.attendance.find(att =>
-                    att.scheduleId && att.scheduleId.equals(schedule._id)
-                );
-                if (attendanceRecord) {
-                    attendanceStatus = attendanceRecord.status;
-                }
-            }
-
-            return {
-                ...schedule,
-                attendanceStatus: attendanceStatus
-            };
-        });
-        res.status(200).json({ success: true, data: schedulesWithAttendance });
-
-    } catch (error) {
-        console.error("Lỗi khi lấy lịch học của sinh viên:", error);
-        res.status(500).json({ success: false, message: 'Lỗi máy chủ' });
-    }
-};
-
-const getMyClassmates = async (req, res) => {
-    try {
-        const { classId } = req.params;
-        const student = await Student.findOne({ accountId: req.user.id });
-        if (!student) return res.status(404).json({ message: "Không tìm thấy sinh viên." });
-
-        const targetClass = await Class.findById(classId).select('className');
-        if (!targetClass) {
-            return res.status(404).json({ message: "Không tìm thấy lớp học này." });
-        }
-
-        const isEnrolled = await ScheduleOfStudent.exists({ studentId: student._id, classId: classId });
-        if (!isEnrolled) {
-            return res.status(403).json({ message: "Bạn không thuộc lớp học này." });
-        }
-
-        const enrollments = await ScheduleOfStudent.find({ classId: classId })
-            .populate({
-                path: 'studentId',
-                select: 'studentCode firstName lastName studentAvatar'
-            });
-
-        const students = enrollments.map(e => e.studentId);
-
-        res.status(200).json({
-            success: true,
-            count: students.length,
-            data: students,
-            className: targetClass.className
-        });
-
-    } catch (error) {
-        console.error("Lỗi khi lấy danh sách bạn học:", error);
-        res.status(500).json({ success: false, message: 'Lỗi server' });
-    }
-};
-
 module.exports = {
     getProfile,
     updateProfile,
@@ -402,5 +529,6 @@ module.exports = {
     getTranscript,
     getClassList,
     getMyWeeklySchedule,
-    getMyClassmates
+    getMyClassmates,
+    getAttendanceSummary
 };

@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { vnpayIpnHandler, vnpayReturnHandler } = require('../controllers/paymentController');
+const { handleVnpayCallback, handleVnpayIPN } = require('../controllers/paymentController');
 
-router.get('/vnpay_ipn', vnpayIpnHandler);
+router.get('/vnpay_return', handleVnpayCallback);
+router.get('/vnpay_ipn', handleVnpayIPN);
 
-router.get('/vnpay_return', vnpayReturnHandler);
 
 module.exports = router;

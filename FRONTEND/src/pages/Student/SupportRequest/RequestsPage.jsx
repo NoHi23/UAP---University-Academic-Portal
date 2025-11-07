@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import  api  from '../../services/api';
-import FullScreenLoader from '../../components/Common/FullScreenLoader';
+import api from '../../../services/api';
+import FullScreenLoader from '../../../components/Common/FullScreenLoader';
 import { FaPaperPlane, FaPlusCircle, FaTimesCircle, FaCheckCircle, FaHourglassHalf } from 'react-icons/fa';
 import './RequestsPage.css';
-import { notifySuccess, notifyError } from '../../services/notificationService';
+import { notifySuccess, notifyError } from '../../../services/notificationService';
 
 // Modal component for the new request form
 const NewRequestModal = ({ isOpen, onClose, onSubmit }) => {
@@ -92,7 +92,7 @@ const RequestsPage = () => {
             notifyError(err.response?.data?.message || 'Gửi yêu cầu thất bại.');
         }
     };
-    
+
     const renderStatus = (status) => {
         switch (status) {
             case 'Approved':
@@ -118,7 +118,7 @@ const RequestsPage = () => {
                     <FaPlusCircle /> Tạo yêu cầu mới
                 </button>
             </header>
-            
+
             {requests.length === 0 ? (
                 <div className="info-message">Bạn chưa gửi yêu cầu nào.</div>
             ) : (
