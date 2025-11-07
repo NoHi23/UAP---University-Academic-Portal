@@ -106,7 +106,6 @@ const login = async (req, res) => {
     };
 
     const token = generateToken(combinedUser);
-    const token = generateToken(combinedUser);
 
     if (account.isFirstLogin) {
       return res.status(200).json({
@@ -127,7 +126,17 @@ const login = async (req, res) => {
     console.error("Lỗi khi đăng nhập:", error);
     return res.status(500).json({ message: "Đã có lỗi xảy ra ở server." });
   }
-};
+
+  }
+
+  catch (error) {
+    console.error("Lỗi khi đăng nhập:", error);
+    return res.status(500).json({ message: "Đã có lỗi xảy ra ở server." });
+  }
+}
+
+
+
 
 const loginWithGoogle = async (req, res) => {
     try {
