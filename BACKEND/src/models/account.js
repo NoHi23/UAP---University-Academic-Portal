@@ -27,6 +27,12 @@ const accountSchema = new mongoose.Schema({
   isFirstLogin: {
     type: Boolean,
     default: true
+  },
+  passwordResetToken: {
+    type: String
+  },
+  passwordResetTokenExpires: {
+    type: Date
   }
 }, {
   timestamps: true

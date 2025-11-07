@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useCallback } from "react";
 import {
     Box, Typography, Container, Card, CardActionArea, CardContent,
-    CircularProgress, Divider, Button, Stack
+    CircularProgress, Divider, Button, Stack, IconButton
 } from "@mui/material";
 import { AccessTime as AccessTimeIcon } from "@mui/icons-material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import announcementAPI from "../../api/annoucementAPI";
 
 const fmt = (v) => {
@@ -41,7 +42,10 @@ const StudentAnnouncements = () => {
     useEffect(() => { fetchData(); }, [fetchData]);
 
     return (
-        <Container maxWidth="md" sx={{ py: 4 }}>
+        <Container maxWidth="md" sx={{ py: 4, position: 'relative' }}>
+            <IconButton component={Link} to="/student/dashboard" sx={{ position: 'absolute', top: 16, left: 16 }}>
+                <ArrowBackIcon />
+            </IconButton>
             <Typography variant="h5" fontWeight={600} gutterBottom>Thông báo</Typography>
 
             <Card sx={{ p: 2, borderRadius: 2, boxShadow: 1 }}>

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import announcementAPI from '../../api/annoucementAPI';
 import api from '../../services/api';
 import FullScreenLoader from '../../components/Common/FullScreenLoader';
+import { IconButton } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { FaBullhorn, FaInfoCircle, FaCalendarDay, FaClock, FaBook } from 'react-icons/fa';
 import './SlotNotificationsPage.css';
 import dayjs from 'dayjs';
@@ -56,7 +58,10 @@ const SlotNotificationsPage = () => {
     if (error) return <div className="error-message">{error}</div>;
 
     return (
-        <div className="notifications-page-container">
+        <div className="notifications-page-container" style={{ position: 'relative' }}>
+            <IconButton component={Link} to="/student/dashboard" sx={{ position: 'absolute', top: 12, left: 12 }}>
+                <ArrowBackIcon />
+            </IconButton>
             <header className="notifications-header">
                 <h1><FaBullhorn /> Thông báo</h1>
             </header>
@@ -83,8 +88,8 @@ const SlotNotificationsPage = () => {
                                 {noti.type === 'slot' && (
                                     <div className="slot-info">
                                         <p><FaBook /> {noti.raw?.scheduleId?.subjectId?.subjectName} ({noti.raw?.scheduleId?.classId?.className})</p>
-                                        <p><FaCalendarDay /> Ngày học: {noti.raw?.scheduleId?.weekId?.startDate ? new Date(noti.raw.scheduleId.weekId.startDate).toLocaleDateString('vi-VN') : 'N/A'}</p>
-                                        <p><FaClock /> Slot: {noti.raw?.scheduleId?.timeSlotId?.slot}</p>
+                                        <p><FaCalendarDay /> Ngày học: {noti.raw?.scheduleId?.date ? dayjs(noti.raw.scheduleId.date).format('DD/MM/YYYY') : 'N/A'}</p>
+                                        <p><FaClock /> Slot: {noti.raw?.scheduleId?.slot || 'N/A'}</p>
                                     </div>
                                 )}
 

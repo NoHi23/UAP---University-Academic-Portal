@@ -1,12 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { Box, Button, Paper, Table, TableBody, TableCell, TableHead, TableRow, CircularProgress, Typography, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import ExcelImport from './ExcelImport';
 import cloAPI from '../../api/cloAPI';
+import { AuthContext } from '../../context/AuthContext';
 
 export default function CLOExcellImport({ subjectId, onImported, readOnly }) {
   const [open, setOpen] = useState(false);
   const [clos, setClos] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { user } = useContext(AuthContext);
 
   // transform for CLO rows: map various header names to cloDetails and loDetails
   const cloTransform = (r, { presetSubjectId }) => {
@@ -21,7 +23,7 @@ export default function CLOExcellImport({ subjectId, onImported, readOnly }) {
       return undefined;
     };
     // Map cloName
-    let cloNameVal = mapField(['cloName','CLO Name','CLOName','cloname']);
+    let cloNameVal = mapField(['cloName', 'CLO Name', 'CLOName', 'cloname']);
     if (cloNameVal === undefined || cloNameVal === null || cloNameVal === '') {
       const found = keys.find(k => String(k).toLowerCase().includes('cloname'));
       if (found) cloNameVal = r[found];
@@ -30,12 +32,12 @@ export default function CLOExcellImport({ subjectId, onImported, readOnly }) {
       cloNameVal = Number(cloNameVal);
       if (isNaN(cloNameVal)) cloNameVal = undefined;
     }
-    let cloVal = String(mapField(['cloDetails','clo_details','clo detail','clo','CLO Details','CLODetails','clodetails']) || '').trim();
+    let cloVal = String(mapField(['cloDetails', 'clo_details', 'clo detail', 'clo', 'CLO Details', 'CLODetails', 'clodetails']) || '').trim();
     if (!cloVal) {
       const found = keys.find(k => String(k).toLowerCase().includes('clo'));
       if (found) cloVal = String(r[found] || '').trim();
     }
-    let loVal = String(mapField(['loDetails','lo_details','lo detail','lo','LO Details','LODetails']) || '').trim();
+    let loVal = String(mapField(['loDetails', 'lo_details', 'lo detail', 'lo', 'LO Details', 'LODetails']) || '').trim();
     if (!loVal) {
       const foundLo = keys.find(k => String(k).toLowerCase().includes('lo'));
       if (foundLo) loVal = String(r[foundLo] || '').trim();
@@ -87,7 +89,11 @@ export default function CLOExcellImport({ subjectId, onImported, readOnly }) {
       <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 1 }}>
         {!readOnly && (
           <>
-            <Button variant="outlined" onClick={() => setOpen(true)}>Manage / Import CLOs</Button>
+            {!readOnly && user?.role !== 'student' && ( // <--- SỬA: Thêm điều kiện user
+              <>
+                <Button variant="outlined" onClick={() => setOpen(true)}>Manage / Import CLOs</Button>
+              </>
+            )}
             <Button variant="contained" color="success" onClick={async () => {
               try {
                 const res = await cloAPI.exportExcel(subjectId ? { subjectId } : {});
@@ -110,7 +116,7 @@ export default function CLOExcellImport({ subjectId, onImported, readOnly }) {
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="lg" fullWidth>
         <DialogTitle>Manage Subject - Import CLOs</DialogTitle>
         <DialogContent>
-          <ExcelImport subjectId={subjectId} onImported={() => { fetchClos(); if (typeof onImported === 'function') onImported(); setOpen(false); }} model="clos" transformRow={cloTransform} requiredFields={["cloName","cloDetails","subjectId"]} />
+          <ExcelImport subjectId={subjectId} onImported={() => { fetchClos(); if (typeof onImported === 'function') onImported(); setOpen(false); }} model="clos" transformRow={cloTransform} requiredFields={["cloName", "cloDetails", "subjectId"]} />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Close</Button>
@@ -118,7 +124,7 @@ export default function CLOExcellImport({ subjectId, onImported, readOnly }) {
       </Dialog>
 
       <Paper sx={{ mt: 1, p: 1, overflowX: 'auto' }}>
-          {loading ? <CircularProgress size={18} /> : (
+        {loading ? <CircularProgress size={18} /> : (
           clos.length === 0 ? (
             <Typography sx={{ p: 1, color: 'text.secondary' }}>Chưa có CLO nào.</Typography>
           ) : (

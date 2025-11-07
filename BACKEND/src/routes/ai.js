@@ -3,7 +3,7 @@ const router = express.Router();
 const { verifyToken } = require('../middleware/authorization');
 const { chatWithAI,
   getChatHistoryList,
-  getChatHistoryById, getNewChat } = require('../controllers/aiController');
+  getChatHistoryById, getNewChat } = require('../controllers/aiController.JS');
 
 router.use(verifyToken);
 router.get('/chat/histories', getChatHistoryList);

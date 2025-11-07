@@ -54,7 +54,7 @@ import SubjectDetail from './pages/Staff/MaterialManager/SubjectDetail';
 
 import LecturerTimetablePage from './pages/Lecturer/LecturerTimetablePage';
 import AttendancePage from './pages/Lecturer/AttendancePage';
-
+import ExamSchedulePage from './pages/Staff/ExamSchedulePage';
 // import StaffMaterialsPage from './pages/Staff/StaffMaterialsPage'; // unused
 import StudentTimetablePage from './pages/Student/StudentTimetablePage'
 
@@ -68,11 +68,12 @@ import ClassesBySemesterPage from './pages/Lecturer/ClassesBySemester/Index';
 // import SupportRequestPage from './pages/Lecturer/SupportRequest';
 import ExamSchedulePage from './pages/Staff/ExamSchedulePage';
 import AnnouncementList from "./pages/Staff/AnnouncementList";
-import SupportListLecturer from './pages/Lecturer/SupportRequest/SupportList';
 
+import SupportListLecturer from './pages/Lecturer/SupportRequest/SupportList';
 import AdminLayout from "./pages/Admin/AdminLayout";
 import AdminAccountList from "./pages/Admin/AdminAccountList";
 import CurriculumList from './pages/Admin/CurriculumList';
+
 
 import ManualClassPage from './pages/Staff/ManualClassPage';
 import StudentClassmatesPage from './pages/Student/StudentClassmatesPage';
@@ -82,6 +83,15 @@ import ChatBubble from './components/Common/ChatBubble';
 import AiToolManagementPage from './pages/Staff/AiToolManagementPage';
 import AiChatPage from './pages/Student/AiChatPage';
 import AiChatLayout from './pages/Student/AiChatLayout';
+import SemesterManagementPage from './pages/Staff/SemesterManagementPage';
+import ForgotPasswordPage from './components/Auth/ForgotPasswordPage';
+import ResetPasswordPage from './components/Auth/ResetPasswordPage';
+import StudentMaterialDetail from './pages/Student/StudentMaterialDetail';
+
+import TuitionConfigPage from './pages/Staff/TuitionConfigPage';
+import TuitionGenerationPage from './pages/Staff/TuitionGenerationPage';
+import TuitionManagementPage from './pages/Staff/TuitionManagementPage';
+
 function App() {
   const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
@@ -108,6 +118,8 @@ function App() {
               <Routes>
                 <Route path='/' element={<LoginPage />} />
                 <Route path='/register' element={<RegisterPage />} />
+                <Route path='/forgot-password' element={<ForgotPasswordPage />} />
+                <Route path='/reset-password/:token' element={<ResetPasswordPage />} />
                 <Route element={<ProtectedRoute />}>
                   <Route path="/student" element={<StudentLayout />}>
                     <Route path="dashboard" element={<StudentDashboard />} />
@@ -140,6 +152,10 @@ function App() {
                   <Route path="/student/classmates/:classId" element={<StudentClassmatesPage />} />
                   <Route path="/student/notifications/slot/:scheduleId" element={<StudentSlotNotificationPage />} />
                   <Route path="/student/scheduleExam" element={<ExamSchedule />} />
+                  <Route
+                    path="/student/materials/:id"
+                    element={<StudentMaterialDetail />}
+                  />
                   <Route path="chat" element={<AiChatLayout />}>
                     <Route index element={<AiChatPage />} />
                     <Route path=":chatId" element={<AiChatPage />} />
@@ -154,12 +170,16 @@ function App() {
                   <Route path="scheduling" element={<SchedulingPage />} />
                   <Route path="material" element={<MaterialManager />} />
                   <Route path="material/:id" element={<SubjectDetail />} />
-
+                  <Route path="exam-schedule" element={<ExamSchedulePage />} />
                   <Route path="material/:id" element={<SubjectDetail />} />
+                  <Route path="semesters" element={<SemesterManagementPage />} />
                   <Route path="ai-tools" element={<AiToolManagementPage />} />
                   <Route path="absence" element={<AbsenceList />} />
                   <Route path="absence/:id" element={<AbsenceReview />} />
                   <Route path="manual-class" element={<ManualClassPage />} />
+                  <Route path="tuition-config" element={<TuitionConfigPage />} />
+                  <Route path="tuition-generate" element={<TuitionGenerationPage />} />
+                  <Route path="tuition-manage" element={<TuitionManagementPage />} /> 
                   <Route path="/staff/exam-schedule" element={<ExamSchedulePage />} />  
                 <Route path="/staff/announcements" element={<AnnouncementList />} /> 
                 </Route>

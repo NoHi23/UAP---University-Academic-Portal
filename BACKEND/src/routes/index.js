@@ -33,13 +33,12 @@ router.use('/api/student', studentRouter);
 router.use('/api/lecturer', lecturerRouter);
 router.use('/api/staff', staffRouter);
 router.use('/api/manage/users', userManagementRouter);
-router.use('/api/payments', paymentRouter);
 router.use('/api/support', supportRouter);
 router.use('/api/major', majorRouter);
 router.use('/api/curriculums', curriculumRouter);
 router.use('/api/scheduling', schedulingRouter);
 router.use('/api/notifications', notificationRouter);
 router.use('/api/ai', aiRouter);
-
+router.use('/api/payment', paymentRouter);
 
 module.exports = router;

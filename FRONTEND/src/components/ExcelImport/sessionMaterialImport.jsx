@@ -1,12 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { Box, Button, Paper, Table, TableBody, TableCell, TableHead, TableRow, CircularProgress, Typography, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import ExcelImport from './ExcelImport';
 import sessionMaterialAPI from '../../api/sessionMaterialAPI';
+import { AuthContext } from '../../context/AuthContext';
 
 export default function SessionMaterialImport({ subjectId, onImported, readOnly }) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { user } = useContext(AuthContext);
 
   // transform for session materials: require numeric session and map other fields
   const sessionTransform = (r, { presetSubjectId }) => {
@@ -25,13 +27,13 @@ export default function SessionMaterialImport({ subjectId, onImported, readOnly 
       const n = Number(String(v).trim());
       return Number.isFinite(n) ? n : undefined;
     };
-    const urlsRaw = mapField(['urls','url','links','link','URLs']) || '';
-    const urls = Array.isArray(urlsRaw) ? urlsRaw : String(urlsRaw).split(/[;,\n\r]+/).map(s=>s.trim()).filter(Boolean);
+    const urlsRaw = mapField(['urls', 'url', 'links', 'link', 'URLs']) || '';
+    const urls = Array.isArray(urlsRaw) ? urlsRaw : String(urlsRaw).split(/[;,\n\r]+/).map(s => s.trim()).filter(Boolean);
     // Extract CLO values from various possible headers and normalize to an array of strings
     // Accept a wider variety of header names for CLO column (common variants)
     // Try aliases first, otherwise fallback to any header containing 'clo' (tolerant match)
     let cloRaw = String(mapField([
-      'LO','CLO','cloDetails','lo_details','clo detail','lo',
+      'LO', 'CLO', 'cloDetails', 'lo_details', 'clo detail', 'lo',
     ]) || '').trim();
     if (!cloRaw) {
       const foundKey = keys.find(k => String(k).toLowerCase().includes('clo'));
@@ -41,13 +43,13 @@ export default function SessionMaterialImport({ subjectId, onImported, readOnly 
 
     const mapped = {
       subjectId: r.subjectId || r.subjectID || presetSubjectId || undefined,
-      session: parseNumber(mapField(['session','Session','sessionNo','sessionNumber','SessionNumber'])) ,
-      topic: String(mapField(['topic','title','Topic']) || '').trim(),
-      learningTeachingType: String(mapField(['Learning-Teaching Type','type','Type']) || '').trim(),
-      itu: (() => { const raw = mapField(['itu','ITU','ITU Hours','ituHours','hours','time','duration','Hours']); return (raw === undefined || raw === null || String(raw).trim() === '') ? undefined : String(raw).trim(); })(),
-      studentMaterial: (mapField(['Student Materials	','student','isStudentMaterial'])),
-      downloadable: (mapField(['downloadable','isDownloadable','download','S-Download'])),
-      studentTask: String(mapField(['studentTask','task',"Student's Tasks"]) || '').trim(),
+      session: parseNumber(mapField(['session', 'Session', 'sessionNo', 'sessionNumber', 'SessionNumber'])),
+      topic: String(mapField(['topic', 'title', 'Topic']) || '').trim(),
+      learningTeachingType: String(mapField(['Learning-Teaching Type', 'type', 'Type']) || '').trim(),
+      itu: (() => { const raw = mapField(['itu', 'ITU', 'ITU Hours', 'ituHours', 'hours', 'time', 'duration', 'Hours']); return (raw === undefined || raw === null || String(raw).trim() === '') ? undefined : String(raw).trim(); })(),
+      studentMaterial: (mapField(['Student Materials	', 'student', 'isStudentMaterial'])),
+      downloadable: (mapField(['downloadable', 'isDownloadable', 'download', 'S-Download'])),
+      studentTask: String(mapField(['studentTask', 'task', "Student's Tasks"]) || '').trim(),
       urls,
       learningOutcomes,
     };
@@ -98,7 +100,11 @@ export default function SessionMaterialImport({ subjectId, onImported, readOnly 
       <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 1 }}>
         {!readOnly && (
           <>
-            <Button variant="outlined" onClick={() => setOpen(true)}>Manage / Import Session Materials</Button>
+            {!readOnly && user?.role !== 'student' && ( // <--- SỬA: Thêm điều kiện user
+              <>
+                <Button variant="outlined" onClick={() => setOpen(true)}>Manage / Import Session Materials</Button>
+              </>
+            )}
             <Button variant="contained" color="success" onClick={async () => {
               try {
                 const res = await sessionMaterialAPI.exportExcel(subjectId ? { subjectId } : {});
@@ -121,7 +127,7 @@ export default function SessionMaterialImport({ subjectId, onImported, readOnly 
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="lg" fullWidth>
         <DialogTitle>Manage Subject - Import Session Materials</DialogTitle>
         <DialogContent>
-          <ExcelImport subjectId={subjectId} onImported={() => { fetchItems(); if (typeof onImported === 'function') onImported(); setOpen(false); }} model="session-materials" transformRow={sessionTransform} requiredFields={["session","topic","learningOutcomes","subjectId"]} />
+          <ExcelImport subjectId={subjectId} onImported={() => { fetchItems(); if (typeof onImported === 'function') onImported(); setOpen(false); }} model="session-materials" transformRow={sessionTransform} requiredFields={["session", "topic", "learningOutcomes", "subjectId"]} />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Close</Button>
@@ -129,7 +135,7 @@ export default function SessionMaterialImport({ subjectId, onImported, readOnly 
       </Dialog>
 
       <Paper sx={{ mt: 1, p: 1, overflowX: 'auto' }}>
-          {loading ? <CircularProgress size={18} /> : (
+        {loading ? <CircularProgress size={18} /> : (
           items.length === 0 ? (
             <Typography sx={{ p: 1, color: 'text.secondary' }}>Chưa có tài liệu buổi nào.</Typography>
           ) : (

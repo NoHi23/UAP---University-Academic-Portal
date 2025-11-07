@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { Box, Button, Paper, Table, TableBody, TableCell, TableHead, TableRow, CircularProgress, Typography, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import ExcelImport from './ExcelImport';
 import materialAPI from '../../api/materialAPI';
-
+import { AuthContext } from '../../context/AuthContext';
 export default function MaterialImport({ subjectId, onImported, readOnly }) {
   const [open, setOpen] = useState(false);
   const [materials, setMaterials] = useState([]);
   const [loading, setLoading] = useState(false);
-
+  const { user } = useContext(AuthContext);
   const fetchMaterials = async () => {
     setLoading(true);
     try {
@@ -62,21 +62,21 @@ export default function MaterialImport({ subjectId, onImported, readOnly }) {
     };
     const payload = {
       subjectId: r.subjectId || r.subjectID || presetSubjectId || undefined,
-      materialDescription: mapField(['materialDescription','description','title','name','MaterialDescription','Description']) || '',
-      author: mapField(['author','Author','nguoi','Nguoi']) || '',
-      isMainMaterial: parseBool(mapField(['isMainMaterial','isMain','Main','main','mainMaterial'])),
-      isOnline: parseBool(mapField(['isOnline','online','IsOnline','Online'])),
-      isHardCopy: parseBool(mapField(['isHardCopy','hardCopy','hard','isHard','Hard copy','HardCopy'])),
-      url: mapField(['url','link','Link','URL']) || '',
-      isbn: mapField(['isbn','ISBN']) || '',
-      note: mapField(['note','Note','GhiChu']) || ''
+      materialDescription: mapField(['materialDescription', 'description', 'title', 'name', 'MaterialDescription', 'Description']) || '',
+      author: mapField(['author', 'Author', 'nguoi', 'Nguoi']) || '',
+      isMainMaterial: parseBool(mapField(['isMainMaterial', 'isMain', 'Main', 'main', 'mainMaterial'])),
+      isOnline: parseBool(mapField(['isOnline', 'online', 'IsOnline', 'Online'])),
+      isHardCopy: parseBool(mapField(['isHardCopy', 'hardCopy', 'hard', 'isHard', 'Hard copy', 'HardCopy'])),
+      url: mapField(['url', 'link', 'Link', 'URL']) || '',
+      isbn: mapField(['isbn', 'ISBN']) || '',
+      note: mapField(['note', 'Note', 'GhiChu']) || ''
     };
     try {
       const descVal = String(payload.materialDescription || '').trim();
       if ((!payload.url || String(payload.url).trim() === '') && /^\s*(https?:\/\/|www\.)/i.test(descVal)) {
         payload.url = descVal;
       }
-    } catch (e) {}
+    } catch (e) { }
     return payload;
   };
 
@@ -87,7 +87,11 @@ export default function MaterialImport({ subjectId, onImported, readOnly }) {
       <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 1 }}>
         {!readOnly && (
           <>
-            <Button variant="outlined" onClick={() => setOpen(true)}>Manage Subject / Import</Button>
+            {!readOnly && user?.role !== 'student' && ( // <--- SỬA: Thêm điều kiện user
+              <>
+                <Button variant="outlined" onClick={() => setOpen(true)}>Manage Subject / Import</Button>
+              </>
+            )}
             <Button variant="contained" color="success" onClick={async () => {
               try {
                 const res = await materialAPI.exportExcel(subjectId ? { subjectId } : {});

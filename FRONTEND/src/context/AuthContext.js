@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }) => {
 
       await api.post('/account/change-password', { newPassword });
       setPasswordChangeRequired(false);
-      
+
       notifySuccess('Đổi mật khẩu thành công!');
       navigateToDashboard(user.role);
     } catch (err) {
@@ -101,9 +101,23 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const loginWithGoogle = async (credential) => {
+    const response = await api.post('/account/login-google', { credential });
+    const { token, user, passwordChangeRequired: isRequired } = response.data;
 
+    localStorage.setItem('token', token);
+    setUser(user);
+
+    if (isRequired) {
+      setPasswordChangeRequired(true); 
+    } else {
+      notifySuccess(`Chào mừng ${user.name} đã quay trở lại!`);
+      navigateToDashboard(user.role); 
+    }
+    return response; 
+  };
   return (
-    <AuthContext.Provider value={{ user, login, logout, register, updateProfile }}>
+    <AuthContext.Provider value={{ user, login, logout, register, updateProfile, loginWithGoogle }}>
       <ChangePasswordModal
         isOpen={passwordChangeRequired}
         onSubmit={handlePasswordChange}

@@ -5,7 +5,9 @@ const { OAuth2Client } = require('google-auth-library');
 require('dotenv').config();
 const Student = require('../models/student');
 const Lecturer = require('../models/lecturer');
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const client = new OAuth2Client(process.env.REACT_APP_GOOGLE_CLIENT_ID);
+const crypto = require('crypto');
+const { sendWelcomeEmail, sendPasswordResetEmail } = require('../services/emailService');
 
 const generateToken = (user) => {
   const payload = {
@@ -61,6 +63,8 @@ const register = async (req, res) => {
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
     const account = await User.findOne({ email }).lean();
     if (!account) {
@@ -102,6 +106,7 @@ const login = async (req, res) => {
     };
 
     const token = generateToken(combinedUser);
+    const token = generateToken(combinedUser);
 
     if (account.isFirstLogin) {
       return res.status(200).json({
@@ -125,42 +130,78 @@ const login = async (req, res) => {
 };
 
 const loginWithGoogle = async (req, res) => {
-  try {
-    const { credential } = req.body;
+    try {
+        const { credential } = req.body;
 
-    const ticket = await client.verifyIdToken({
-      idToken: credential,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
+        const ticket = await client.verifyIdToken({
+            idToken: credential,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
 
-    const { email } = ticket.getPayload();
+        const { email } = ticket.getPayload();
 
-    if (!email || !email.endsWith('.edu.vn')) {
-      return res.status(403).json({ message: 'Đăng nhập thất bại: Chỉ chấp nhận tài khoản Google có email .edu.vn.' });
+        if (!email || !email.endsWith('.edu.vn')) {
+            return res.status(403).json({ message: 'Đăng nhập thất bại: Chỉ chấp nhận tài khoản Google có email .edu.vn.' });
+        }
+
+        const account = await User.findOne({ email }).lean();
+
+        if (!account) {
+            return res.status(403).json({
+                message: 'Đăng nhập thất bại. Tài khoản Google này chưa được đăng ký trong hệ thống.'
+            });
+        }
+
+        let profileData = null;
+        let userName = '';
+        let userAvatar = account.avatar; 
+
+        if (account.role === 'student') {
+            profileData = await Student.findOne({ accountId: account._id }).lean();
+            if (profileData) {
+                userName = `${profileData.lastName} ${profileData.firstName}`;
+                userAvatar = profileData.studentAvatar || userAvatar;
+            }
+        } else if (account.role === 'lecturer' || account.role === 'lecture') {
+            profileData = await Lecturer.findOne({ accountId: account._id }).lean();
+             if (profileData) {
+                userName = `${profileData.lastName} ${profileData.firstName}`;
+                userAvatar = profileData.lecturerAvatar || userAvatar;
+            }
+        }
+
+         const combinedUser = {
+            _id: account._id,
+            email: account.email,
+            role: account.role,
+            status: account.status,
+            isFirstLogin: account.isFirstLogin,
+            name: userName,
+            avatar: userAvatar,
+        };
+
+        const token = generateToken(combinedUser);
+
+        if (account.isFirstLogin) {
+            return res.status(200).json({
+                message: 'Đăng nhập lần đầu, yêu cầu đổi mật khẩu.',
+                token,
+                user: combinedUser, 
+                passwordChangeRequired: true 
+            });
+        }
+
+        return res.status(200).json({
+            message: 'Đăng nhập bằng Google thành công!',
+            token,
+            user: combinedUser, 
+            passwordChangeRequired: false
+        });
+
+    } catch (error) {
+        console.error("Lỗi khi đăng nhập Google:", error);
+        return res.status(401).json({ message: 'Credential không hợp lệ hoặc đã hết hạn.' });
     }
-
-    const user = await User.findOne({ email });
-
-    if (!user) {
-      return res.status(403).json({
-        message: 'Đăng nhập thất bại. Tài khoản Google này chưa được đăng ký trong hệ thống sinh viên.'
-      });
-    }
-    const token = generateToken(user);
-
-    const userData = { ...user._doc };
-    delete userData.password;
-
-    return res.status(200).json({
-      message: 'Đăng nhập bằng Google thành công!',
-      token,
-      user: userData
-    });
-
-  } catch (error) {
-    console.error("Lỗi khi đăng nhập Google:", error);
-    return res.status(401).json({ message: 'Credential không hợp lệ hoặc đã hết hạn.' });
-  }
 };
 
 const getProfile = async (req, res) => {
@@ -255,32 +296,132 @@ const updateUserRole = async (req, res) => {
 
 
 const changePassword = async (req, res) => {
-    try {
-        const { newPassword } = req.body;
-        const userId = req.user.id; 
-        if (!newPassword || newPassword.length < 6) {
-            return res.status(400).json({ message: 'Mật khẩu mới phải có ít nhất 6 ký tự.' });
-        }
-
-        const saltRounds = 10;
-        const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
-
-        const updatedUser = await User.findByIdAndUpdate(userId, {
-            password: hashedPassword,
-            isFirstLogin: false 
-        }, { new: true });
-
-        if (!updatedUser) {
-            return res.status(404).json({ message: 'Không tìm thấy người dùng.' });
-        }
-
-        res.status(200).json({ message: 'Đổi mật khẩu thành công!' });
-
-    } catch (error) {
-        console.error("Lỗi khi đổi mật khẩu:", error);
-        res.status(500).json({ message: 'Lỗi server khi đổi mật khẩu.' });
+  try {
+    const { newPassword } = req.body;
+    const userId = req.user.id;
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ message: 'Mật khẩu mới phải có ít nhất 6 ký tự.' });
     }
+
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    const updatedUser = await User.findByIdAndUpdate(userId, {
+      password: hashedPassword,
+      isFirstLogin: false
+    }, { new: true });
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'Không tìm thấy người dùng.' });
+    }
+
+    res.status(200).json({ message: 'Đổi mật khẩu thành công!' });
+
+  } catch (error) {
+    console.error("Lỗi khi đổi mật khẩu:", error);
+    res.status(500).json({ message: 'Lỗi server khi đổi mật khẩu.' });
+  }
 };
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(200).json({ message: 'Nếu email tồn tại, một link reset sẽ được gửi đến.' });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+    const tokenExpires = Date.now() + 10 * 60 * 1000; // 10 phút
+
+    // SỬA LỖI: Dùng updateOne để không kích hoạt validation các trường khác
+    await User.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          passwordResetToken: hashedToken,
+          passwordResetTokenExpires: tokenExpires
+        }
+      }
+    );
+
+    try {
+      await sendPasswordResetEmail({
+        to: user.email,
+        token: resetToken
+      });
+      return res.status(200).json({ message: 'Nếu email tồn tại, một link reset sẽ được gửi đến.' });
+    } catch (emailError) {
+      console.error("Lỗi gửi mail:", emailError);
+      // Rollback (xóa) token nếu gửi mail lỗi
+      await User.updateOne(
+        { _id: user._id },
+        {
+          $unset: {
+            passwordResetToken: "",
+            passwordResetTokenExpires: ""
+          }
+        }
+      );
+      return res.status(500).json({ message: 'Lỗi khi gửi email. Vui lòng thử lại.' });
+    }
+
+  } catch (error) {
+    console.error("Lỗi forgotPassword:", error);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+};
+
+// --- HÀM 2: ĐẶT LẠI MẬT KHẨU (ĐÃ SỬA LỖI VALIDATION) ---
+const resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ message: 'Mật khẩu mới phải có ít nhất 6 ký tự.' });
+    }
+
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    // 1. Tìm user ID
+    const user = await User.findOne({
+      passwordResetToken: hashedToken,
+      passwordResetTokenExpires: { $gt: Date.now() }
+    }).select('_id'); // Chỉ cần lấy ID
+
+    if (!user) {
+      return res.status(400).json({ message: 'Token không hợp lệ hoặc đã hết hạn.' });
+    }
+
+    // 2. Hash mật khẩu mới
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    // 3. SỬA LỖI: Dùng updateOne để cập nhật
+    await User.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          password: hashedPassword,
+          isFirstLogin: false
+        },
+        $unset: { // Xóa token sau khi reset
+          passwordResetToken: "",
+          passwordResetTokenExpires: ""
+        }
+      }
+    );
+
+    res.status(200).json({ message: 'Đặt lại mật khẩu thành công. Bạn có thể đăng nhập.' });
+
+  } catch (error) {
+    console.error("Lỗi resetPassword:", error);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+};
+
 
 module.exports = {
   register,
@@ -290,5 +431,7 @@ module.exports = {
   updateProfile,
   getAllUsers,
   updateUserRole,
-  changePassword
+  changePassword,
+  forgotPassword,
+  resetPassword
 };

@@ -26,6 +26,7 @@ const {
     pick
 } = require('../helpers/staff.helpers');
 const subject = require('../models/subject');
+const semester = require('../models/semester');
 
 // Helper: parse possible Excel date formats or strings to JS Date
 function parseExcelDate(v) {
@@ -1387,8 +1388,116 @@ const enrollStudentsManually = async (req, res) => {
     }
 };
 
+const getAllSemesters2 = async (req, res) => {
+    try {
+        const semesters = await semester.find().sort({ startDate: -1 });
+        res.status(200).json({ success: true, data: semesters });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Lỗi server' });
+    }
+};
 
 
+const promoteStudentsBySemester = async (req, res) => {
+    try {
+        const { semesterId } = req.body;
+
+        const semester = await Semester.findById(semesterId);
+        if (!semester) {
+            return res.status(404).json({ message: 'Không tìm thấy học kỳ.' });
+        }
+
+        // 1. Tìm tất cả các lớp thuộc học kỳ này (không phân biệt hoa/thường)
+        const classesInSemester = await Class.find({
+            className: { $regex: semester.semesterName, $options: "i" }
+        }).select('_id');
+
+        if (classesInSemester.length === 0) {
+            return res.status(400).json({ message: 'Không có lớp học nào được tìm thấy cho học kỳ này.' });
+        }
+        const classIds = classesInSemester.map(c => c._id);
+
+        // 2. Tìm tất cả các sinh viên đã tham gia các lớp này
+        const studentIdsInSemester = await ScheduleOfStudent.distinct('studentId', {
+            classId: { $in: classIds }
+        });
+
+        if (studentIdsInSemester.length === 0) {
+            return res.status(400).json({ message: 'Không có sinh viên nào tham gia học kỳ này.' });
+        }
+
+        // 3. Cập nhật `semesterNo` cho tất cả sinh viên này
+        const updateResult = await Student.updateMany(
+            { _id: { $in: studentIdsInSemester } },
+            { $inc: { semesterNo: 1 } } // $inc: Tăng giá trị của trường semesterNo lên 1
+        );
+
+        const promotedCount = updateResult.modifiedCount;
+
+        res.status(200).json({
+            success: true,
+            message: `Hoàn tất! Đã "lên kỳ" thành công cho ${promotedCount} trên tổng số ${studentIdsInSemester.length} sinh viên.`,
+            promotedCount: promotedCount,
+            totalStudents: studentIdsInSemester.length
+        });
+
+    } catch (error) {
+        console.error("Lỗi khi lên kỳ cho sinh viên:", error);
+        res.status(500).json({ success: false, message: 'Lỗi server.' });
+    }
+};
+const getFilteredStudents = async (req, res) => {
+    try {
+        const { majorId, semesterNo } = req.query;
+
+        let filter = {};
+
+        // Lọc theo Chuyên ngành (Bắt buộc)
+        if (majorId) {
+            filter.majorId = majorId;
+        } else {
+            // Không nên trả về tất cả sinh viên, yêu cầu phải có chuyên ngành
+            return res.status(400).json({ message: 'Vui lòng chọn một chuyên ngành để lọc.' });
+        }
+
+        // Lọc theo Kỳ học (Tùy chọn)
+        if (semesterNo) {
+            filter.semesterNo = semesterNo;
+        }
+
+        const students = await Student.find(filter)
+            .select('studentCode firstName lastName semesterNo') // Lấy các trường cần thiết
+            .sort({ studentCode: 1 });
+
+        res.status(200).json({ success: true, count: students.length, data: students });
+    } catch (error) {
+        console.error("Lỗi khi lọc sinh viên:", error);
+        res.status(500).json({ success: false, message: 'Lỗi server' });
+    }
+};
+
+const getAllMajors2 = async (req, res) => {
+    try {
+        const majors = await Major.find().select('majorName majorCode');
+        res.status(200).json({ success: true, data: majors });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Lỗi server' });
+    }
+};
+
+
+const getAllLecturers = async (req, res) => {
+    try {
+        const lecturers = await Lecturer.find()
+            .populate('majorId', 'majorName majorCode') 
+            .select('firstName lastName majorId'); 
+
+        res.status(200).json({ success: true, data: lecturers });
+    } catch (error) {
+        console.error("Lỗi khi lấy danh sách giảng viên:", error);
+        res.status(500).json({ success: false, message: 'Lỗi server' });
+    }
+};
 module.exports = {
     //STUDENT
     createStudentAccount,
@@ -1407,5 +1516,10 @@ module.exports = {
     resetPassword,
     getEligibleStudentsForManualEnroll,
     createManualClass,
-    enrollStudentsManually
+    enrollStudentsManually,
+    getAllSemesters2,
+    promoteStudentsBySemester,
+    getAllMajors2,
+    getFilteredStudents,
+    getAllLecturers
 };
