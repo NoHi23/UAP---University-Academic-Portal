@@ -12,10 +12,12 @@ import {
     Chip,
     Divider,
     CircularProgress,
-    Stack
+    Stack,
+    IconButton
 } from '@mui/material';
 import { School as SchoolIcon, Grade as GradeIcon } from '@mui/icons-material';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 const gradeColors = {
     'A+': '#2E7D32', // dark green
@@ -63,7 +65,10 @@ const CurriculumsPage = () => {
     }
 
     return (
-        <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Container maxWidth="lg" sx={{ py: 4, position: 'relative' }}>
+            <IconButton component={Link} to="/student/dashboard" sx={{ position: 'absolute', top: 16, left: 16 }}>
+                <ArrowBackIcon />
+            </IconButton>
             <Paper
                 elevation={3}
                 sx={{

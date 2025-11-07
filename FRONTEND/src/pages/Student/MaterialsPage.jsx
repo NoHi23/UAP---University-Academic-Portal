@@ -4,8 +4,11 @@ import { useNavigate } from 'react-router-dom'; // Dùng navigate để chuyển
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../services/api';
 import FullScreenLoader from '../../components/Common/FullScreenLoader';
-import { FaBook } from 'react-icons/fa'; // Giữ icon
-import './MaterialsPage.css'; // Giữ CSS
+import { FaBook, FaUserEdit, FaLink, FaDownload } from 'react-icons/fa';
+import { IconButton } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { Link } from 'react-router-dom';
+import './MaterialsPage.css';
 
 const MaterialsPage = () => {
     // State mới: Chỉ lưu danh sách các môn học (không phải tài liệu)
@@ -66,7 +69,10 @@ const MaterialsPage = () => {
 
     // Render ra danh sách CÁC MÔN HỌC
     return (
-        <div className="materials-page-container">
+        <div className="materials-page-container" style={{ position: 'relative' }}>
+            <IconButton component={Link} to="/student/dashboard" sx={{ position: 'absolute', top: 12, left: 12 }}>
+                <ArrowBackIcon />
+            </IconButton>
             <header className="materials-header">
                 <h1>📚 Tài liệu học tập</h1>
                 <p>Chào {user?.name}, đây là danh sách các môn học của bạn.</p>

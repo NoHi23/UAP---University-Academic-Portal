@@ -14,4 +14,5 @@ router.get('/:id/details', ctrl.getCurriculumDetails);
 // get curriculum details associated to a subject
 router.get('/by-subject', ctrl.getCurriculumDetailsBySubject);
 
+
 module.exports = router;

@@ -37,7 +37,7 @@ import EnterGrades from './pages/Lecturer/EnterGrades';
 import StudentGrades from './pages/Lecturer/StudentGrades';
 import PayTuitionPage from './pages/Student/PayTuitionPage';
 import TransactionHistoryPage from './pages/Student/TransactionHistoryPage';
-import RequestsPage from './pages/Student/RequestsPage';
+import RequestsPage from './pages/Student/SupportRequest/RequestsPage';
 import EvaluationPage from './pages/Student/EvaluationPage';
 import SlotNotificationsPage from './pages/Student/SlotNotificationsPage';
 import LecturerAnnouncements from './pages/Lecturer/ViewAnoucement/AnnoucementList';
@@ -53,7 +53,7 @@ import SubjectDetail from './pages/Staff/MaterialManager/SubjectDetail';
 
 import LecturerTimetablePage from './pages/Lecturer/LecturerTimetablePage';
 import AttendancePage from './pages/Lecturer/AttendancePage';
-
+import ExamSchedulePage from './pages/Staff/ExamSchedulePage';
 // import StaffMaterialsPage from './pages/Staff/StaffMaterialsPage'; // unused
 import StudentTimetablePage from './pages/Student/StudentTimetablePage'
 
@@ -64,7 +64,12 @@ import AbsenceList from "./pages/Staff/AbsenceList";
 import AbsenceReview from "./pages/Staff/AbsenceReview";
 import AttendanceList from './pages/Lecturer/AttendanceListPages/AttendanceList';
 import ClassesBySemesterPage from './pages/Lecturer/ClassesBySemester/Index';
-import SupportRequestPage from './pages/Lecturer/SupportRequest';
+import AnnouncementList from "./pages/Staff/AnnouncementList";
+
+import SupportListLecturer from './pages/Lecturer/SupportRequest/SupportList';
+import AdminLayout from "./pages/Admin/AdminLayout";
+import AdminAccountList from "./pages/Admin/AdminAccountList";
+import CurriculumList from './pages/Admin/CurriculumList';
 
 
 import ManualClassPage from './pages/Staff/ManualClassPage';
@@ -118,7 +123,7 @@ function App() {
                     <Route path="materials" element={<MaterialsPage />} />
                     <Route path="payment" element={<PayTuitionPage />} />
                     <Route path="transactions" element={<TransactionHistoryPage />} />
-                    <Route path="requests" element={<RequestsPage />} />
+                    <Route path="requests" element={<SupportListLecturer />} />
                     <Route path="evaluation" element={<EvaluationPage />} />
                     <Route path="notifications" element={<SlotNotificationsPage />} />
                     <Route path="chat" element={<AiChatPage />} />
@@ -133,7 +138,7 @@ function App() {
                   <Route path="/student/materials" element={<MaterialsPage />} />
                   <Route path="/student/payment" element={<PayTuitionPage />} />
                   <Route path="/student/transactions" element={<TransactionHistoryPage />} />
-                  <Route path="/student/requests" element={<RequestsPage />} />
+                  <Route path="/student/requests" element={<SupportListLecturer />} />
                   <Route path="/student/evaluation" element={<EvaluationPage />} />
                   <Route path="/student/notifications" element={<SlotNotificationsPage />} />
                   <Route path="/student/schedule" element={<StudentTimetablePage />} />
@@ -162,6 +167,8 @@ function App() {
                   <Route path="scheduling" element={<SchedulingPage />} />
                   <Route path="material" element={<MaterialManager />} />
                   <Route path="material/:id" element={<SubjectDetail />} />
+                  <Route path="exam-schedule" element={<ExamSchedulePage />} />
+                  <Route path="material/:id" element={<SubjectDetail />} />
                   <Route path="semesters" element={<SemesterManagementPage />} />
                   <Route path="ai-tools" element={<AiToolManagementPage />} />
                   <Route path="absence" element={<AbsenceList />} />
@@ -186,7 +193,7 @@ function App() {
                   <Route path="announcements" element={<LecturerAnnouncements />} />
                   <Route path='my-list-class-charge' element={<ClassesBySemesterPage />} />
                   <Route path="announcements/:id" element={<LecturerAnnouncementDetail />} />
-                  <Route path="supports" element={<SupportRequestPage />} />
+                  <Route path="supports" element={<SupportListLecturer />} />
                   <Route path="schedule" element={<LecturerTimetablePage />} />
                   <Route path="attendance/:scheduleId" element={<AttendancePage />} />
                   <Route path="view-attendance-list" element={<AttendanceList />} />

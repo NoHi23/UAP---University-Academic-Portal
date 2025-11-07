@@ -131,7 +131,11 @@ export default function AbsenceList() {
             ) : (
               list.map((item) => (
                 <TableRow key={item._id} hover>
-                  <TableCell>{item.studentId?.fullName || "—"}</TableCell>
+                  <TableCell>
+                    {item.studentId
+                      ? `${item.studentId.lastName || ""} ${item.studentId.firstName || ""}`
+                      : "—"}
+                  </TableCell>
                   <TableCell>{item.slotId || "—"}</TableCell>
                   <TableCell>
                     <div
@@ -141,9 +145,25 @@ export default function AbsenceList() {
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                       }}
-                      dangerouslySetInnerHTML={{ __html: item.reason }}
-                    />
+                    >
+                      {
+                        item.reason
+                          ? item.reason
+                            // Xóa thẻ HTML
+                            .replace(/<[^>]*>/g, "")
+                            // Xóa &nbsp; và các entity HTML khác
+                            .replace(/&nbsp;/g, " ")
+                            .replace(/&[a-z]+;/gi, " ")
+                            // Loại bỏ khoảng trắng đầu cuối
+                            .trim()
+                            // Giới hạn ký tự
+                            .substring(0, 100)
+                          : "—"
+                      }
+                    </div>
                   </TableCell>
+
+
                   <TableCell>
                     <Chip
                       label={STATUS_COLOR[item.status]?.label || item.status}

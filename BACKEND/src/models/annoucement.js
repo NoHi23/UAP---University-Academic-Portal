@@ -1,27 +1,37 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const annoucementSchema = new mongoose.Schema({
-    title: {
-        type: String,
-        required: true,
+const announcementSchema = new mongoose.Schema(
+  {
+    // Tiêu đề thông báo
+    title: { type: String, required: true },
+
+    // Nội dung thông báo (dạng HTML từ Jodit)
+    content: { type: String, required: true },
+
+    // Người đăng (email hoặc _id của staff)
+    postBy: { type: String, required: true },
+
+    // Ảnh minh họa (tuỳ chọn)
+    picture: { type: String, default: null },
+
+    // Đối tượng nhận thông báo
+    audience: {
+      type: String,
+      enum: ["all", "student", "lecturer", "staff"],
+      default: "all",
     },
-    postBy: {
-        type: String,
-        required: true
-    },
-    picture: {
-        type: String
-    },
-    description: {
-        type: String,
-        required: true
-    },
+
+    // Trạng thái đăng bài
     status: {
-        type: Boolean,
-        default: true
-    }
-}, {
-    timestamps: true
-});
+      type: String,
+      enum: ["published", "scheduled", "draft"],
+      default: "published",
+    },
 
-module.exports = mongoose.model("Annoucement", annoucementSchema);
+    // Lên lịch đăng (nếu có)
+    scheduledAt: { type: Date, default: null },
+  },
+  { timestamps: true }
+);
+
+module.exports = mongoose.model("Announcement", announcementSchema);
