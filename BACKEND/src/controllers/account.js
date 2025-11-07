@@ -63,34 +63,39 @@ const register = async (req, res) => {
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
     const account = await User.findOne({ email }).lean();
     if (!account) {
-      return res.status(401).json({ message: 'Email hoặc mật khẩu không chính xác.' });
+      return res.status(401).json({ message: "Email hoặc mật khẩu không chính xác." });
+    }
+
+    // CHẶN tài khoản bị khóa
+    if (!account.status) {
+      return res.status(403).json({ message: "Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên!" });
     }
 
     const isMatch = await bcrypt.compare(password, account.password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Email hoặc mật khẩu không chính xác.' });
+      return res.status(401).json({ message: "Email hoặc mật khẩu không chính xác." });
     }
 
     let profileData = null;
-    let userName = '';
-    // let userAvatar = account.avatar;
+    let userName = "";
 
-    if (account.role === 'student') {
+    if (account.role === "student") {
       profileData = await Student.findOne({ accountId: account._id }).lean();
       if (profileData) {
         userName = `${profileData.lastName} ${profileData.firstName}`;
-        // userAvatar = profileData.studentAvatar || userAvatar; 
       }
-    } else if (account.role === 'lecturer' || account.role === 'lecture') {
+    } else if (account.role === "lecturer" || account.role === "lecture") {
       profileData = await Lecturer.findOne({ accountId: account._id }).lean();
       if (profileData) {
         userName = `${profileData.lastName} ${profileData.firstName}`;
-        // userAvatar = profileData.lecturerAvatar || userAvatar; 
       }
     }
+
     const combinedUser = {
       _id: account._id,
       email: account.email,
@@ -98,32 +103,41 @@ const login = async (req, res) => {
       status: account.status,
       isFirstLogin: account.isFirstLogin,
       name: userName,
-      // avatar: userAvatar,     
     };
 
     const token = generateToken(combinedUser);
 
     if (account.isFirstLogin) {
       return res.status(200).json({
-        message: 'Đăng nhập lần đầu, yêu cầu đổi mật khẩu.',
+        message: "Đăng nhập lần đầu, yêu cầu đổi mật khẩu.",
         token,
         user: combinedUser,
-        passwordChangeRequired: true
+        passwordChangeRequired: true,
       });
     }
 
     return res.status(200).json({
-      message: 'Đăng nhập thành công!',
+      message: "Đăng nhập thành công!",
       token,
       user: combinedUser,
-      passwordChangeRequired: false
+      passwordChangeRequired: false,
     });
-
   } catch (error) {
     console.error("Lỗi khi đăng nhập:", error);
-    return res.status(500).json({ message: 'Đã có lỗi xảy ra ở server.' });
+    return res.status(500).json({ message: "Đã có lỗi xảy ra ở server." });
+  }
+
+  }
+
+  catch (error) {
+    console.error("Lỗi khi đăng nhập:", error);
+    return res.status(500).json({ message: "Đã có lỗi xảy ra ở server." });
   }
 }
+
+
+
+
 const loginWithGoogle = async (req, res) => {
     try {
         const { credential } = req.body;

@@ -5,6 +5,7 @@ const Student = require("../models/student");
 const Lecturer = require("../models/lecturer");
 const Subject = require("../models/subject");
 const Room = require("../models/room");
+const e = require("express");
 
 // random helper
 const randomPick = (arr, n) => {
@@ -43,6 +44,7 @@ exports.getAll = async (req, res) => {
     res.status(500).json({ message: "Không thể tải danh sách lịch thi.", error: error.message });
   }
 };
+
 
 //  Tạo lịch thi + auto add sinh viên cùng chuyên ngành
 exports.createExamSchedule = async (req, res) => {
@@ -147,3 +149,80 @@ exports.getRoomList = async (req, res) => {
     res.status(500).json({ message: "Lỗi khi lấy danh sách phòng học" });
   }
 };
+// DELETE /exam-schedule/:id
+exports.deleteExamSchedule = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await ExamScheduleOfStudent.deleteMany({ examSchedule: id });
+    await ExamScheduleOfLecture.deleteMany({ examSchedule: id });
+    const deleted = await ExamSchedule.findByIdAndDelete(id);
+
+    if (!deleted) {
+      return res.status(404).json({ message: "Lịch thi không tồn tại" });
+    }
+
+    res.json({ message: "Xoá lịch thi thành công" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+// PUT /exam-schedule/:id (CHỈ sửa thông tin lịch thi)
+exports.updateExamSchedule = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { courseName, examDate, time, room, note } = req.body;
+
+    const updated = await ExamSchedule.findByIdAndUpdate(
+      id,
+      { courseName, examDate, time, room, note },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: "Lịch thi không tồn tại" });
+    }
+
+    res.json({ message: "Cập nhật thành công", data: updated });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+// Lấy chi tiết lịch thi (kèm sinh viên tham gia)
+
+exports.getExamScheduleDetail = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const exam = await ExamSchedule.findById(id);
+    if (!exam) {
+      return res.status(404).json({ message: "Lịch thi không tồn tại" });
+    }
+
+    const studentList = await ExamScheduleOfStudent.find({ examSchedule: id })
+      .populate("student", "firstName lastName studentCode");
+
+    res.json({
+      exam,
+      students: studentList.map(item => ({
+        _id: item.student._id,
+        studentCode: item.student.studentCode,
+        name: item.student.firstName + " " + item.student.lastName // ✅ ghép tên đúng
+      }))
+    });
+
+  } catch (error) {
+    console.error("Lỗi khi lấy chi tiết lịch thi:", error);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+};
+
+
+
+
+
+
