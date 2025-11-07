@@ -57,7 +57,6 @@ import AttendancePage from './pages/Lecturer/AttendancePage/AttendancePage';
 import LecturerMaterialManager from './pages/Lecturer/MaterialManager';
 
 import ExamSchedulePage from './pages/Staff/ExamSchedulePage';
-// import StaffMaterialsPage from './pages/Staff/StaffMaterialsPage'; // unused
 import StudentTimetablePage from './pages/Student/StudentTimetablePage'
 
 import RequestAbsenceList from "./pages/Student/RequestAbsenceList";
@@ -184,9 +183,8 @@ function App() {
                   <Route path="manual-class" element={<ManualClassPage />} />
                   <Route path="tuition-config" element={<TuitionConfigPage />} />
                   <Route path="tuition-generate" element={<TuitionGenerationPage />} />
-                  <Route path="tuition-manage" element={<TuitionManagementPage />} /> 
-                  <Route path="/staff/exam-schedule" element={<ExamSchedulePage />} />  
-                <Route path="/staff/announcements" element={<AnnouncementList />} /> 
+                  <Route path="tuition-manage" element={<TuitionManagementPage />} />
+                  <Route path="announcements" element={<AnnouncementList />} />
                 </Route>
 
                 <Route path="/lecturer/" element={<LecturerLayout />}>
@@ -211,15 +209,15 @@ function App() {
                   <Route path="view-attendance-list" element={<AttendanceList />} />
                 </Route>
 
-                 
-                
-                  <Route path="/admin/" element={<AdminLayout />}>
-                    <Route path="curriculum" element={<CurriculumList />} />  
-                    <Route path="accounts" element={<AdminAccountList />} />
-                  </Route>
-                
 
-                
+
+                <Route path="/admin/" element={<AdminLayout />}>
+                  <Route path="curriculum" element={<CurriculumList />} />
+                  <Route path="accounts" element={<AdminAccountList />} />
+                </Route>
+
+
+
 
               </Routes>
               <ChatBubble />
