@@ -293,21 +293,84 @@ const getMyWeeklySchedule = async (req, res) => {
       lectureMap[String(lr.scheduleId)] = lr;
     }
 
-    const responseData = schedules.map(s => {
-      const obj = s.toObject();
+    const responseData = [];
+    // For each schedule, compute attendance status (statusOfAttendance) and counts
+    for (const s of schedules) {
+      const obj = s.toObject ? s.toObject() : s;
       const lr = lectureMap[String(s._id)];
       const taught = !!(lr && lr.attendance === true);
-      return {
+
+      // determine schedule start datetime using schedule.date + startTime if available
+      let scheduleStart = new Date(s.date);
+      try {
+        if (s.startTime) {
+          // startTime expected like '08:00' or '08:00:00'
+          const parts = String(s.startTime).split(':').map(x => parseInt(x, 10));
+          const hh = Number.isFinite(parts[0]) ? parts[0] : 0;
+          const mm = Number.isFinite(parts[1]) ? parts[1] : 0;
+          scheduleStart.setHours(hh, mm, 0, 0);
+        }
+      } catch (e) {
+        // ignore parse errors and keep date as-is
+      }
+
+      const now = new Date();
+
+      // default summary values
+      let statusOfAttendance = 'upcoming'; // upcoming means start time not yet reached
+      let totalStudents = 0;
+      let notYetCount = 0;
+
+      try {
+        // count total students for this class
+        totalStudents = await ScheduleOfStudent.countDocuments({ classId: s.classId });
+
+        if (now < scheduleStart) {
+          // slot hasn't started yet — keep status 'upcoming'
+          statusOfAttendance = 'upcoming';
+          // notYetCount equals totalStudents (not started) — but leave as totalStudents so frontend may display badge if desired
+          notYetCount = totalStudents;
+        } else {
+          // slot time has arrived/passed — evaluate per-student attendance records
+          const sosRecords = await ScheduleOfStudent.find({ classId: s.classId }).select('attendance').lean();
+          // If no records found, treat as all not-yet
+          if (!sosRecords || sosRecords.length === 0) {
+            notYetCount = totalStudents || 0;
+            statusOfAttendance = (notYetCount === 0) ? 'complete' : 'incomplete';
+          } else {
+            // count how many students still have Not Yet for this schedule
+            const schIdStr = String(s._id);
+            notYetCount = sosRecords.reduce((acc, r) => {
+              const a = Array.isArray(r.attendance) ? r.attendance.find(x => String(x.scheduleId) === schIdStr) : null;
+              if (!a) return acc + 1; // no entry => Not Yet
+              const st = String(a.status || '').trim().toLowerCase();
+              if (st === '' || st === 'not yet' || st === 'notyet') return acc + 1;
+              return acc;
+            }, 0);
+            statusOfAttendance = (notYetCount === 0) ? 'complete' : 'incomplete';
+          }
+        }
+      } catch (err) {
+        console.error('Error computing attendance summary for schedule', s._id, err && err.message);
+      }
+
+      responseData.push({
         ...obj,
-        lecturer: { // Thêm thông tin giảng viên để frontend dễ tái sử dụng component
+        lecturer: {
           _id: lecturer._id,
           firstName: lecturer.firstName,
           lastName: lecturer.lastName
         },
         lectureAttendance: lr || null,
-        taught: taught
-      };
-    });
+        taught: taught,
+        // attendance summary to be consumed by frontend UI
+        attendanceSummary: {
+          statusOfAttendance, // 'upcoming' | 'incomplete' | 'complete'
+          totalStudents,
+          notYetCount
+        }
+      });
+    }
 
     // Count how many slots in this week the lecturer has marked as taught
     const attendedCount = responseData.filter(r => r.taught).length;

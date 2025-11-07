@@ -95,15 +95,13 @@ const WeekTimeTable = () => {
 
   // Time slots definition
   const timeSlots = [
-    { slot: 0, time: '' },
     { slot: 1, time: '7:30-9:50' },
     { slot: 2, time: '10:00-12:20' },
     { slot: 3, time: '10:50-12:20' },
     { slot: 4, time: '15:20-17:40' },
     { slot: 5, time: '' },
     { slot: 6, time: '' },
-    { slot: 7, time: '' },
-    { slot: 8, time: 'test' }
+   
   ];
 
   // Prepare header days for the current week so JSX can render labels/dates
@@ -142,7 +140,7 @@ const WeekTimeTable = () => {
 
       const slotIndex = item.slot;
 
-      if (slotIndex >= 0 && slotIndex < 13 && dayIndex >= 0 && dayIndex < 7) {
+      if (slotIndex >= 0 && slotIndex < 8 && dayIndex >= 0 && dayIndex < 7) {
         weekGrid[slotIndex][dayIndex] = {
           ...item,
           dayName: date.format('dddd'),
@@ -287,7 +285,7 @@ const WeekTimeTable = () => {
                   }}
                 >
                   <Typography variant="body2" fontWeight={500}>
-                    Slot {slotIndex}
+                    Slot {slot.slot}
                   </Typography>
                   {slot.time && (
                     <Typography variant="caption" color="text.secondary">
@@ -297,7 +295,7 @@ const WeekTimeTable = () => {
                 </TableCell>
 
                 {/* Day Columns */}
-                {weekGrid[slotIndex].map((scheduleItem, dayIndex) => (
+                {weekGrid[(slot.slot)].map((scheduleItem, dayIndex) => (
                   <TableCell 
                     key={dayIndex}
                     sx={{ 
@@ -310,77 +308,103 @@ const WeekTimeTable = () => {
                     }}
                   >
                     {scheduleItem ? (
-                      <Card 
-                        sx={{ 
-                          height: 55,
-                          backgroundColor: theme.palette.primary.main,
-                          color: 'white',
-                          border: scheduleItem.status === 'absent' ? 2 : 0,
-                          borderColor: 'error.main'
-                        }}
-                        onClick={chooseActionForClass(scheduleItem)}
-                      >
-                        <CardContent sx={{ p: 1, '&:last-child': { pb: 1 }, height: '100%' }}>
-                          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5, height: '100%' }}>
-                            <Typography 
-                              variant="caption" 
-                              sx={{ 
-                                color: scheduleItem.status === 'absent' ? 'error.main' : 'white',
-                                fontSize: '0.6rem'
-                              }}
-                            >
-                              {getStatusIcon(scheduleItem.status)}
-                            </Typography>
-                            <Box sx={{ flex: 1 }}>
-                              <Typography 
-                                variant="subtitle2" 
-                                fontWeight={600}
-                                sx={{ 
-                                  fontSize: '0.75rem',
-                                  color: scheduleItem.status === 'absent' ? 'error.main' : 'white',
-                                  lineHeight: 1.2
-                                }}
-                              >
-                                {scheduleItem.subjectId?.subjectCode || 'test'}
-                              </Typography>
-                              <Typography 
-                                variant="caption" 
-                                sx={{ 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  gap: 0.3,
-                                  color: scheduleItem.status === 'absent' ? 'error.main' : 'rgba(255,255,255,0.9)',
-                                  fontSize: '0.5rem'
-                                }}
-                              >
-                                <ScheduleIcon sx={{ fontSize: 6 }} />
-                                {scheduleItem.timeDisplay}
-                              </Typography>
-                              <Typography 
-                                variant="caption" 
-                                sx={{ 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  gap: 0.3,
-                                  color: scheduleItem.status === 'absent' ? 'error.main' : 'rgba(255,255,255,0.9)',
-                                  fontSize: '0.5rem'
-                                }}
-                              >
-                                <LocationOn sx={{ fontSize: 6 }} />
-                                {scheduleItem.roomId?.roomName || 'Phòng TBD'}
-                              </Typography>
-                            </Box>
-                            {scheduleItem.status === 'absent' && (
-                              <Typography 
-                                variant="caption" 
-                                sx={{ color: 'error.main', fontSize: '0.6rem' }}
-                              >
-                                ●
-                              </Typography>
-                            )}
-                          </Box>
-                        </CardContent>
-                      </Card>
+                      (() => {
+                        const attendance = scheduleItem.attendanceSummary || {};
+                        const status = attendance.statusOfAttendance || 'upcoming';
+                        // decide colors according to new mapping requested by user:
+                        // - 'upcoming' (chưa đến slot) => green (success)
+                        // - 'complete' (đã điểm danh) => primary (purple/dark)
+                        // - 'incomplete' (chưa điểm danh / bỏ lỡ) => white (default background)
+                        let cardBg = 'background.paper';
+                        let textColor = 'text.primary';
+                        if (status === 'upcoming') {
+                          cardBg = theme.palette.success.main;
+                          textColor = 'white';
+                        } else if (status === 'complete') {
+                          cardBg = theme.palette.primary.main;
+                          textColor = theme.palette.primary.contrastText || 'white';
+                        } else {
+                          // incomplete => default white background, dark text
+                          cardBg = 'background.paper';
+                          textColor = theme.palette.text.primary || '#333';
+                        }
+
+                        return (
+                          <Card
+                            sx={{
+                              height: 55,
+                              backgroundColor: cardBg,
+                              color: textColor,
+                              border: 0,
+                              borderColor: 'transparent',
+                              cursor: 'pointer'
+                            }}
+                            onClick={chooseActionForClass(scheduleItem)}
+                          >
+                            
+                            <CardContent sx={{ p: 1, '&:last-child': { pb: 1 }, height: '100%' }}>
+                              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5, height: '100%' }}>
+                                <Typography 
+                                  variant="caption" 
+                                  sx={{ 
+                                    color: textColor,
+                                    fontSize: '0.6rem'
+                                  }}
+                                >
+                                  {getStatusIcon(scheduleItem.status)}
+                                </Typography>
+                                <Box sx={{ flex: 1 }}>
+                                  <Typography 
+                                    variant="subtitle2" 
+                                    fontWeight={600}
+                                    sx={{ 
+                                      fontSize: '0.75rem',
+                                      color: textColor,
+                                      lineHeight: 1.2
+                                    }}
+                                  >
+                                    {scheduleItem.subjectId?.subjectCode || 'test'}
+                                  </Typography>
+                                  <Typography 
+                                    variant="caption" 
+                                    sx={{ 
+                                      display: 'flex', 
+                                      alignItems: 'center', 
+                                      gap: 0.3,
+                                      color: textColor,
+                                      fontSize: '0.5rem'
+                                    }}
+                                  >
+                                    <ScheduleIcon sx={{ fontSize: 6, color: textColor }} />
+                                    {scheduleItem.timeDisplay}
+                                  </Typography>
+                                  <Typography 
+                                    variant="caption" 
+                                    sx={{ 
+                                      display: 'flex', 
+                                      alignItems: 'center', 
+                                      gap: 0.3,
+                                      color: textColor,
+                                      fontSize: '0.5rem'
+                                    }}
+                                  >
+                                    <LocationOn sx={{ fontSize: 6, color: textColor }} />
+                                    {scheduleItem.roomId?.roomName || 'Phòng TBD'}
+                                  </Typography>
+                                </Box>
+                                {status === 'incomplete' && (
+                                  <Typography 
+                                    variant="caption" 
+                                    sx={{ color: theme.palette.warning.main || 'orange', fontSize: '0.6rem' }}
+                                  >
+                                    ●
+                                  </Typography>
+                                )}
+                              </Box>
+                            </CardContent>
+                          </Card>
+                        );
+                      })()
                     ) : (
                       <Box sx={{ height: 55 }} />
                     )}
@@ -397,27 +421,23 @@ const WeekTimeTable = () => {
 
       {/* Legend */}
       <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-        <Typography variant="caption" color="text.secondary">
-          ◑ Thi chưa học:
-        </Typography>
-        <Chip 
-          size="small" 
-          label="6 tiết đã học" 
-          sx={{ backgroundColor: theme.palette.success.main, color: 'white', fontSize: '0.6rem' }}
-        />
-        <Chip 
-          size="small" 
-          label="1 tiết vắng mặt" 
-          sx={{ backgroundColor: theme.palette.error.main, color: 'white', fontSize: '0.6rem' }}
-        />
-        
-        <Box sx={{ ml: 'auto', display: 'flex', gap: 1, alignItems: 'center' }}>
-          <Typography variant="caption" color="text.secondary">●</Typography>
-          <Typography variant="caption" color="success.main">Chưa học</Typography>
-          <Typography variant="caption" color="text.secondary">●</Typography>
-          <Typography variant="caption" color="info.main">Đã học</Typography>
-          <Typography variant="caption" color="text.secondary">●</Typography>
-          <Typography variant="caption" color="error.main">Vắng mặt</Typography>
+        <Chip size="small" label="Chưa đến" sx={{ backgroundColor: theme.palette.success.main, color: 'white', fontSize: '0.75rem' }} />
+        <Chip size="small" label="Đã điểm danh" sx={{ backgroundColor: theme.palette.primary.main, color: 'white', fontSize: '0.75rem' }} />
+        <Chip size="small" label="Chưa điểm danh / Bỏ lỡ" sx={{ backgroundColor: theme.palette.background.paper, border: 1, borderColor: 'grey.300', color: theme.palette.text.primary, fontSize: '0.75rem' }} />
+
+        <Box sx={{ ml: 'auto', display: 'flex', gap: 2, alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Box sx={{ width: 10, height: 10, backgroundColor: theme.palette.success.main, borderRadius: '50%' }} />
+            <Typography variant="caption" color="text.secondary">Chưa đến</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Box sx={{ width: 10, height: 10, backgroundColor: theme.palette.primary.main, borderRadius: '50%' }} />
+            <Typography variant="caption" color="text.secondary">Đã điểm danh</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Box sx={{ width: 10, height: 10, backgroundColor: theme.palette.background.paper, border: '1px solid', borderColor: 'grey.300', borderRadius: '50%' }} />
+            <Typography variant="caption" color="text.secondary">Chưa điểm danh / Bỏ lỡ</Typography>
+          </Box>
         </Box>
       </Box>
     </Paper>

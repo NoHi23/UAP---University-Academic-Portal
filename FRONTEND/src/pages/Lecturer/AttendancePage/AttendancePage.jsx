@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Container, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Avatar, Select, MenuItem, TextField, IconButton, CircularProgress, Button } from '@mui/material';
-import api from '../../services/api';
+import { Box, Container, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Avatar, Select, MenuItem, TextField, IconButton, CircularProgress, Button, ToggleButtonGroup, ToggleButton } from '@mui/material';
+import api from '../../../services/api';
 import { toast } from 'react-toastify';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
@@ -167,9 +167,29 @@ const AttendancePage = () => {
                   </TableCell>
                   <TableCell>{s.email}</TableCell>
                   <TableCell>
-                    <Select size="small" value={s.statusLocal} onChange={(e) => handleChange(s._id, 'status', e.target.value)}>
-                      {STATUS_OPTIONS.map(opt => <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>)}
-                    </Select>
+                     <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+                      <ToggleButtonGroup
+                        exclusive
+                        value={s.statusLocal === 'Not Yet' ? '' : s.statusLocal}
+                        onChange={(e, newVal) => handleChange(s._id, 'status', newVal || 'Not Yet')}
+                        size="small"
+                        sx={{ gap: 1, minHeight: 36 }}
+                      >
+                     
+                        <ToggleButton
+                          value="Absent"
+                          sx={{ px: 1, height: 36, minWidth: 72, borderRadius: 1, '&.Mui-selected': { bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' } } }}
+                        >
+                          Vắng 
+                        </ToggleButton>
+                           <ToggleButton
+                          value="Present"
+                          sx={{ px: 1, height: 36, minWidth: 72, borderRadius: 1, '&.Mui-selected': { bgcolor: 'success.main', color: 'white', '&:hover': { bgcolor: 'success.dark' } } }}
+                        >
+                          Có mặt
+                        </ToggleButton>
+                      </ToggleButtonGroup>
+                    </Box>
                   </TableCell>
                   <TableCell>
                     <TextField fullWidth size="small" value={s.noteLocal} onChange={(e) => handleChange(s._id, 'note', e.target.value)} />
