@@ -105,8 +105,8 @@ const createPaymentUrl = async (req, res) => {
     // 👉 Thêm 2 dòng này để xem log khi tạo URL
     console.log("🔹 Sign data trước khi ký:", signData);
     console.log("🔹 Chữ ký gửi đi:", signed);
-    // Tạo URL cuối cùng
-    vnpUrl += '?' + signData + '&vnp_SecureHash=' + signed;
+    // Tạo URL cuối cùng (thêm vnp_SecureHashType để VNPAY dễ đọc)
+    vnpUrl += '?' + signData + '&vnp_SecureHash=' + signed + '&vnp_SecureHashType=SHA512';
 
     res.status(200).json({ success: true, paymentUrl: vnpUrl });
   } catch (error) {
@@ -144,8 +144,8 @@ const handleVnpayCallback = async (req, res) => {
   const responseCode = vnp_Params['vnp_ResponseCode'];
   const frontendReturnUrl = `${process.env.FRONTEND_URL}/student/payment-result`;
 
-  // So sánh chữ ký (nên lowercase để chắc ăn)
-  if (secureHash.toLowerCase() === signed.toLowerCase()) {
+  // So sánh chữ ký (so sánh không phân biệt hoa thường)
+  if (secureHash && secureHash.toLowerCase() === signed.toLowerCase()) {
     console.log("✅ Chữ ký hợp lệ!");
 
     try {
@@ -210,7 +210,7 @@ const handleVnpayIPN = async (req, res) => {
   const orderId = vnp_Params['vnp_TxnRef'];
   const responseCode = vnp_Params['vnp_ResponseCode'];
 
-  if (secureHash === signed) {
+  if (secureHash && secureHash.toLowerCase() === signed.toLowerCase()) {
     try {
       const transaction = await Transaction.findOne({ orderId: orderId });
       if (!transaction) {
