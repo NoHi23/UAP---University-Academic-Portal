@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import  api  from '../../services/api';
+import api from '../../services/api';
 import FullScreenLoader from '../../components/Common/FullScreenLoader';
 import { FaHistory, FaCheckCircle, FaTimesCircle, FaHourglassHalf } from 'react-icons/fa';
+import { IconButton } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { Link } from 'react-router-dom';
 import './TransactionHistoryPage.css';
 
 const TransactionHistoryPage = () => {
@@ -42,7 +45,10 @@ const TransactionHistoryPage = () => {
     if (error) return <div className="error-message">{error}</div>;
 
     return (
-        <div className="history-page-container">
+        <div className="history-page-container" style={{ position: 'relative' }}>
+            <IconButton component={Link} to="/student/dashboard" sx={{ position: 'absolute', top: 12, left: 12 }}>
+                <ArrowBackIcon />
+            </IconButton>
             <header className="history-header">
                 <h1><FaHistory /> Lịch sử giao dịch</h1>
             </header>

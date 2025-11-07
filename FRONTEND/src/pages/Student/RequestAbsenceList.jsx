@@ -12,9 +12,12 @@ import {
   Chip,
   Stack,
   Button,
+  IconButton,
 } from "@mui/material";
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { Link } from 'react-router-dom';
 import { useNavigate } from "react-router-dom";
- import absenceAPI from "../../api/absenceAPI";
+import absenceAPI from "../../api/absenceAPI";
 import { notifySuccess, notifyError, showConfirmDialog } from "../../services/notificationService";
 
 const STATUS_COLOR = {
@@ -51,7 +54,10 @@ export default function RequestAbsenceList() {
     );
 
   return (
-    <Box>
+    <Box sx={{ position: 'relative' }}>
+      <IconButton component={Link} to="/student/dashboard" sx={{ position: 'absolute', top: 12, left: 12 }}>
+        <ArrowBackIcon />
+      </IconButton>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
         <Typography variant="h5" sx={{ fontWeight: 600 }}>
           Danh sách đơn xin nghỉ học

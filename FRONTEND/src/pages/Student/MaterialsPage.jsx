@@ -3,6 +3,9 @@ import { AuthContext } from '../../context/AuthContext';
 import api from '../../services/api';
 import FullScreenLoader from '../../components/Common/FullScreenLoader';
 import { FaBook, FaUserEdit, FaLink, FaDownload } from 'react-icons/fa';
+import { IconButton } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { Link } from 'react-router-dom';
 import './MaterialsPage.css';
 
 const MaterialsPage = () => {
@@ -49,7 +52,10 @@ const MaterialsPage = () => {
     }
 
     return (
-        <div className="materials-page-container">
+        <div className="materials-page-container" style={{ position: 'relative' }}>
+            <IconButton component={Link} to="/student/dashboard" sx={{ position: 'absolute', top: 12, left: 12 }}>
+                <ArrowBackIcon />
+            </IconButton>
             <header className="materials-header">
                 <h1>📚 Tài liệu học tập</h1>
                 <p>Chào {user?.name}, đây là danh sách tài liệu các môn học của bạn.</p>

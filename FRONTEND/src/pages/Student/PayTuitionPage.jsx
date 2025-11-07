@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import api  from '../../services/api';
+import api from '../../services/api';
 import FullScreenLoader from '../../components/Common/FullScreenLoader';
 import { FaMoneyBillWave, FaCheckCircle, FaExclamationCircle, FaCalendarAlt, FaHashtag, FaFileInvoiceDollar } from 'react-icons/fa';
+import { IconButton } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { Link } from 'react-router-dom';
 import './PayTuitionPage.css';
 import { notifyError } from '../../services/notificationService';
 
@@ -17,7 +20,7 @@ const PayTuitionPage = () => {
                 const response = await api.get('/student/tuition/me');
                 setTuitionInfo(response.data.data);
             } catch (err) {
-                const message = err.response?.status === 404 
+                const message = err.response?.status === 404
                     ? 'Hiện tại không có công nợ học phí nào.'
                     : 'Không thể tải thông tin học phí.';
                 setError(message);
@@ -33,7 +36,7 @@ const PayTuitionPage = () => {
         try {
             const response = await api.post('/student/tuition/create-payment-url');
             const { paymentUrl } = response.data.data;
-            
+
             if (paymentUrl) {
                 window.location.href = paymentUrl;
             }
@@ -46,7 +49,10 @@ const PayTuitionPage = () => {
     if (loading) return <FullScreenLoader loading={true} />;
 
     return (
-        <div className="tuition-page-container">
+        <div className="tuition-page-container" style={{ position: 'relative' }}>
+            <IconButton component={Link} to="/student/dashboard" sx={{ position: 'absolute', top: 12, left: 12 }}>
+                <ArrowBackIcon />
+            </IconButton>
             <header className="tuition-header">
                 <h1><FaFileInvoiceDollar /> Thanh toán học phí</h1>
             </header>
@@ -58,7 +64,7 @@ const PayTuitionPage = () => {
                     <div className="tuition-card-header">
                         <h2>Học phí học kỳ {tuitionInfo.semesterNo}</h2>
                         <span className={`status-badge status-${tuitionInfo.status}`}>
-                            {tuitionInfo.status === 'paid' ? <><FaCheckCircle/> Đã thanh toán</> : <><FaExclamationCircle/> Chưa thanh toán</>}
+                            {tuitionInfo.status === 'paid' ? <><FaCheckCircle /> Đã thanh toán</> : <><FaExclamationCircle /> Chưa thanh toán</>}
                         </span>
                     </div>
                     <div className="tuition-details-grid">

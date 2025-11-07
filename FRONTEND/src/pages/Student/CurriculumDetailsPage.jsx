@@ -15,7 +15,8 @@ import {
     Chip,
     Card,
     CardContent,
-    LinearProgress
+    LinearProgress,
+    IconButton
 } from '@mui/material';
 import {
     School as SchoolIcon,
@@ -23,7 +24,8 @@ import {
     Description as DescriptionIcon,
     Grade as GradeIcon
 } from '@mui/icons-material';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 const CurriculumDetailsPage = () => {
     const { id } = useParams();
@@ -77,7 +79,10 @@ const CurriculumDetailsPage = () => {
     };
 
     return (
-        <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Container maxWidth="lg" sx={{ py: 4, position: 'relative' }}>
+            <IconButton component={Link} to="/student/dashboard" sx={{ mb: 2, position: 'absolute', top: 26, left: 30 }}>
+                <ArrowBackIcon />
+            </IconButton>
             {loading ? (
                 <Box sx={{ width: '100%' }}>
                     <LinearProgress />
