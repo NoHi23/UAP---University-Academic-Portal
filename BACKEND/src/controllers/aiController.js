@@ -33,7 +33,7 @@ const getGenerativeModel = async (userRole) => {
     });
 
     return genAI.getGenerativeModel({
-        model: "gemini-2.0-flash",
+        model: "gemini-2.5-flash-preview-05-20",
         tools: geminiTools,
         systemInstruction: `Bạn là một trợ lý AI hiệu quả. Bối cảnh: Hôm nay là ngày ${today}.
         QUY TẮC: Nhiệm vụ chính của bạn là gọi các công cụ (tools) được cung cấp.

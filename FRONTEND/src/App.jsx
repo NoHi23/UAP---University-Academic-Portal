@@ -55,7 +55,6 @@ import SubjectDetail from './pages/Staff/MaterialManager/SubjectDetail';
 import LecturerTimetablePage from './pages/Lecturer/LecturerTimetablePage';
 import AttendancePage from './pages/Lecturer/AttendancePage';
 import ExamSchedulePage from './pages/Staff/ExamSchedulePage';
-// import StaffMaterialsPage from './pages/Staff/StaffMaterialsPage'; // unused
 import StudentTimetablePage from './pages/Student/StudentTimetablePage'
 
 import RequestAbsenceList from "./pages/Student/RequestAbsenceList";
@@ -66,7 +65,6 @@ import AbsenceReview from "./pages/Staff/AbsenceReview";
 import AttendanceList from './pages/Lecturer/AttendanceListPages/AttendanceList';
 import ClassesBySemesterPage from './pages/Lecturer/ClassesBySemester/Index';
 // import SupportRequestPage from './pages/Lecturer/SupportRequest';
-import ExamSchedulePage from './pages/Staff/ExamSchedulePage';
 import AnnouncementList from "./pages/Staff/AnnouncementList";
 
 import SupportListLecturer from './pages/Lecturer/SupportRequest/SupportList';
@@ -179,9 +177,8 @@ function App() {
                   <Route path="manual-class" element={<ManualClassPage />} />
                   <Route path="tuition-config" element={<TuitionConfigPage />} />
                   <Route path="tuition-generate" element={<TuitionGenerationPage />} />
-                  <Route path="tuition-manage" element={<TuitionManagementPage />} /> 
-                  <Route path="/staff/exam-schedule" element={<ExamSchedulePage />} />  
-                <Route path="/staff/announcements" element={<AnnouncementList />} /> 
+                  <Route path="tuition-manage" element={<TuitionManagementPage />} />
+                  <Route path="announcements" element={<AnnouncementList />} />
                 </Route>
 
                 <Route path="/lecturer/" element={<LecturerLayout />}>
@@ -205,15 +202,15 @@ function App() {
                   <Route path="view-attendance-list" element={<AttendanceList />} />
                 </Route>
 
-                 
-                
-                  <Route path="/admin/" element={<AdminLayout />}>
-                    <Route path="curriculum" element={<CurriculumList />} />  
-                    <Route path="accounts" element={<AdminAccountList />} />
-                  </Route>
-                
 
-                
+
+                <Route path="/admin/" element={<AdminLayout />}>
+                  <Route path="curriculum" element={<CurriculumList />} />
+                  <Route path="accounts" element={<AdminAccountList />} />
+                </Route>
+
+
+
 
               </Routes>
               <ChatBubble />
