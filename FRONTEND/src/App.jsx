@@ -55,6 +55,7 @@ import SubjectDetail from './pages/Staff/MaterialManager/SubjectDetail';
 import LecturerTimetablePage from './pages/Lecturer/LecturerTimetablePage';
 import AttendancePage from './pages/Lecturer/AttendancePage/AttendancePage';
 import LecturerMaterialManager from './pages/Lecturer/MaterialManager';
+import ViewGrades from './pages/Lecturer/ViewGrades';
 
 import ExamSchedulePage from './pages/Staff/ExamSchedulePage';
 // import StaffMaterialsPage from './pages/Staff/StaffMaterialsPage'; // unused
@@ -198,6 +199,7 @@ function App() {
                   <Route path='evaluations' element={<Evaluations />} />
                   <Route path='enter-grades' element={<EnterGrades />} />
                   <Route path='student-grades' element={<StudentGrades />} />
+                  <Route path='view-grades' element={<ViewGrades />} />
                   <Route path='attendance-list' element={<AttendanceList />} />
                   <Route path='attendance-list' element={<AttendanceList />} />
                   <Route path="announcements" element={<LecturerAnnouncements />} />

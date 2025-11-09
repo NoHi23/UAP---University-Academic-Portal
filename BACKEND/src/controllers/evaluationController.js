@@ -66,3 +66,35 @@ module.exports = {
     getEvaluableClasses,
     submitEvaluation
 };
+
+// Lecturers: view evaluations submitted about them (anonymized)
+const getEvaluationsForLecturer = async (req, res) => {
+    try {
+        // Resolve lecturer document from account id (req.user.id)
+        const Lecturer = require('../models/lecturer');
+        const lecturer = await Lecturer.findOne({ accountId: req.user.id });
+        if (!lecturer) return res.status(403).json({ success: false, message: 'Lecturer profile not found or unauthorized' });
+
+        // Find evaluations for this lecturer
+        const evaluations = await Evaluation.find({ lecturerId: lecturer._id })
+            .sort({ createdAt: -1 })
+            .populate({ path: 'classId', select: 'className subjectId' })
+            .lean();
+
+        // Map to anonymized shape: do NOT include studentId or any identifiable student info
+        const anonymized = evaluations.map(ev => ({
+            _id: ev._id,
+            classId: ev.classId ? { _id: ev.classId._id, className: ev.classId.className, subjectId: ev.classId.subjectId } : null,
+            criteria: ev.criteria || [],
+            comment: ev.comment || '',
+            createdAt: ev.createdAt
+        }));
+
+        return res.status(200).json({ success: true, count: anonymized.length, data: anonymized });
+    } catch (err) {
+        console.error('getEvaluationsForLecturer error', err);
+        return res.status(500).json({ success: false, message: 'Lỗi máy chủ', error: err.message });
+    }
+};
+
+module.exports = Object.assign(module.exports, { getEvaluationsForLecturer });

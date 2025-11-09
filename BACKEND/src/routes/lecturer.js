@@ -34,6 +34,22 @@ lecturerRouter.put('/profile', verifyToken, lecturerController.updateMyProfile);
 lecturerRouter.post('/attendance/mark', verifyToken, lecturerController.markAttendance);
 lecturerRouter.get('/attendance/summary', verifyToken, lecturerController.getAttendanceSummary);
 
+// ================== GRADES ==================
+const gradeController = require('../controllers/gradeController');
+// single/bulk upsert — accepts array or single item; returns per-item results
+lecturerRouter.post('/grades/mark', verifyToken, gradeController.markGrades);
+// import endpoint (frontend parses Excel and posts rows; rejectOnError=true causes full-file rejection on any validation error)
+lecturerRouter.post('/grades/import', verifyToken, gradeController.markGrades);
+// Export class grades as Excel (lecturer can download for a class)
+lecturerRouter.get('/grades/export-class', verifyToken, gradeController.exportClassGradesExcel);
+// Allow lecturers to fetch grade components for a subject (used by EnterGrades UI)
+const gradeComponentController = require('../controllers/gradeComponent');
+lecturerRouter.get('/grade-components', verifyToken, gradeComponentController.getGradeComponents);
+
+// === EVALUATIONS (LECTURER VIEW) ===
+const evaluationController = require('../controllers/evaluationController');
+lecturerRouter.get('/evaluations', verifyToken, evaluationController.getEvaluationsForLecturer);
+
 // ================== NOTIFICATIONS ==================
 lecturerRouter.get('/notifications/slots', verifyToken, lecturerController.getNotificationsBySchedule);
 lecturerRouter.post('/notifications/slots', verifyToken, lecturerController.createNotificationForSchedule);

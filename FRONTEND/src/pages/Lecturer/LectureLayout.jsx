@@ -157,7 +157,7 @@ export default function LecturerLayout() {
     { text: 'Góp ý', icon: <FeedbackIcon />, path: '/lecturer/feedback' },
     { text: 'Đánh giá', icon: <StarIcon />, path: '/lecturer/evaluations' },
     { text: 'Nhập điểm', icon: <CreateIcon />, path: '/lecturer/enter-grades' },
-    { text: 'Điểm', icon: <BarChartIcon />, path: '/lecturer/student-grades' },
+  { text: 'Xem điểm', icon: <BarChartIcon />, path: '/lecturer/view-grades' },
 
     { text: 'DS điểm danh', icon: <ListAltIcon />, path: '/lecturer/attendance-list' },
     { text: 'TB', icon: <NotificationsIcon />, path: '/lecturer/announcements' },
