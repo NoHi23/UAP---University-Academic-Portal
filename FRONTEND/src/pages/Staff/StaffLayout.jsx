@@ -375,7 +375,7 @@ export default function StaffLayout() {
                 {/* 📄 MAIN CONTENT */}
                 <Box
                     component="main"
-                    sx={{ backgroundColor: '#f9fafb', flexGrow: 1, height: '100vh', overflow: 'auto' }}
+                    sx={{  flexGrow: 1, height: '100vh', overflow: 'auto' }}
                 >
                     <Toolbar sx={{ minHeight: 55 }} />
                     <Container sx={{ mt: 4, mb: 4 }}>

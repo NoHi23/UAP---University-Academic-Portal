@@ -421,7 +421,7 @@ const updateMyProfile = async (req, res) => {
     if (!lecturer) return res.status(404).json({ success: false, message: 'Lecturer not found' });
 
     // Allowed updates: include citizenID and remove birthDate/birthPlace (not used)
-    const allowed = ['lecturerAvatar', 'firstName', 'lastName', 'gender', 'phone', 'semester', 'semesterNo', 'curriculumId', 'majorId', 'citizenID'];
+    const allowed = ['lecturerAvatar', 'firstName', 'address', 'lastName', 'gender', 'phone', 'semester', 'semesterNo', 'curriculumId', 'majorId', 'citizenID'];
     const data = {};
     for (const k of allowed) {
       if (k in req.body) data[k] = req.body[k];

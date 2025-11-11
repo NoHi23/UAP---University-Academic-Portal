@@ -229,6 +229,107 @@ const toggleClassVisibility = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Gửi email nhắc nhở HÀNG LOẠT (THEO BỘ LỌC)
+ * @route   POST /api/staff/tuition/bulk-remind-by-filter
+ */
+const sendBulkReminderByFilter = async (req, res) => {
+  try {
+    const { semesterId, majorId, status, message } = req.body;
+
+    let filter = {};
+    if (semesterId) filter.semesterId = semesterId;
+    if (majorId) filter.majorId = majorId;
+    if (status) filter.status = status;
+    else filter.status = { $ne: 'paid' };
+
+    const fees = await TuitionFee.find(filter)
+      .populate({
+        path: 'studentId',
+        select: 'accountId firstName lastName',
+        populate: { path: 'accountId', select: 'email' }
+      })
+      .populate('semesterId', 'semesterName');
+
+    if (fees.length === 0) {
+      return res.status(404).json({ message: 'Không tìm thấy sinh viên nào khớp với bộ lọc.' });
+    }
+
+    let successCount = 0;
+    let failCount = 0;
+
+    (async () => {
+      for (const fee of fees) {
+        try {
+          if (!fee.studentId || !fee.studentId.accountId || !fee.studentId.accountId.email) {
+            throw new Error('Thiếu thông tin email sinh viên.');
+          }
+          const studentEmail = fee.studentId.accountId.email;
+          const studentName = `${fee.studentId.lastName} ${fee.studentId.firstName}`;
+          await sendTuitionReminderEmail({
+            to: studentEmail,
+            studentName: studentName,
+            semesterName: fee.semesterId.semesterName,
+            amount: fee.amount,
+            deadline: fee.deadline,
+            customMessage: message
+          });
+
+          fee.reminderHistory.push({ message: message || "Gửi nhắc nhở hàng loạt (theo bộ lọc)." });
+          await fee.save();
+          successCount++;
+        } catch (emailError) {
+          console.error(`Lỗi gửi mail nhắc nhở hàng loạt cho ${fee.studentId?._id}:`, emailError);
+          failCount++;
+        }
+      }
+      console.log(`[Email Batch Reminder] Gửi ${successCount} thành công, ${failCount} thất bại.`);
+    })();
+
+    res.status(200).json({
+      success: true,
+      message: `Đang gửi ${fees.length} email nhắc nhở (thông báo) ...`
+    });
+
+  } catch (error) {
+    console.error("Lỗi khi gửi nhắc nhở hàng loạt:", error);
+    res.status(500).json({ success: false, message: 'Lỗi server', error: error.message });
+  }
+};
+
+/**
+ * @desc    Ẩn/Hiện lịch học HÀNG LOẠT (THEO BỘ LỌC)
+ * @route   POST /api/staff/tuition/bulk-toggle-visibility-by-filter
+ */
+const bulkToggleClassVisibilityByFilter = async (req, res) => {
+  try {
+    const { semesterId, majorId, status, isClassHidden } = req.body;
+    if (isClassHidden === undefined) {
+      return res.status(400).json({ message: 'Vui lòng cung cấp trạng thái (isClassHidden: true/false).' });
+    }
+
+    let filter = {};
+    if (semesterId) filter.semesterId = semesterId;
+    if (majorId) filter.majorId = majorId;
+    if (status) filter.status = status;
+    else filter.status = { $ne: 'paid' };
+
+    const result = await TuitionFee.updateMany(
+      filter,
+      { isClassHidden: isClassHidden }
+    );
+
+    const actionText = isClassHidden ? "ẩn" : "hiện";
+    res.status(200).json({
+      success: true,
+      message: `Đã ${actionText} lịch học cho ${result.modifiedCount} sinh viên (theo bộ lọc).`
+    });
+  } catch (error) {
+    console.error("Lỗi khi cập nhật lịch hàng loạt:", error);
+    res.status(500).json({ success: false, message: 'Lỗi server', error: error.message });
+  }
+};
+
 module.exports = {
   createTuitionConfig,
   getTuitionConfigs,
@@ -238,5 +339,7 @@ module.exports = {
   getGeneratedBatches,
   getTuitionFees,
   sendReminder,
-  toggleClassVisibility
+  toggleClassVisibility,
+  sendBulkReminderByFilter,
+  bulkToggleClassVisibilityByFilter
 };

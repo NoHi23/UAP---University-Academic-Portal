@@ -5,13 +5,13 @@ import {
     TableContainer, TableHead, TableRow, Container, CircularProgress,
     IconButton, Card, CardContent, FormControl, InputLabel, Select, MenuItem, Chip
 } from '@mui/material';
-import { ChevronLeft, ChevronRight, LocationOn, Schedule as ScheduleIcon } from '@mui/icons-material';
+import { ChevronLeft, ChevronRight, LocationOn, Schedule as ScheduleIcon, School } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
 import isBetween from 'dayjs/plugin/isBetween';
 import './StudentTimetablePage.css';
 import api from '../../services/api';
-import { generateWeeksOfYearSimple } from '../Lecturer/ScheduleLecturePages/functionCreatWeek'; // Giả sử hàm này đúng
+import { generateWeeksOfYearSimple } from '../Lecturer/ScheduleLecturePages/functionCreatWeek';
 import StudentActivityModal from './StudentActivityModal';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { Link } from 'react-router-dom';
@@ -20,7 +20,6 @@ dayjs.locale('vi');
 dayjs.extend(isBetween);
 
 const StudentTimetablePage = () => {
-    // theme not used here; removed to satisfy lint
     const [timetable, setTimetable] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -30,7 +29,6 @@ const StudentTimetablePage = () => {
     const [year, setYear] = useState(dayjs().year());
     const [weeks, setWeeks] = useState(() => generateWeeksOfYearSimple(dayjs().year()));
     const { user } = useContext(AuthContext);
-    // modal state: khi click vào một slot sẽ mở modal chi tiết hoạt động
     const [showModal, setShowModal] = useState(false);
     const [selectedSchedule, setSelectedSchedule] = useState(null);
 
@@ -186,6 +184,9 @@ const StudentTimetablePage = () => {
                                                             <Typography className="card-code">{scheduleItem.subjectId.subjectCode}</Typography>
                                                             <Typography className="card-time"><ScheduleIcon /> {scheduleItem.startTime} - {scheduleItem.endTime}</Typography>
                                                             <Typography className="card-room"><LocationOn /> {scheduleItem.roomId.roomName}</Typography>
+                                                            <Typography className="card-room"><School />
+                                                                {scheduleItem?.lecturerId?.lastName || ''} {scheduleItem?.lecturerId?.firstName || ''} ({scheduleItem?.lecturerId?.lecturerCode || ''})
+                                                            </Typography>
                                                         </CardContent>
                                                     </Card>
                                                 )}
