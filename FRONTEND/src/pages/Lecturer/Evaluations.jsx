@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Paper, List, ListItem, ListItemText, Divider } from '@mui/material';
+import { Box, Typography, Paper, Grid, Chip, CircularProgress, Alert, Button } from '@mui/material';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import api from '../../services/api';
 
-// Mock data to show when API returns empty/null
+// Lightweight local fallback when there are no evaluations to show
 const mockEvaluations = [
   {
     _id: 'mock1',
-    studentId: { firstName: 'Nguyễn', lastName: 'Văn A', studentCode: 'SV001' },
     classId: { className: 'Lập trình nâng cao' },
     criteria: [ { name: 'Phương pháp giảng dạy', score: 5 }, { name: 'Tương tác', score: 4 } ],
     comment: 'Giảng viên truyền đạt rõ ràng, bài tập thực tế.',
@@ -13,7 +14,6 @@ const mockEvaluations = [
   },
   {
     _id: 'mock2',
-    studentId: { firstName: 'Trần', lastName: 'Thị B', studentCode: 'SV002' },
     classId: { className: 'Cơ sở dữ liệu' },
     criteria: [ { name: 'Phương pháp giảng dạy', score: 4 }, { name: 'Tương tác', score: 3 } ],
     comment: 'Nội dung hay nhưng tốc độ hơi nhanh.',
@@ -23,20 +23,19 @@ const mockEvaluations = [
 
 const Evaluations = () => {
   const [evaluations, setEvaluations] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const fetchEvaluations = async () => {
+    setError('');
+    setLoading(true);
     try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:9999/api/lecturer/evaluations', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error('Không thể lấy đánh giá');
-      const data = await res.json();
-      setEvaluations(data.data || []);
+      const res = await api.get('lecturer/evaluations');
+      const data = res?.data || {};
+      setEvaluations(Array.isArray(data.data) ? data.data : (data || []));
     } catch (err) {
-      console.error(err);
+      console.error('Failed to load evaluations', err);
+      setError(err?.response?.data?.message || err.message || 'Không thể tải đánh giá');
       setEvaluations([]);
     } finally {
       setLoading(false);
@@ -47,36 +46,49 @@ const Evaluations = () => {
     fetchEvaluations();
   }, []);
 
+  const list = evaluations && evaluations.length ? evaluations : mockEvaluations;
+
   return (
     <Box>
-      <Typography variant="h5" mb={2}>Xem đánh giá từ sinh viên (Ẩn danh)</Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+        <Typography variant="h5">Xem đánh giá từ sinh viên (Ẩn danh)</Typography>
+        <Box>
+          <Button startIcon={<RefreshIcon />} onClick={fetchEvaluations} disabled={loading}>Tải lại</Button>
+        </Box>
+      </Box>
+
+      {error ? <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert> : null}
+
       <Paper sx={{ p: 2 }}>
         {loading ? (
-            <Typography>Đang tải...</Typography>
-          ) : (
-            // One-line fallback: nếu `evaluations` rỗng/null thì chuyển sang `mockEvaluations`
-            <List>
-              {(evaluations && evaluations.length ? evaluations : mockEvaluations).map((ev, idx) => (
-              <React.Fragment key={ev._id}>
-                <ListItem alignItems="flex-start">
-                    <ListItemText
-                      primary={`${`Sinh viên ${idx + 1}`} — ${ev.classId?.className || ''}`}
-                    secondary={
-                      <>
-                        <Typography component="span" variant="body2" color="text.primary">
-                          {ev.criteria?.map(c => `${c.name}: ${c.score}`).join(' · ')}
-                        </Typography>
-                        <br />
-                        <Typography variant="body2" color="text.secondary">{ev.comment}</Typography>
-                        <Typography variant="caption" color="text.disabled">{new Date(ev.createdAt).toLocaleString()}</Typography>
-                      </>
-                    }
-                  />
-                </ListItem>
-                <Divider component="li" />
-              </React.Fragment>
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>
+        ) : list.length === 0 ? (
+          <Typography>Chưa có đánh giá nào.</Typography>
+        ) : (
+          <Grid container spacing={2}>
+            {list.map((ev, idx) => (
+              <Grid item xs={12} key={ev._id || idx}>
+                <Paper variant="outlined" sx={{ p: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography sx={{ fontWeight: 600 }}>{`Đánh giá #${idx + 1}`}</Typography>
+                    <Typography variant="caption" color="text.disabled">{ev.createdAt ? new Date(ev.createdAt).toLocaleString() : ''}</Typography>
+                  </Box>
+                  <Typography variant="subtitle2" sx={{ mb: 1 }}>{ev.classId?.className || 'Lớp không xác định'}</Typography>
+
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1 }}>
+                    {Array.isArray(ev.criteria) && ev.criteria.length > 0 ? ev.criteria.map((c, i) => (
+                      <Chip key={i} label={`${c.name}: ${c.score}`} color="primary" size="small" />
+                    )) : <Chip label="Không có tiêu chí" size="small" />}
+                  </Box>
+
+                  {ev.comment ? (
+                    <Typography variant="body2" sx={{ fontStyle: 'italic', mb: 1 }}>{ev.comment}</Typography>
+                  ) : null}
+
+                </Paper>
+              </Grid>
             ))}
-          </List>
+          </Grid>
         )}
       </Paper>
     </Box>

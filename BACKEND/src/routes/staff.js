@@ -4,6 +4,7 @@ const { verifyToken, authorize } = require('../middleware/authorization');
 const tuitionRouter = require('./tuition'); 
 const { createMaterial, getAllMaterials, updateMaterial, deleteMaterial, exportMaterialsExcel } = require('../controllers/material');
 const { bulkCreateGradeComponents, exportGradeComponentsExcel, getGradeComponents } = require('../controllers/gradeComponent');
+const gradeController = require('../controllers/gradeController');
 const { getAllRequests, updateRequest } = require('../controllers/requestController');
 const { createSlotNotification } = require('../controllers/notificationController');
 
@@ -18,6 +19,8 @@ router.get('/grade-components/export-excel', exportGradeComponentsExcel);
 router.post('/grade-components/bulk', bulkCreateGradeComponents);
 // List grade components (protected)
 router.get('/:subjectId/grade-components', authorize('staff', 'admin', 'student'), getGradeComponents);
+// Export class grades as Excel
+router.get('/grades/export-class', gradeController.exportClassGradesExcel);
 // Export Excel routes
 router.get('/clos/export-excel', exportCLOsExcel);
 router.get('/materials/export-excel', exportMaterialsExcel);

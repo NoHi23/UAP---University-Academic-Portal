@@ -82,7 +82,7 @@ const LecturerDashboard = () => {
     {
       title: "Xem giáo trình & tài liệu",
       icon: <MaterialIcon sx={{ fontSize: { xs: 30, sm: 35, md: 40 } }} />,
-      route: "/lecturer/access-course-materials"
+      route: "/lecturer/material"
     },
     {
       title: "Gửi đơn hỗ trợ",
@@ -92,17 +92,17 @@ const LecturerDashboard = () => {
     {
       title: "Xem đánh giá từ sinh viên",
       icon: <AssessmentIcon sx={{ fontSize: { xs: 30, sm: 35, md: 40 } }} />,
-      route: "/lecturer/view-student-evaluations"
+      route: "/lecturer/evaluations"
     },
     {
       title: "Nhập điểm cho sinh viên",
       icon: <GradeIcon sx={{ fontSize: { xs: 30, sm: 35, md: 40 } }} />,
-      route: "/lecturer/enter-student-grades"
+      route: "/lecturer/enter-grades"
     },
     {
       title: "Xem điểm của sinh viên",
       icon: <ChartIcon sx={{ fontSize: { xs: 30, sm: 35, md: 40 } }} />,
-      route: "/lecturer/view-student-grades"
+      route: "/lecturer/view-grades"
     },
     {
       title: "Xem danh sách điểm danh",
@@ -319,105 +319,8 @@ const LecturerDashboard = () => {
         <Grid item xs={12}>
           <Grid container spacing={{ xs: 2, sm: 3 }}>
             {/* Academic Results Chart */}
-            <Grid item xs={12} md={6}>
-              <Paper
-                elevation={3}
-                sx={{
-                  p: { xs: 2, sm: 3 },
-                  height: { xs: '250px', sm: '280px', md: '320px' },
-                  width: '100%'
-                }}
-              >
-                <Typography
-                  variant="h6"
-                  fontWeight={600}
-                  mb={3}
-                  sx={{ fontSize: { xs: '1rem', sm: '1.1rem', md: '1.25rem' } }}
-                >
-                  Kết quả học tập
-                </Typography>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    height: { xs: '180px', sm: '200px', md: '240px' },
-                    display: 'flex',
-                    alignItems: 'flex-end',
-                    justifyContent: 'center',
-                    gap: { xs: 0.5, sm: 1 },
-                    backgroundColor: 'transparent',
-                    position: 'relative'
-                  }}
-                >
-                  {/* Bar Chart Simulation */}
-                  {[30, 45, 60, 40, 80, 70, 90].map((height, index) => (
-                    <Paper
-                      key={index}
-                      elevation={1}
-                      sx={{
-                        width: { xs: 15, sm: 20, md: 25 },
-                        height: `${height}%`,
-                        backgroundColor: theme.palette.success.main,
-                        borderRadius: '4px 4px 0 0'
-                      }}
-                    />
-                  ))}
-                  {/* Line Chart Simulation */}
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      position: 'absolute',
-                      width: '80%',
-                      height: '80%',
-                      backgroundColor: 'transparent',
-                      backgroundImage: `linear-gradient(45deg, ${theme.palette.info.main} 2px, transparent 2px)`,
-                      backgroundSize: { xs: '15px 15px', sm: '20px 20px' },
-                      opacity: 0.7,
-                      pointerEvents: 'none'
-                    }}
-                  />
-                </Paper>
-              </Paper>
-            </Grid>
-
-            {/* Academic Progress */}
-            <Grid item xs={12} md={6}>
-              <Paper
-                elevation={3}
-                sx={{
-                  p: { xs: 2, sm: 3 },
-                  height: { xs: '250px', sm: '280px', md: '320px' },
-                  width: '100%'
-                }}
-              >
-                <Typography
-                  variant="h6"
-                  fontWeight={600}
-                  mb={3}
-                  sx={{ fontSize: { xs: '1rem', sm: '1.1rem', md: '1.25rem' } }}
-                >
-                  Tiến độ học tập
-                </Typography>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    height: { xs: '180px', sm: '200px', md: '240px' },
-                    backgroundColor: '#f8f9fa',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderRadius: 2
-                  }}
-                >
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
-                  >
-                    Biểu đồ tiến độ học tập
-                  </Typography>
-                </Paper>
-              </Paper>
-            </Grid>
+     
+          
           </Grid>
         </Grid>
       </Grid>

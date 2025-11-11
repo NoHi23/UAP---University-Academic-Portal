@@ -36,18 +36,42 @@ const getClasses = async (req, res) => {
 const getStudentsByClass = async (req, res) => {
   try {
     const { classId } = req.params;
-    // optional scheduleId query to include attendance for that schedule
+  // tham số query tùy chọn scheduleId để kèm thông tin điểm danh cho tiết đó
     const { scheduleId } = req.query;
     if (!classId) return res.status(400).json({ success: false, message: 'classId is required' });
 
-    // Query ScheduleOfStudent records for the class and populate student.accountId for email
+  // Nếu truyền scheduleId, đảm bảo không tiết lộ chi tiết điểm danh của buổi học chưa tới trước khi bắt đầu
+    if (scheduleId) {
+      try {
+        const scheduleDoc = await Schedule.findById(scheduleId).lean();
+        if (scheduleDoc) {
+          const now = new Date();
+          let scheduleStart = new Date(scheduleDoc.date);
+          if (scheduleDoc.startTime) {
+            try {
+              const parts = String(scheduleDoc.startTime).split(':').map(x => parseInt(x, 10));
+              const hh = Number.isFinite(parts[0]) ? parts[0] : 0;
+              const mm = Number.isFinite(parts[1]) ? parts[1] : 0;
+              scheduleStart.setHours(hh, mm, 0, 0);
+            } catch (e) { /* ignore parse errors */ }
+          }
+          if (now < scheduleStart) {
+            return res.status(403).json({ success: false, message: 'Attendance details are not available before the scheduled start time' });
+          }
+        }
+      } catch (e) {
+  // bỏ qua lỗi khi lấy schedule và tiếp tục trả về danh sách sinh viên của lớp
+      }
+    }
+
+  // Truy vấn các bản ghi ScheduleOfStudent cho lớp và populate student.accountId để lấy email
     const scheduleRecords = await ScheduleOfStudent.find({ classId })
       .populate({ path: 'studentId', populate: { path: 'accountId', model: 'Account', select: 'email' } })
       .lean();
 
     const recordsArray = Array.isArray(scheduleRecords) ? scheduleRecords : (scheduleRecords ? [scheduleRecords] : []);
 
-    // Helper to extract attendance entry for given scheduleId from a ScheduleOfStudent record
+  // Hàm trợ giúp để lấy entry điểm danh cho scheduleId cụ thể từ một record ScheduleOfStudent
     const findAttendance = (sos, schId) => {
       if (!sos || !Array.isArray(sos.attendance) || !schId) return null;
       return sos.attendance.find(a => String(a.scheduleId) === String(schId)) || null;
@@ -65,7 +89,7 @@ const getStudentsByClass = async (req, res) => {
           lastName: s.lastName,
           phone: s.phone,
           email: s.accountId?.email || null,
-          // If scheduleId provided, return that single attendance entry; otherwise return full attendance array so frontend can compute counts
+          // Nếu truyền scheduleId, trả về entry điểm danh đó; nếu không, trả về toàn bộ mảng attendance để frontend tính toán
           attendance: scheduleId ? findAttendance(r, scheduleId) : (Array.isArray(r.attendance) ? r.attendance : [])
         };
       })
@@ -114,7 +138,7 @@ const getSemesterOptions = async (req, res) => {
     const { semesterId } = req.query;
     if (!semesterId) return res.status(400).json({ success: false, message: 'semesterId is required' });
 
-    // Find schedules for this lecturer in semester
+  // Tìm các lịch của giảng viên trong kỳ học này
     const schedules = await Schedule.find({ lecturerId: lecturer._id, semesterId })
       .populate('classId', 'className')
       .populate('subjectId', 'subjectName subjectCode')
@@ -174,7 +198,7 @@ const getClassesBySemester = async (req, res) => {
     // Lấy tất cả schedules của giảng viên — nếu semesterId không truyền sẽ lấy tất cả kỳ
     const baseFilter = { lecturerId: lecturer._id };
     if (semesterId) baseFilter.semesterId = semesterId;
-    // If subjectId provided, filter at DB level
+  // Nếu cung cấp subjectId thì lọc tại cấp cơ sở dữ liệu
     if (subjectId) baseFilter.subjectId = subjectId;
 
     let schedules = await Schedule.find(baseFilter)
@@ -285,7 +309,7 @@ const getMyWeeklySchedule = async (req, res) => {
       .sort({ date: 1, slot: 1 });
     console.log('DEBUG getMyWeeklySchedule: schedules.length =', schedules.length);
     // Map lại dữ liệu để trả về lecturer info (vì model Schedule không có)
-    // Additionally fetch ScheduleOfLecture records to determine lecture-level attendance (taught flag)
+  // Lấy thêm các bản ghi ScheduleOfLecture để xác định trạng thái điểm danh ở mức bài giảng (cờ 'taught')
     const scheduleIds = schedules.map(s => String(s._id));
     const lectureRecords = await ScheduleOfLecture.find({ scheduleId: { $in: scheduleIds }, lecturerId: lecturer._id }).lean();
     const lectureMap = {};
@@ -294,30 +318,30 @@ const getMyWeeklySchedule = async (req, res) => {
     }
 
     const responseData = [];
-    // For each schedule, compute attendance status (statusOfAttendance) and counts
+  // Với mỗi lịch, tính trạng thái điểm danh (statusOfAttendance) và các số liệu đếm
     for (const s of schedules) {
       const obj = s.toObject ? s.toObject() : s;
       const lr = lectureMap[String(s._id)];
       const taught = !!(lr && lr.attendance === true);
 
-      // determine schedule start datetime using schedule.date + startTime if available
+  // Xác định thời điểm bắt đầu tiết học từ schedule.date + startTime nếu có
       let scheduleStart = new Date(s.date);
       try {
         if (s.startTime) {
-          // startTime expected like '08:00' or '08:00:00'
+          // startTime kỳ vọng dạng '08:00' hoặc '08:00:00'
           const parts = String(s.startTime).split(':').map(x => parseInt(x, 10));
           const hh = Number.isFinite(parts[0]) ? parts[0] : 0;
           const mm = Number.isFinite(parts[1]) ? parts[1] : 0;
           scheduleStart.setHours(hh, mm, 0, 0);
         }
       } catch (e) {
-        // ignore parse errors and keep date as-is
+        // Bỏ qua lỗi phân tích thời gian và giữ nguyên giá trị date
       }
 
       const now = new Date();
 
-      // default summary values
-      let statusOfAttendance = 'upcoming'; // upcoming means start time not yet reached
+  // Giá trị tóm tắt mặc định
+  let statusOfAttendance = 'upcoming'; // 'upcoming' nghĩa là thời gian bắt đầu chưa tới
       let totalStudents = 0;
       let notYetCount = 0;
 
@@ -326,19 +350,19 @@ const getMyWeeklySchedule = async (req, res) => {
         totalStudents = await ScheduleOfStudent.countDocuments({ classId: s.classId });
 
         if (now < scheduleStart) {
-          // slot hasn't started yet — keep status 'upcoming'
+          // Tiết học chưa bắt đầu — giữ trạng thái 'upcoming'
           statusOfAttendance = 'upcoming';
-          // notYetCount equals totalStudents (not started) — but leave as totalStudents so frontend may display badge if desired
+          // notYetCount bằng tổng số sinh viên (chưa bắt đầu) — để frontend có thể hiển thị badge nếu cần
           notYetCount = totalStudents;
         } else {
-          // slot time has arrived/passed — evaluate per-student attendance records
+          // Tiết học đã đến hoặc đã qua — đánh giá các bản ghi điểm danh của từng sinh viên
           const sosRecords = await ScheduleOfStudent.find({ classId: s.classId }).select('attendance').lean();
-          // If no records found, treat as all not-yet
+          // Nếu không tìm thấy bản ghi nào, coi tất cả là chưa điểm danh
           if (!sosRecords || sosRecords.length === 0) {
             notYetCount = totalStudents || 0;
             statusOfAttendance = (notYetCount === 0) ? 'complete' : 'incomplete';
           } else {
-            // count how many students still have Not Yet for this schedule
+            // Đếm có bao nhiêu sinh viên vẫn là 'Not Yet' cho lịch này
             const schIdStr = String(s._id);
             notYetCount = sosRecords.reduce((acc, r) => {
               const a = Array.isArray(r.attendance) ? r.attendance.find(x => String(x.scheduleId) === schIdStr) : null;
@@ -466,17 +490,17 @@ const getScheduleById = async (req, res) => {
       .populate('subjectId', 'subjectName subjectCode')
       .populate({ path: 'classId', populate: { path: 'subjectId', model: 'Subject' } })
       .populate('roomId', 'roomName roomCode')
-      // populate lecturer basic fields and include accountId so we can attach email
+  // Populate các trường cơ bản của giảng viên và bao gồm accountId để có thể ghép email
       .populate({ path: 'lecturerId', select: 'firstName lastName lecturerCode lecturerAvatar accountId' });
 
     if (!schedule) return res.status(404).json({ success: false, message: 'Schedule not found' });
 
-    // Attach lecturer account email (if accountId exists) so frontend can read schedule.lecturerId.email
+  // Gắn email của account giảng viên (nếu accountId tồn tại) để frontend có thể đọc schedule.lecturerId.email
     if (schedule.lecturerId && schedule.lecturerId.accountId) {
       try {
         const acct = await Account.findById(schedule.lecturerId.accountId).select('email').lean();
         if (acct) {
-          // normalize to schedule.lecturerId.email for frontend compatibility
+          // Chuẩn hoá thành schedule.lecturerId.email để tương thích với frontend
           schedule.lecturerId = schedule.lecturerId.toObject ? { ...schedule.lecturerId.toObject(), email: acct.email } : { ...schedule.lecturerId, email: acct.email };
         }
       } catch (e) {
@@ -724,6 +748,34 @@ const markAttendance = async (req, res) => {
       const schedule = await Schedule.findById(scheduleId);
       if (!schedule) {
         results.push({ success: false, message: 'Schedule not found', scheduleId });
+        continue;
+      }
+      // Compute schedule start datetime (use startTime if provided) and schedule end-of-day
+      let scheduleStart = new Date(schedule.date);
+      try {
+        if (schedule.startTime) {
+          const parts = String(schedule.startTime).split(':').map(x => parseInt(x, 10));
+          const hh = Number.isFinite(parts[0]) ? parts[0] : 0;
+          const mm = Number.isFinite(parts[1]) ? parts[1] : 0;
+          scheduleStart.setHours(hh, mm, 0, 0);
+        }
+      } catch (e) {
+        // Bỏ qua lỗi phân tích thời gian và giữ nguyên giá trị date
+      }
+      const scheduleEndOfDay = new Date(schedule.date);
+      scheduleEndOfDay.setHours(23, 59, 59, 999);
+
+      const now = new Date();
+
+      // Prevent marking attendance before scheduled start
+      if (now < scheduleStart) {
+        results.push({ success: false, message: 'Attendance not allowed before the scheduled start time', scheduleId });
+        continue;
+      }
+
+      // If current time is after the end of the schedule day, disallow edits (locked)
+      if (now > scheduleEndOfDay) {
+        results.push({ success: false, message: 'Attendance editing locked after end of schedule day', scheduleId });
         continue;
       }
 

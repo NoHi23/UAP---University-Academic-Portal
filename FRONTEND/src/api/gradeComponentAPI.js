@@ -8,8 +8,17 @@ const gradeComponentAPI = {
       params: { subjectId },
       responseType: 'blob',
     }),
-  getAll: (subjectId) =>
-    api.get('staff/grade-components', { params: { subjectId } }),
+  // getAll: prefer lecturer endpoint (query param) for lecturer clients, fallback to staff path if needed
+  getAll: async (subjectId) => {
+    if (!subjectId) return api.get('lecturer/grade-components');
+    try {
+      // lecturer route accepts ?subjectId=
+      return await api.get('lecturer/grade-components', { params: { subjectId } });
+    } catch (err) {
+      // fallback to staff route which uses path param: /staff/:subjectId/grade-components
+      return await api.get(`staff/${subjectId}/grade-components`);
+    }
+  },
 };
 
 export default gradeComponentAPI;

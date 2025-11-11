@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Box, Container, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Avatar, Select, MenuItem, TextField, IconButton, CircularProgress, Button, ToggleButtonGroup, ToggleButton } from '@mui/material';
 import api from '../../../services/api';
 import { toast } from 'react-toastify';
+import dayjs from 'dayjs';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 const STATUS_OPTIONS = [
@@ -14,6 +15,8 @@ const STATUS_OPTIONS = [
 const AttendancePage = () => {
   const { scheduleId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const disableEditAfterDay = !!(location?.state?.disableEditAfterDay);
   const [loading, setLoading] = useState(true);
   const [schedule, setSchedule] = useState(null);
   const [students, setStudents] = useState([]);
@@ -26,6 +29,32 @@ const AttendancePage = () => {
       .then(res => {
         const sch = res.data?.data || null;
         setSchedule(sch);
+
+        // Prevent direct URL access to attendance for upcoming sessions
+        try {
+          const now = dayjs();
+          const scheduleDate = sch?.date ? dayjs(sch.date) : null;
+          if (scheduleDate) {
+            if (sch?.startTime) {
+              const parts = String(sch.startTime).split(':').map(p => Number(p));
+              const start = scheduleDate.hour(parts[0] || 0).minute(parts[1] || 0).second(0);
+              if (now.isBefore(start)) {
+                toast.error('Buổi học chưa diễn ra');
+                navigate('/lecturer/view-teaching-schedule');
+                return Promise.reject('redirected');
+              }
+            } else {
+              if (now.isBefore(scheduleDate.startOf('day'))) {
+                toast.error('Buổi học chưa diễn ra');
+                navigate('/lecturer/view-teaching-schedule');
+                return Promise.reject('redirected');
+              }
+            }
+          }
+        } catch (e) {
+          // ignore errors in redirect logic
+        }
+
         const classId = sch?.classId?._id || sch?.classId;
         if (!classId) throw new Error('classId not found on schedule');
         return api.get(`lecturer/studentsbyclass/${classId}?scheduleId=${scheduleId}`);
@@ -52,11 +81,12 @@ const AttendancePage = () => {
         setStudents(roster);
       })
       .catch(err => {
+        if (err === 'redirected') return; // we already redirected and showed a toast
         console.error(err);
         toast.error('Không thể tải dữ liệu điểm danh');
       })
       .finally(() => setLoading(false));
-  }, [scheduleId]);
+  }, [scheduleId, navigate]);
 
   const handleChange = (studentId, field, value) => {
     setStudents(prev => prev.map(s => s._id === studentId ? { ...s, [field === 'status' ? 'statusLocal' : 'noteLocal']: value } : s));
@@ -130,8 +160,14 @@ const AttendancePage = () => {
         <IconButton onClick={() => navigate(-1)}><ArrowBackIcon /></IconButton>
         <Typography variant="h5">Điểm danh: {schedule?.subjectId?.subjectName || schedule?.classId?.className || 'Slot'}</Typography>
         <Box sx={{ flex: 1 }} />
-        <Button variant="outlined" onClick={saveAll} disabled={!students.some(isDirty)}>Lưu toàn bộ</Button>
+        <Button variant="outlined" onClick={saveAll} disabled={!students.some(isDirty) || disableEditAfterDay}>Lưu toàn bộ</Button>
       </Box>
+
+      {disableEditAfterDay && (
+        <Box sx={{ mb: 2 }}>
+          <Typography color="warning.main">Chú ý: thời điểm danh đã hết vào lúc 24h00 trong ngày — giảng viên không thể chỉnh sửa trạng thái sau thời gian này.</Typography>
+        </Box>
+      )}
 
       <Paper>
         <TableContainer>
@@ -174,6 +210,7 @@ const AttendancePage = () => {
                         onChange={(e, newVal) => handleChange(s._id, 'status', newVal || 'Not Yet')}
                         size="small"
                         sx={{ gap: 1, minHeight: 36 }}
+                        disabled={disableEditAfterDay}
                       >
                      
                         <ToggleButton
@@ -192,10 +229,10 @@ const AttendancePage = () => {
                     </Box>
                   </TableCell>
                   <TableCell>
-                    <TextField fullWidth size="small" value={s.noteLocal} onChange={(e) => handleChange(s._id, 'note', e.target.value)} />
+                    <TextField fullWidth size="small" value={s.noteLocal} onChange={(e) => handleChange(s._id, 'note', e.target.value)} disabled={disableEditAfterDay} />
                   </TableCell>
                   <TableCell>
-                    <Button size="small" variant="contained" onClick={() => saveAttendance(s)} disabled={!isDirty(s)}>Lưu</Button>
+                    <Button size="small" variant="contained" onClick={() => saveAttendance(s)} disabled={!isDirty(s) || disableEditAfterDay}>Lưu</Button>
                   </TableCell>
                 </TableRow>
               ))}
