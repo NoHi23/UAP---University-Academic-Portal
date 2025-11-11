@@ -1,16 +1,28 @@
 .schedule-cell {
     padding: 4px !important;
     vertical-align: top;
-    height: 100px; /* Chiều cao mỗi ô slot */
+    height: 100px;
     border-right: 1px solid rgba(224, 224, 224, 1);
 }
 
 .schedule-card {
     height: 100%;
     width: 100%;
-    color: white;
-    border-radius: 4px !important;
+    color: #212529;
+    /* Màu chữ mặc định (đậm) */
+    border-radius: 8px !important;
+    /* TĂNG ĐỘ BO GÓC */
     box-shadow: none !important;
+    /* THÊM HIỆU ỨNG CHUYỂN ĐỘNG MƯỢT MÀ */
+    transition: all 0.25s ease-in-out;
+}
+
+/* THÊM HIỆU ỨNG KHI DI CHUỘT VÀO */
+.schedule-card:hover {
+    transform: translateY(-3px);
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    /* Thêm bóng mờ khi hover */
 }
 
 .schedule-card .MuiCardContent-root {
@@ -18,7 +30,6 @@
     display: flex;
     flex-direction: column;
 }
-
 
 .schedule-card .card-code {
     font-weight: bold !important;
@@ -31,43 +42,92 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    opacity: 0.9;
 }
 
 .schedule-card .MuiSvgIcon-root {
     font-size: 0.8rem !important;
 }
+
+/* --- TRẠNG THÁI (GÓI 1) --- */
+
+/* Có mặt */
 .schedule-card.present {
-    background-color: #4dc553;
-    border-left-style: solid;
-    border-left-width: 5px;
-    border-left-color: #2b662f;
+    background-color: #eaf9eb;
+    border-left: 5px solid #4dc553;
 }
+
+.schedule-card.present:hover {
+    background-color: #e0f5e1;
+    /* Đậm hơn 1 chút khi hover */
+}
+
+.schedule-card.present .card-code,
+.schedule-card.present .card-time,
+.schedule-card.present .card-room,
+.schedule-card.present .MuiSvgIcon-root {
+    color: #2b662f !important;
+    /* Màu chữ đậm */
+}
+
+/* Vắng mặt */
 .schedule-card.absent {
-    background-color: #d64646;
-    border-left-style: solid;
-    border-left-width: 5px;
-    border-left-color: #8d1111; 
+    background-color: #fbecec;
+    border-left: 5px solid #d64646;
 }
 
+.schedule-card.absent:hover {
+    background-color: #f7e3e3;
+    /* Đậm hơn 1 chút khi hover */
+}
+
+.schedule-card.absent .card-code,
+.schedule-card.absent .card-time,
+.schedule-card.absent .card-room,
+.schedule-card.absent .MuiSvgIcon-root {
+    color: #8d1111 !important;
+    /* Màu chữ đậm */
+}
+
+/* Chưa điểm danh */
 .schedule-card.not-yet {
-    background-color: #a9b1b6;
-    border-left-style: solid;
-    border-left-width: 5px;
-    border-left-color: #464747; 
+    background-color: #f8f9fa;
+    border-left: 5px solid #a9b1b6;
 }
 
-.schedule-card .card-code,
-.schedule-card .card-time,
-.schedule-card .card-room,
-.schedule-card .MuiSvgIcon-root {
-    color: white !important;
+.schedule-card.not-yet:hover {
+    background-color: #f1f3f5;
+    /* Đậm hơn 1 chút khi hover */
 }
 
+.schedule-card.not-yet .card-code,
+.schedule-card.not-yet .card-time,
+.schedule-card.not-yet .card-room,
+.schedule-card.not-yet .MuiSvgIcon-root {
+    color: #464747 !important;
+    /* Màu chữ đậm */
+}
+
+
+/* --- LEGEND CHIP (GÓI 1) --- */
 .legend-chip {
-    color: white !important;
     font-weight: bold !important;
+    border-radius: 16px !important;
+    /* Bo tròn chip */
 }
-.legend-chip.present { background-color: #4dc553 !important; }
-.legend-chip.absent { background-color: #d64646 !important; }
-.legend-chip.not-yet { background-color: #a9b1b6 !important; }
+
+.legend-chip.present {
+    background-color: #4dc553 !important;
+    color: white !important;
+}
+
+.legend-chip.absent {
+    background-color: #d64646 !important;
+    color: white !important;
+}
+
+.legend-chip.not-yet {
+    background-color: #f8f9fa !important;
+    color: #464747 !important;
+    /* Chữ đậm */
+    border: 1px solid #a9b1b6;
+}

@@ -3,7 +3,7 @@ import {
     Container, Paper, Typography, Box, Button, Switch,
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     IconButton, Tooltip, CircularProgress, TextField, Select, MenuItem, FormControl, InputLabel,
-    Divider, Chip 
+    Divider, Chip
 } from '@mui/material';
 import { FaPlus, FaEdit, FaTrash, FaSave, FaTimes } from 'react-icons/fa';
 import api from '../../services/api';
@@ -20,7 +20,6 @@ const AiToolManagementPage = () => {
     const [newDescription, setNewDescription] = useState('');
     const [newRole, setNewRole] = useState('student');
     const [newParameters, setNewParameters] = useState([]); 
-    const [newIsEnabled, setNewIsEnabled] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
 
     const fetchTools = async () => {
@@ -52,7 +51,6 @@ const AiToolManagementPage = () => {
         }
     };
 
-    // --- CÁC HÀM HELPER BỊ THIẾU ---
     const handleAddParameter = () => {
         setNewParameters([
             ...newParameters,
@@ -67,15 +65,9 @@ const AiToolManagementPage = () => {
 
     const handleParameterChange = (index, field, value) => {
         const updatedParams = [...newParameters];
-        // ensure boolean fields remain boolean
-        if (field === 'isRequired') {
-            updatedParams[index][field] = (value === true || value === 'true');
-        } else {
-            updatedParams[index][field] = value;
-        }
+        updatedParams[index][field] = value;
         setNewParameters(updatedParams);
     };
-    // ---------------------------------
 
     const handleCreateTool = async (e) => {
         e.preventDefault();
@@ -107,8 +99,7 @@ const AiToolManagementPage = () => {
                 toolName: newToolName,
                 description: newDescription,
                 role: newRole,
-                parameters: parametersObject,
-                isEnabled: newIsEnabled
+                parameters: parametersObject
             });
             notifySuccess('Tạo công cụ mới thành công!');
             setNewToolName(''); 
@@ -169,11 +160,7 @@ const AiToolManagementPage = () => {
     
     const handleEditParamChange = (index, field, value) => {
         const updatedParams = [...editData.parameters];
-        if (field === 'isRequired') {
-            updatedParams[index][field] = (value === true || value === 'true');
-        } else {
-            updatedParams[index][field] = value;
-        }
+        updatedParams[index][field] = value;
         setEditData(prev => ({
             ...prev,
             parameters: updatedParams
@@ -184,7 +171,7 @@ const AiToolManagementPage = () => {
         setEditData(prev => ({
             ...prev,
             parameters: [
-                ...prev.parameters,
+                ...(prev.parameters || []),
                 { name: '', type: 'STRING', description: '', isRequired: true }
             ]
         }));
@@ -209,7 +196,7 @@ const AiToolManagementPage = () => {
             };
 
             editData.parameters.forEach(param => {
-                if (param.name.trim()) {
+                if (param.name && param.name.trim()) {
                     parametersObject.properties[param.name] = {
                         type: param.type,
                         description: param.description
@@ -295,7 +282,7 @@ const AiToolManagementPage = () => {
                                     sx={{ flex: 2 }}
                                     required
                                 />
-                                 <FormControl size="small" sx={{ minWidth: 100 }}>
+                                 <FormControl size="small" sx={{ minWidth: 120 }}>
                                     <InputLabel>Bắt buộc?</InputLabel>
                                     <Select
                                         value={param.isRequired}
@@ -326,7 +313,7 @@ const AiToolManagementPage = () => {
                         <Divider sx={{ my: 2 }} />
 
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                 <FormControl size="small" sx={{ minWidth: 200, maxWidth: '30%' }}>
+                             <FormControl size="small" sx={{ minWidth: 200, maxWidth: '30%' }}>
                                 <InputLabel>Vai trò</InputLabel>
                                 <Select value={newRole} label="Vai trò" onChange={(e) => setNewRole(e.target.value)}>
                                     <MenuItem value="student">Student</MenuItem>
@@ -334,16 +321,10 @@ const AiToolManagementPage = () => {
                                     <MenuItem value="staff">Staff</MenuItem>
                                 </Select>
                             </FormControl>
-                                <FormControl component="fieldset" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                        <Typography variant="body2">Kích hoạt</Typography>
-                                        <Switch checked={newIsEnabled} onChange={(e) => setNewIsEnabled(e.target.checked)} color="success" />
-                                    </Box>
-                                </FormControl>
                             <Button 
                                 type="submit" 
                                 variant="contained" 
-                                    startIcon={isCreating ? <CircularProgress size={20} color="inherit" /> : <FaPlus />} 
+                                startIcon={isCreating ? <CircularProgress size={20} color="inherit" /> : <FaPlus />} 
                                 sx={{ alignSelf: 'flex-start' }}
                                 disabled={isCreating}
                             >
@@ -369,8 +350,8 @@ const AiToolManagementPage = () => {
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                                {tools.map((tool) => (
-                                    <TableRow key={tool._id} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+                            {tools.map((tool) => (
+                                <TableRow key={tool._id} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
                                     {isEditing === tool._id ? (
                                         <>
                                             <TableCell>
@@ -392,7 +373,7 @@ const AiToolManagementPage = () => {
                                                 />
                                             </TableCell>
                                             <TableCell>
-                                                {editData.parameters.map((param, index) => (
+                                                {(editData.parameters || []).map((param, index) => (
                                                     <Box key={index} sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'center' }}>
                                                         <TextField label="Tên" value={param.name} onChange={(e) => handleEditParamChange(index, 'name', e.target.value)} size="small" sx={{ width: '100px' }} />
                                                         <Select value={param.type} onChange={(e) => handleEditParamChange(index, 'type', e.target.value)} size="small" sx={{ width: '100px' }}>
@@ -401,13 +382,19 @@ const AiToolManagementPage = () => {
                                                             <MenuItem value="BOOLEAN">BOOLEAN</MenuItem>
                                                         </Select>
                                                         <TextField label="Mô tả" value={param.description} onChange={(e) => handleEditParamChange(index, 'description', e.target.value)} size="small" sx={{ width: '200px' }} />
-                                                        <FormControl size="small" sx={{ minWidth: 100 }}>
+                                                        
+                                                        <FormControl size="small" sx={{ minWidth: 120 }}>
                                                             <InputLabel>Bắt buộc?</InputLabel>
-                                                            <Select value={param.isRequired} onChange={(e) => handleEditParamChange(index, 'isRequired', e.target.value)} size="small" sx={{ width: '100px' }}>
+                                                            <Select
+                                                                value={param.isRequired}
+                                                                label="Bắt buộc?"
+                                                                onChange={(e) => handleEditParamChange(index, 'isRequired', e.target.value)}
+                                                            >
                                                                 <MenuItem value={true}>Có</MenuItem>
                                                                 <MenuItem value={false}>Không</MenuItem>
                                                             </Select>
                                                         </FormControl>
+
                                                         <IconButton onClick={() => handleRemoveEditParameter(index)} size="small"><FaTimes color="red" /></IconButton>
                                                     </Box>
                                                 ))}
@@ -444,19 +431,8 @@ const AiToolManagementPage = () => {
                                             </TableCell>
                                             <TableCell sx={{ fontFamily: 'monospace' }}>{tool.toolName}</TableCell>
                                             <TableCell sx={{ minWidth: 300 }}>{tool.description}</TableCell>
-                                            <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.85rem', maxWidth: 300 }}>
-                                                {tool.parameters && tool.parameters.properties ? (
-                                                    Object.entries(tool.parameters.properties).map(([name, p]) => (
-                                                        <Box key={name} sx={{ mb: 0.5 }}>
-                                                            <Typography component="span" sx={{ fontWeight: 600 }}>{name}</Typography>
-                                                            <Typography component="span" sx={{ mx: 1, color: 'text.secondary' }}>• {p.type}</Typography>
-                                                            {tool.parameters.required && tool.parameters.required.includes(name) && (
-                                                                <Chip size="small" label="required" color="primary" sx={{ ml: 1, mr: 1 }} />
-                                                            )}
-                                                            <Typography component="div" sx={{ color: 'text.secondary', fontSize: '0.85rem' }}>{p.description}</Typography>
-                                                        </Box>
-                                                    ))
-                                                ) : 'N/A'}
+                                            <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.8rem', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                {tool.parameters ? JSON.stringify(tool.parameters.properties) : 'N/A'}
                                             </TableCell>
                                             <TableCell>{tool.role}</TableCell>
                                             <TableCell>
