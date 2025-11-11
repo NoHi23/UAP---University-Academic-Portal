@@ -10,6 +10,7 @@ import { AuthContext } from '../../context/AuthContext';
 import api from '../../services/api';
 import StudentProfile from './StudentProfile';
 import AcademicResultsChart from './AcademicResultsChart';
+import StudyProgressChart from './StudyProgressChart';
 import FullScreenLoader from '../../components/Common/FullScreenLoader';
 
 const mockStudentInfo = {
@@ -269,7 +270,7 @@ const Dashboard = () => {
           </div>
           <div className="card chart-card">
             <h3>Tiến độ học tập</h3>
-            <div className="chart-placeholder">[Biểu đồ tiến độ học tập]</div>
+            <StudyProgressChart />
           </div>
         </div>
 
