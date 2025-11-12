@@ -7,21 +7,36 @@ const staffSchema = new Schema({
     required: true,
     unique: true
   },
-  firstName: {
-    type: String,
-    required: true
-  },
-  lastName: {
+  fullName: {
     type: String,
     required: true
   },
   gender: {
     type: Boolean,
-    default: true   // true: Nam, false: Nữ
+    default: true // true = Nam, false = Nữ
   },
   phone: {
     type: String,
     required: true
+  },
+  address: {
+    type: String,
+    required: true
+  },
+  dateOfBirth: {
+    type: Date,
+    required: false
+  },
+  staffAvatar: {
+    type: String,
+    required: false,
+    validate: {
+      validator(v) {
+        if (!v) return true;
+        return /^data:image\/(png|jpe?g|gif|webp);base64,/.test(v) || /^https?:\/\//.test(v);
+      },
+      message: 'Avatar phải là base64 hoặc URL hợp lệ.'
+    }
   },
   accountId: {
     type: Schema.Types.ObjectId,
@@ -33,8 +48,6 @@ const staffSchema = new Schema({
     type: Boolean,
     default: true
   }
-}, {
-  timestamps: true
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model("Staff", staffSchema);
