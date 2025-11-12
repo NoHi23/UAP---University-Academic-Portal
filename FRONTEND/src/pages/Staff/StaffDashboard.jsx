@@ -21,6 +21,8 @@ import {
 import FullScreenLoader from '../../components/Common/FullScreenLoader';
 import { AuthContext } from '../../context/AuthContext';
 
+import EditCalendarIcon from '@mui/icons-material/EditCalendar';
+import DynamicFeedIcon from '@mui/icons-material/DynamicFeed';
 const API = (process.env.REACT_APP_API_URL || 'http://localhost:9999').replace(/\/+$/, '');
 
 export default function StaffDashboard() {
@@ -82,10 +84,10 @@ export default function StaffDashboard() {
     { icon: <AccountBoxIcon />, label: 'Thông tin cá nhân', path: '/staff/profile' },
     { icon: <SchoolIcon />, label: 'Quản lý Sinh viên', path: '/staff/students' },
     { icon: <GroupsIcon />, label: 'Quản lý Giảng viên', path: '/staff/lecturers' },
-    { icon: <LibraryBooksIcon />, label: 'Quản lý lớp học', path: '/staff/class' },
+    { icon: <DynamicFeedIcon />, label: 'Quản lý Lớp học', path: '/staff/manage-classes' },
+    { label: 'Quản lý TKB', icon: <EditCalendarIcon />, path: '/staff/manage-schedules' },
     { icon: <NotificationsIcon />, label: 'Quản lý thông báo', path: '/staff/announcements' },
     { icon: <SupportAgentIcon />, label: 'Hỗ trợ', path: '/staff/supports' },
-    { icon: <EventNoteIcon />, label: 'Quản lý TKB', path: '/staff/schedule' },
     { icon: <MenuBookIcon />, label: 'Quản lý tài liệu', path: '/staff/material' },
     { icon: <AssessmentIcon />, label: 'Quản lý Học kỳ', path: '/staff/semesters' },
     { icon: <CalendarMonthIcon />, label: 'Tạo lịch thi', path: '/staff/exam-schedule' },

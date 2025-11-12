@@ -14,7 +14,8 @@ const Subject = require('../models/subject')
 const CurriculumDetail = require('../models/curriculumDetail');
 const Schedule = require('../models/schedule');
 const Staff = require('../models/staff');
-
+const ScheduleOfLecture = require('../models/scheduleOfLecture');
+const dayjs = require('dayjs');
 
 
 const {
@@ -1490,8 +1491,8 @@ const getAllMajors2 = async (req, res) => {
 const getAllLecturers = async (req, res) => {
     try {
         const lecturers = await Lecturer.find()
-            .populate('majorId', 'majorName majorCode') 
-            .select('firstName lastName majorId'); 
+            .populate('majorId', 'majorName majorCode')
+            .select('firstName lastName majorId');
 
         res.status(200).json({ success: true, data: lecturers });
     } catch (error) {
@@ -1500,6 +1501,80 @@ const getAllLecturers = async (req, res) => {
     }
 };
 
+const reassignClass = async (req, res) => {
+    try {
+        const { classId } = req.params;
+        const { newLecturerId, newRoomId } = req.body;
+
+        if (!newLecturerId && !newRoomId) {
+            return res.status(400).json({ message: 'Vui lòng cung cấp Giảng viên mới hoặc Phòng mới.' });
+        }
+
+        let updateData = {};
+        if (newLecturerId) updateData.lecturerId = newLecturerId;
+        if (newRoomId) updateData.roomId = newRoomId;
+
+        const updatedClass = await Class.findByIdAndUpdate(classId, updateData, { new: true });
+        if (!updatedClass) return res.status(404).json({ message: 'Không tìm thấy lớp học.' });
+
+        await Schedule.updateMany(
+            { classId: classId },
+            { $set: updateData }
+        );
+
+        if (newLecturerId) {
+            const schedules = await Schedule.find({ classId: classId }).select('_id');
+            const scheduleIds = schedules.map(s => s._id);
+
+            await ScheduleOfLecture.deleteMany({ scheduleId: { $in: scheduleIds } });
+
+            const newLecturerEntries = scheduleIds.map(schId => ({
+                scheduleId: schId,
+                lecturerId: newLecturerId
+            }));
+            await ScheduleOfLecture.insertMany(newLecturerEntries);
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Phân công lại lớp thành công. (Lưu ý: Hệ thống không kiểm tra xung đột lịch cho giảng viên/phòng mới.)',
+            data: updatedClass
+        });
+
+    } catch (error) {
+        console.error("Lỗi khi phân công lại lớp:", error);
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
+
+const getAllClasses = async (req, res) => {
+    try {
+        const classes = await Class.find()
+            .populate({
+                path: 'subjectId',
+                select: 'subjectCode subjectName majorId', 
+                populate: {
+                    path: 'majorId',
+                    select: 'majorName'
+                }
+            })
+            .populate('lecturerId', 'firstName lastName')
+            .populate('roomId', 'roomName')
+            .sort({ className: 1 })
+            .lean(); 
+
+        const transformedClasses = classes.map(cls => ({
+            ...cls,
+            majorId: cls.subjectId?.majorId?._id, 
+            majorName: cls.subjectId?.majorId?.majorName 
+        }));
+
+        res.status(200).json({ success: true, data: transformedClasses });
+    } catch (error) {
+        console.error("Lỗi khi lấy danh sách lớp học:", error);
+        res.status(500).json({ success: false, message: 'Lỗi server' });
+    }
+};
 
 module.exports = {
     //STUDENT
@@ -1525,6 +1600,7 @@ module.exports = {
     getAllMajors2,
     getFilteredStudents,
     getAllLecturers,
+    getAllClasses,
+    reassignClass,
 
-    
 };

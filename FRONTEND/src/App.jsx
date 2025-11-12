@@ -97,7 +97,9 @@ import TuitionManagementPage from './pages/Staff/TuitionManagementPage';
 import StaffDashboard from './pages/Staff/StaffDashboard';
 import StaffProfile from './pages/Staff/StaffProfile';
 import AdminMajorPage from './pages/Admin/MajorAdminPage';
-
+import PaymentResult from './pages/Student/PaymentResult';
+import ManageClassesPage from './pages/Staff/ManageClassesPage';
+import ManageSchedulesPage from './pages/Staff/ManageSchedulesPage';
 function App() {
   const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
@@ -158,6 +160,7 @@ function App() {
                   <Route path="/student/classmates/:classId" element={<StudentClassmatesPage />} />
                   <Route path="/student/notifications/slot/:scheduleId" element={<StudentSlotNotificationPage />} />
                   <Route path="/student/scheduleExam" element={<ExamSchedule />} />
+                  <Route path="/student/payment-result" element={<PaymentResult />} />
                   <Route
                     path="/student/materials/:id"
                     element={<StudentMaterialDetail />}
@@ -191,6 +194,8 @@ function App() {
                   <Route path="tuition-manage" element={<TuitionManagementPage />} />
                   <Route path="announcements" element={<AnnouncementList />} />
                   <Route path="profile" element={<StaffProfile />} />
+                  <Route path="manage-classes" element={<ManageClassesPage />} />
+                  <Route path="manage-schedules" element={<ManageSchedulesPage />} />
                 </Route>
 
                 <Route path="/lecturer/" element={<LecturerLayout />}>
@@ -219,7 +224,7 @@ function App() {
 
 
                 <Route path="/admin/" element={<AdminLayout />}>
-                  <Route path="" element={<AdminAccountList />} /> 
+                  <Route path="" element={<AdminAccountList />} />
                   <Route path="majors" element={<AdminMajorPage />} />
                   <Route path="accounts" element={<AdminAccountList />} />
                 </Route>

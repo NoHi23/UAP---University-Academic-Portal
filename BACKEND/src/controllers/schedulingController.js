@@ -12,6 +12,7 @@ const Grade = require('../models/grade');
 const Semester = require('../models/semester');
 const GradeSummary = require('../models/gradeSummary');
 const GradeComponent = require('../models/gradeComponent');
+const dayjs = require('dayjs');
 
 
 const createLogger = (processLogs) => (msg) => {
@@ -594,10 +595,118 @@ const scheduleManualClass = async (req, res) => {
         res.status(500).json({ message: 'Lỗi server khi đang xếp lịch.', error: error.message, logs: processLogs });
     }
 };
+const moveScheduleSlot = async (req, res) => {
+    try {
+        const { scheduleId } = req.params;
+        const { newDate, newSlot, newRoomId, newLecturerId } = req.body;
+
+        if (!newDate || !newSlot || !newRoomId || !newLecturerId) {
+            return res.status(400).json({ message: 'Vui lòng cung cấp đầy đủ Ngày, Slot, Phòng, và Giảng viên mới.' });
+        }
+
+        const scheduleToMove = await Schedule.findById(scheduleId);
+        if (!scheduleToMove) return res.status(404).json({ message: 'Không tìm thấy buổi học.' });
+
+        const enrollments = await ScheduleOfStudent.find({ classId: scheduleToMove.classId }).select('studentId');
+        const studentIds = enrollments.map(e => e.studentId);
+
+        const numericSlot = Number(newSlot);
+        const newTimeInfo = slotTimes.find(t => t.slot === numericSlot);
+
+        if (!newTimeInfo) {
+            return res.status(400).json({ message: `Slot mới (${newSlot}) không hợp lệ.` });
+        }
+
+        const startOfDay = dayjs(newDate).startOf('day').toDate();
+        const endOfDay = dayjs(newDate).endOf('day').toDate();
+
+        const lecturerConflict = await Schedule.findOne({
+            _id: { $ne: scheduleId },
+            lecturerId: newLecturerId,
+            slot: numericSlot, 
+            date: { $gte: startOfDay, $lte: endOfDay }
+        });
+        if (lecturerConflict) return res.status(400).json({ message: 'Xung đột: Giảng viên mới đã bận tại thời điểm này.' });
+
+        const roomConflict = await Schedule.findOne({
+            _id: { $ne: scheduleId },
+            roomId: newRoomId,
+            slot: numericSlot, 
+            date: { $gte: startOfDay, $lte: endOfDay }
+        });
+        if (roomConflict) return res.status(400).json({ message: 'Xung đột: Phòng học đã được sử dụng tại thời điểm này.' });
+
+        const studentEnrollments = await ScheduleOfStudent.find({ studentId: { $in: studentIds } })
+            .populate('attendance.scheduleId', 'date slot'); 
+
+        for (const enrollment of studentEnrollments) {
+            for (const att of enrollment.attendance) {
+                if (att.scheduleId && att.scheduleId._id.toString() !== scheduleId) {
+                    const s = att.scheduleId;
+                    if (dayjs(s.date).isSame(dayjs(newDate), 'day') && s.slot === numericSlot) {
+                        return res.status(400).json({ message: `Xung đột: Một sinh viên trong lớp đã bận (lịch học khác) tại thời điểm này.` });
+                    }
+                }
+            }
+        }
+
+        const updatedSchedule = await Schedule.findByIdAndUpdate(scheduleId, {
+            date: newDate,
+            slot: numericSlot, 
+            roomId: newRoomId,
+            lecturerId: newLecturerId,
+            startTime: newTimeInfo.startTime, 
+            endTime: newTimeInfo.endTime  
+        }, { new: true });
+
+        await ScheduleOfLecture.updateOne(
+            { scheduleId: scheduleId },
+            { $set: { lecturerId: newLecturerId } },
+            { upsert: true } 
+        );
+
+        res.status(200).json({ success: true, message: 'Di chuyển buổi học thành công.', data: updatedSchedule });
+
+    } catch (error) {
+        console.error("Lỗi khi di chuyển slot:", error);
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
+
+const filterSchedules = async (req, res) => {
+    try {
+        const { semesterId, classId, lecturerId } = req.query;
+
+        let filter = {};
+        if (semesterId) filter.semesterId = semesterId;
+        if (classId) filter.classId = classId;
+        if (lecturerId) filter.lecturerId = lecturerId;
+
+        if (Object.keys(filter).length === 0) {
+            return res.status(400).json({ message: 'Vui lòng cung cấp ít nhất một bộ lọc (Kỳ, Lớp, hoặc GV).' });
+        }
+
+        const schedules = await Schedule.find(filter)
+            .populate('classId', 'className')
+            .populate('subjectId', 'subjectCode subjectName')
+            .populate('roomId', 'roomName')
+            .populate('lecturerId', 'firstName lastName')
+            .sort({ date: 1, slot: 1 })
+            .limit(200); // Giới hạn 200 kết quả
+
+        res.status(200).json({ success: true, data: schedules });
+
+    } catch (error) {
+        console.error("Lỗi khi lọc schedules:", error);
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
+    }
+};
 
 module.exports = {
     getStudentSchedule,
     getClassAttendance,
     generateSchedule,
-    scheduleManualClass
+    scheduleManualClass,
+    moveScheduleSlot,
+    filterSchedules
 };
