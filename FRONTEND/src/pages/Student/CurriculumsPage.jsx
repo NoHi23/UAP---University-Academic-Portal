@@ -171,9 +171,9 @@ const CurriculumsPage = () => {
                                                         icon={<GradeIcon sx={{ fontSize: '1rem' }} />}
                                                         sx={{
                                                             minWidth: '70px',
-                                                            bgcolor: gradeColors[subj.grade] + '15',
+                                                            bgcolor: gradeColors[subj.grade] ? gradeColors[subj.grade] + '15' : undefined,
                                                             color: gradeColors[subj.grade] || '#555',
-                                                            borderColor: gradeColors[subj.grade] + '50',
+                                                            borderColor: gradeColors[subj.grade] ? gradeColors[subj.grade] + '50' : undefined,
                                                             border: 1,
                                                             fontWeight: 600,
                                                             '& .MuiChip-icon': {
@@ -182,6 +182,25 @@ const CurriculumsPage = () => {
                                                         }}
                                                     />
                                                 </Stack>
+                                                {/* pass/fail indicator based on numeric grade (>= 5 = pass) */}
+                                                {(() => {
+                                                    const raw = subj.grade;
+                                                    const numeric = raw === undefined || raw === null ? NaN : parseFloat(String(raw).replace(',', '.'));
+                                                    if (!isNaN(numeric)) {
+                                                        const passed = numeric >= 5;
+                                                        return (
+                                                            <Typography variant="body2" sx={{ mt: 1, fontWeight: 700, color: passed ? 'success.main' : 'error.main' }}>
+                                                                {passed ? 'Đạt' : 'Không đạt'}
+                                                            </Typography>
+                                                        );
+                                                    }
+                                                    // if not numeric, show neutral text
+                                                    return (
+                                                        <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+                                                            {raw ? String(raw) : '—'}
+                                                        </Typography>
+                                                    );
+                                                })()}
                                             </CardContent>
                                         </Card>
                                     </Grid>
