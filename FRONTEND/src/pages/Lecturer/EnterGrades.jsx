@@ -128,8 +128,7 @@ const EnterGrades = () => {
         // Prefer semester-specific options (subjects/classes assigned to this lecturer)
         const semOptRes = await lecturerAPI.getSemesterOptions(semesterId);
         const semData = semOptRes?.data || semOptRes || {};
-        const semSubjects = (semData.subjects || []);
-        const semClasses = (semData.classes || []);
+  const semSubjects = (semData.subjects || []);
 
         if (Array.isArray(semSubjects) && semSubjects.length > 0) {
           // map to a consistent shape used by selects
@@ -141,13 +140,10 @@ const EnterGrades = () => {
           setSubjectOptions(Array.isArray(subs) ? subs : []);
         }
 
-        if (Array.isArray(semClasses) && semClasses.length > 0) {
-          setClassOptions(semClasses.map(c => ({ _id: c.classId, code: c.classCode || '', name: c.className || '' })));
-        } else {
-          const clsRes = await lecturerAPI.getClassesBySemester(semesterId);
-          const cls = clsRes?.data || clsRes || [];
-          setClassOptions(Array.isArray(cls) ? cls : []);
-        }
+        // For classes: we'll load them in a dedicated effect so we can support subject filtering
+        // If semClasses are available we keep them as a cache, but we'll not set classOptions here.
+        // Store a local cache (if needed) by setting a transient variable; currently we ignore caching
+        // and load classes in the class-loading effect below.
       } catch (err) {
         console.error('Failed to load subjects/classes', err);
         notifyError('Không tải được danh sách môn/lớp. Vui lòng thử lại sau.');
@@ -157,6 +153,35 @@ const EnterGrades = () => {
     };
     loadOptions();
   }, [semesterId]);
+
+  // Load classes for the selected semester. If subjectId is set, ask server to filter by subjectId.
+  useEffect(() => {
+    if (!semesterId) return;
+    const loadClasses = async () => {
+      try {
+        let clsRes;
+        if (subjectId) {
+          // Ask backend for classes filtered by subjectId
+          clsRes = await lecturerAPI.getClassesBySemester(semesterId, subjectId);
+        } else {
+          clsRes = await lecturerAPI.getClassesBySemester(semesterId);
+        }
+        const cls = clsRes?.data || clsRes || [];
+        // backend returns teaching-instances with classId/className/classCode
+        const mapped = Array.isArray(cls) ? cls.map(c => ({ _id: c.classId || c._id || c.classId?._id, code: c.classCode || c.classCode || c.className || '', name: c.className || c.className || '' })) : [];
+        setClassOptions(mapped);
+        // If current selected class is not in mapped options, clear selection
+        if (classId && !mapped.some(m => String(m._id) === String(classId))) {
+          setClassId('');
+        }
+      } catch (err) {
+        console.error('Failed to load classes for semester/subject', err);
+        notifyError('Không tải được danh sách lớp. Vui lòng thử lại sau.');
+        setClassOptions([]);
+      }
+    };
+    loadClasses();
+  }, [semesterId, subjectId, classId]);
     // auto-select when only one subject/class option is available
     useEffect(() => {
       if (!subjectId && subjectOptions.length === 1) setSubjectId(subjectOptions[0]._id);
