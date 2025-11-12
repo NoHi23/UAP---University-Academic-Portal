@@ -39,11 +39,10 @@ const AdminLayout = () => {
   };
 
   const menuItems = [
-    { text: "Dashboard", icon: <DashboardIcon />, path: "/admin/dashboard" },
+    
     { text: "Quản lý tài khoản", icon: <ManageAccountsIcon />, path: "/admin/accounts" },
-    { text: "Quản lý Khung Chương Trình", icon: <BarChartIcon />, path: "/admin/curriculums" },
-    { text: "Thông báo hệ thống", icon: <NotificationsIcon />, path: "/admin/announcements" },
-    { text: "Thống kê hệ thống", icon: <BarChartIcon />, path: "/admin/statistics" },
+    { text: "Quản lý Chuyên Ngành", icon: <BarChartIcon />, path: "/admin/majors" },
+  
   ];
 
   return (

@@ -71,10 +71,110 @@ const chatWithAI = async (req, res) => {
         const result = await chat.sendMessage(message);
         const response = result.response;
 
+        if (!response) {
+            console.warn('[AI] Không nhận được response object từ Gemini');
+            throw new Error('AI không phản hồi (response null).');
+        }
+
+        const promptFeedback = response.promptFeedback || null;
+        if (promptFeedback && promptFeedback.blockReason && promptFeedback.blockReason !== 'BLOCK_NONE') {
+            const safetyRatings = promptFeedback.safetyRatings || [];
+            console.warn('[AI] Prompt bị chặn bởi Safety Filter:', {
+                blockReason: promptFeedback.blockReason,
+                safetyRatings
+            });
+            const warnText = `Yêu cầu bị chặn bởi bộ lọc an toàn (${promptFeedback.blockReason}).`;
+            chatHistory.messages.push({ role: 'model', content: warnText });
+            await chatHistory.save();
+            return res.status(200).json({
+                reply: warnText,
+                chatId: chatHistory._id,
+                warn: 'safety-blocked',
+                safety: {
+                    blockReason: promptFeedback.blockReason,
+                    safetyRatings
+                }
+            });
+        }
+
+        const allCandidates = Array.isArray(response.candidates) ? response.candidates : [];
+        const nonStopCandidates = allCandidates.filter(c => c?.finishReason && c.finishReason !== 'STOP');
+        if (nonStopCandidates.length) {
+            console.warn('[AI] Các candidate bị chặn/phát sinh bất thường:', nonStopCandidates.map(c => ({
+                finishReason: c.finishReason,
+                safetyRatings: c.safetyRatings
+            })));
+        }
+
+        if (allCandidates.length) {
+            // Log nội dung chi tiết để debug khi finishReason=STOP nhưng không có text
+            const compact = allCandidates.map((c, idx) => ({
+                index: idx,
+                finishReason: c.finishReason || null,
+                safetyRatings: c.safetyRatings || null,
+                hasContent: !!c.content,
+                contentParts: c.content?.parts?.map(p => Object.keys(p)) || null
+            }));
+            console.warn('[AI] Candidate summary:', compact);
+        }
+
+        if (allCandidates.length) {
+            for (let i = 0; i < allCandidates.length; i++) {
+                const cand = allCandidates[i];
+                console.debug(`[AI] Candidate[${i}] raw:`, JSON.stringify(cand, null, 2));
+            }
+        }
+
         chatHistory.messages.push({ role: 'user', content: message });
 
-        if (response.functionCalls && response.functionCalls.length > 0) {
-            const functionCalls = response.functionCalls;
+        const normalizeFunctionCalls = (resp) => {
+            const calls = Array.isArray(resp.functionCalls) ? resp.functionCalls.slice() : [];
+            if (calls.length > 0) return calls;
+            const candidates = Array.isArray(resp.candidates) ? resp.candidates : [];
+            candidates.forEach(candidate => {
+                const parts = candidate?.content?.parts || [];
+                parts.forEach(part => {
+                    if (part.functionCall) {
+                        const args = part.functionCall.args;
+                        let normalizedArgs = args;
+                        if (typeof args === 'string') {
+                            try {
+                                normalizedArgs = JSON.parse(args);
+                            } catch (err) {
+                                console.warn('[AI] Không parse được functionCall.args string, giữ nguyên dạng chuỗi.', { name: part.functionCall.name, args });
+                            }
+                        }
+                        calls.push({
+                            name: part.functionCall.name,
+                            args: normalizedArgs || {}
+                        });
+                    }
+                });
+            });
+            return calls;
+        };
+
+        const functionCalls = normalizeFunctionCalls(response);
+
+        const normalizeFunctionResponsePayload = (toolResult) => {
+            if (toolResult === null || typeof toolResult === 'undefined') {
+                return {};
+            }
+            if (typeof toolResult === 'string') {
+                try {
+                    return JSON.parse(toolResult);
+                } catch (err) {
+                    console.warn('[AI] Tool trả về chuỗi không phải JSON, bọc vào { result }.');
+                    return { result: toolResult };
+                }
+            }
+            if (typeof toolResult === 'object') {
+                return toolResult;
+            }
+            return { result: toolResult };
+        };
+
+        if (functionCalls.length > 0) {
             const call = functionCalls[0];
 
             console.log(`[DEBUG] AI yêu cầu gọi hàm: ${call.name}`);
@@ -83,9 +183,9 @@ const chatWithAI = async (req, res) => {
             const toolResult = await executeTool(call.name, call.args, accountId);
 
             console.log(`[DEBUG] Kết quả từ tool: ${JSON.stringify(toolResult)}`);
-            const functionResponsePayload = JSON.stringify(toolResult);
+            const functionResponsePayload = normalizeFunctionResponsePayload(toolResult);
 
-            console.log('[DEBUG] Gửi lại kết quả tool cho model (stringified)');
+            console.log('[DEBUG] Gửi lại kết quả tool cho model (structured)');
             const result2 = await chat.sendMessage([{ functionResponse: { name: call.name, response: functionResponsePayload } }]);
 
             console.log('[DEBUG] result2:', { hasResponse: !!result2.response, responseText: result2.response ? result2.response.text() : null });
@@ -108,6 +208,15 @@ const chatWithAI = async (req, res) => {
             await chatHistory.save();
             return res.status(200).json({ reply: replyText, chatId: chatHistory._id });
         }
+
+        const candidateInfo = Array.isArray(response.candidates) ? response.candidates.map((c, idx) => ({
+            index: idx,
+            finishReason: c.finishReason || null,
+            safetyRatings: c.safetyRatings || null,
+            hasContent: !!c.content,
+            contentParts: c.content?.parts || null
+        })) : [];
+        console.warn('[AI] Không có phản hồi text/call từ model. candidate info:', candidateInfo);
 
         // (Đây là dòng 118 của bạn)
         throw new Error("AI không phản hồi. (Có thể do Safety Filter)");
