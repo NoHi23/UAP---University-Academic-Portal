@@ -53,9 +53,11 @@ import MaterialManager from './pages/Staff/MaterialManager';
 import SubjectDetail from './pages/Staff/MaterialManager/SubjectDetail';
 
 import LecturerTimetablePage from './pages/Lecturer/LecturerTimetablePage';
-import AttendancePage from './pages/Lecturer/AttendancePage';
+import AttendancePage from './pages/Lecturer/AttendancePage/AttendancePage';
+import LecturerMaterialManager from './pages/Lecturer/MaterialManager';
+import ViewGrades from './pages/Lecturer/ViewGrades';
+
 import ExamSchedulePage from './pages/Staff/ExamSchedulePage';
-// import StaffMaterialsPage from './pages/Staff/StaffMaterialsPage'; // unused
 import StudentTimetablePage from './pages/Student/StudentTimetablePage'
 
 import RequestAbsenceList from "./pages/Student/RequestAbsenceList";
@@ -66,7 +68,6 @@ import AbsenceReview from "./pages/Staff/AbsenceReview";
 import AttendanceList from './pages/Lecturer/AttendanceListPages/AttendanceList';
 import ClassesBySemesterPage from './pages/Lecturer/ClassesBySemester/Index';
 // import SupportRequestPage from './pages/Lecturer/SupportRequest';
-import ExamSchedulePage from './pages/Staff/ExamSchedulePage';
 import AnnouncementList from "./pages/Staff/AnnouncementList";
 
 import SupportListLecturer from './pages/Lecturer/SupportRequest/SupportList';
@@ -83,6 +84,7 @@ import ChatBubble from './components/Common/ChatBubble';
 import AiToolManagementPage from './pages/Staff/AiToolManagementPage';
 import AiChatPage from './pages/Student/AiChatPage';
 import AiChatLayout from './pages/Student/AiChatLayout';
+import SubjectDetailPublic from './pages/Shared/SubjectDetailPublic';
 import SemesterManagementPage from './pages/Staff/SemesterManagementPage';
 import ForgotPasswordPage from './components/Auth/ForgotPasswordPage';
 import ResetPasswordPage from './components/Auth/ResetPasswordPage';
@@ -161,6 +163,9 @@ function App() {
                     <Route path=":chatId" element={<AiChatPage />} />
                   </Route>
                 </Route>
+                <Route element={<ProtectedRoute />}>
+                  <Route path="/subject/:id" element={<SubjectDetail />} />
+                </Route>
                 <Route path="/staff/" element={<StaffLayout />}>
                   <Route path="dashboard" element={<StaffLayout />} />
                   <Route path="students" element={<StudentAccount />} />
@@ -179,9 +184,8 @@ function App() {
                   <Route path="manual-class" element={<ManualClassPage />} />
                   <Route path="tuition-config" element={<TuitionConfigPage />} />
                   <Route path="tuition-generate" element={<TuitionGenerationPage />} />
-                  <Route path="tuition-manage" element={<TuitionManagementPage />} /> 
-                  <Route path="/staff/exam-schedule" element={<ExamSchedulePage />} />  
-                <Route path="/staff/announcements" element={<AnnouncementList />} /> 
+                  <Route path="tuition-manage" element={<TuitionManagementPage />} />
+                  <Route path="announcements" element={<AnnouncementList />} />
                 </Route>
 
                 <Route path="/lecturer/" element={<LecturerLayout />}>
@@ -193,6 +197,7 @@ function App() {
                   <Route path='evaluations' element={<Evaluations />} />
                   <Route path='enter-grades' element={<EnterGrades />} />
                   <Route path='student-grades' element={<StudentGrades />} />
+                  <Route path='view-grades' element={<ViewGrades />} />
                   <Route path='attendance-list' element={<AttendanceList />} />
                   <Route path='attendance-list' element={<AttendanceList />} />
                   <Route path="announcements" element={<LecturerAnnouncements />} />
@@ -201,19 +206,20 @@ function App() {
                   <Route path="supports" element={<SupportListLecturer />} />
                   <Route path="schedule" element={<LecturerTimetablePage />} />
                   <Route path="attendance/:scheduleId" element={<AttendancePage />} />
-                  <Route path="view-attendance-list" element={<AttendanceList />} />
+                  <Route path="material" element={<LecturerMaterialManager />} />
+                  <Route path="material/:id" element={<SubjectDetailPublic />} />
                   <Route path="view-attendance-list" element={<AttendanceList />} />
                 </Route>
 
-                 
-                
-                  <Route path="/admin/" element={<AdminLayout />}>
-                    <Route path="curriculum" element={<CurriculumList />} />  
-                    <Route path="accounts" element={<AdminAccountList />} />
-                  </Route>
-                
 
-                
+
+                <Route path="/admin/" element={<AdminLayout />}>
+                  <Route path="curriculum" element={<CurriculumList />} />
+                  <Route path="accounts" element={<AdminAccountList />} />
+                </Route>
+
+
+
 
               </Routes>
               <ChatBubble />

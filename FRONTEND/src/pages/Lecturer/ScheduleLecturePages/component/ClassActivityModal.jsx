@@ -6,6 +6,8 @@ import HowToRegIcon from '@mui/icons-material/HowToReg';
 import DetailSlotModal from './DetailSlotModal';
 import SlotNotificationModal from './SlotNotificationModal';
 import { useNavigate } from 'react-router-dom';
+import dayjs from 'dayjs';
+import { notifyError } from '../../../../services/notificationService';
 
 const ClassActivityModal = ({ open, onClose, schedule, opendetailmodal }) => {
   const subject = schedule?.subjectId?.subjectName || schedule?.subjectId?.subjectCode || '';
@@ -18,6 +20,40 @@ const ClassActivityModal = ({ open, onClose, schedule, opendetailmodal }) => {
   const [openNotify, setOpenNotify] = useState(false);
   const [notifyScheduleId, setNotifyScheduleId] = useState(null);
   const navigate = useNavigate();
+
+  const handleAttendanceClick = () => {
+    try {
+      const id = schedule?._id || schedule?.id;
+      // determine schedule date and times
+      const now = dayjs();
+      const scheduleDate = schedule?.date ? dayjs(schedule.date) : null;
+
+      // If startTime provided, build a precise start datetime
+      if (scheduleDate && schedule?.startTime) {
+        const parts = String(schedule.startTime).split(':').map(p => Number(p));
+        const start = scheduleDate.hour(parts[0] || 0).minute(parts[1] || 0).second(0);
+        if (now.isBefore(start)) {
+          notifyError('Buổi học chưa diễn ra');
+          return;
+        }
+      } else if (scheduleDate) {
+        // no startTime -> if current day is before schedule day, it's upcoming
+        if (now.isBefore(scheduleDate.startOf('day'))) {
+          notifyError('Buổi học chưa diễn ra');
+          return;
+        }
+      }
+
+      // If current time is after the end of the schedule day (past midnight), allow navigation
+      // but send a flag to AttendancePage to disable edit controls
+      const disableEditAfterDay = !!(scheduleDate && now.isAfter(scheduleDate.endOf('day')));
+
+      onClose && onClose();
+      if (id) navigate(`/lecturer/attendance/${id}`, { state: { disableEditAfterDay } });
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   return (
     <>
@@ -58,13 +94,7 @@ const ClassActivityModal = ({ open, onClose, schedule, opendetailmodal }) => {
             </Card>
 
             {/* Right: Attendance */}
-            <Card sx={{ flex: 1, cursor: 'pointer' }} onClick={() => {
-                try {
-                  const id = schedule?._id || schedule?.id;
-                  onClose && onClose();
-                  if (id) navigate(`/lecturer/attendance/${id}`);
-                } catch (err) { console.error(err); }
-              }}>
+            <Card sx={{ flex: 1, cursor: 'pointer' }} onClick={handleAttendanceClick}>
               <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4 }}>
                 <Box sx={{ width: 96, height: 96, mb: 1, borderRadius: 2, backgroundColor: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <HowToRegIcon sx={{ fontSize: 56, color: 'primary.main' }} />
