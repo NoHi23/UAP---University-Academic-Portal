@@ -7,14 +7,14 @@ import { useNavigate } from 'react-router-dom';
 
 const StudentActivityModal = ({ open, onClose, schedule }) => {
     const navigate = useNavigate();
-    
+
     // Lấy thông tin một cách an toàn
     const subjectName = schedule?.subjectId?.subjectName || '';
     const subjectCode = schedule?.subjectId?.subjectCode || '';
     const className = schedule?.classId?.className || '';
     const room = schedule?.roomId?.roomName || '';
     const time = `${schedule?.startTime || ''} - ${schedule?.endTime || ''}`;
-
+    const lecture = `${schedule?.lecturerId?.lastName || ''} ${schedule?.lecturerId?.firstName || ''} (${schedule?.lecturerId?.lecturerCode || ''})`;
     // Lấy ID một cách an toàn
     const classId = schedule?.classId?._id;
     const scheduleId = schedule?._id;
@@ -76,12 +76,14 @@ const StudentActivityModal = ({ open, onClose, schedule }) => {
                             </CardContent>
                         </Card>
                     </Box>
-                    
+
                     {/* Thông tin chung của buổi học */}
                     <Box sx={{ mt: 2, p: 2, backgroundColor: 'white', borderRadius: 1 }}>
-                         <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.1rem' }}>{subjectName} ({subjectCode})</Typography>
-                         <Typography color="textSecondary" variant="body2">Lớp: {className}</Typography>
-                         <Typography color="textSecondary" variant="body2">Phòng: {room} | Thời gian: {time}</Typography>
+                        <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.1rem' }}>{subjectName} ({subjectCode})</Typography>
+                        <Typography color="textSecondary" variant="body2">Lớp: {className}</Typography>
+                        <Typography color="textSecondary" variant="body2">Phòng: {room} | Thời gian: {time}</Typography>
+                        <Typography color="textSecondary" variant="body2">Giảng viên: {lecture}</Typography>
+
                     </Box>
 
                 </Box>

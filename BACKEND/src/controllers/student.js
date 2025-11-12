@@ -318,6 +318,75 @@ const getMyClassmates = async (req, res) => {
     }
 };
 
+const getStudyProgress = async (req, res) => {
+    try {
+        const student = await Student.findOne({ accountId: req.user.id }).select('_id curriculumId');
+        if (!student) {
+            return res.status(404).json({ message: 'Student not found' });
+        }
+
+        const curriculumDetails = await CurriculumDetail.find({ curriculumId: student.curriculumId })
+            .select('subjectId')
+            .lean();
+
+        const totalCount = curriculumDetails.length;
+        if (totalCount === 0) {
+            return res.json({ success: true, passedCount: 0, totalCount: 0 });
+        }
+
+        const subjectIds = curriculumDetails.map(detail => detail.subjectId);
+
+        const grades = await Grade.find({
+            studentId: student._id,
+            subjectId: { $in: subjectIds }
+        })
+            .populate('componentId', 'weightPercentage')
+            .select('score subjectId componentId')
+            .lean();
+
+        const progressMap = new Map(); // subjectId -> { weightedSum, totalWeight }
+        grades.forEach(grade => {
+            const subjectKey = String(grade.subjectId);
+            if (!progressMap.has(subjectKey)) {
+                progressMap.set(subjectKey, { weightedSum: 0, totalWeight: 0 });
+            }
+
+            const entry = progressMap.get(subjectKey);
+            const weight = Number(grade.componentId?.weightPercentage ?? 0);
+            const score = Number(grade.score ?? 0);
+
+            if (Number.isFinite(weight) && weight > 0) {
+                entry.weightedSum += score * weight;
+                entry.totalWeight += weight;
+            }
+        });
+
+        let passedCount = 0;
+        const weightThreshold = 99.5; // require essentially full weight coverage to mark as completed
+
+        subjectIds.forEach(subjectId => {
+            const entry = progressMap.get(String(subjectId));
+            if (!entry) {
+                return;
+            }
+
+            if (entry.totalWeight < weightThreshold) {
+                return;
+            }
+
+            const average = entry.totalWeight > 0 ? entry.weightedSum / entry.totalWeight : 0;
+            if (average >= 5) {
+                passedCount += 1;
+            }
+        });
+
+        return res.json({ success: true, passedCount, totalCount });
+    } catch (error) {
+        console.error('Error fetching study progress:', error);
+        return res.status(500).json({ message: 'Đã xảy ra lỗi khi lấy tiến độ học tập', error: error.message });
+    }
+};
+
 // 7. Attendance summary grouped by semester
 const getAttendanceSummary = async (req, res) => {
     try {
@@ -530,5 +599,6 @@ module.exports = {
     getClassList,
     getMyWeeklySchedule,
     getMyClassmates,
-    getAttendanceSummary
+    getAttendanceSummary,
+    getStudyProgress
 };

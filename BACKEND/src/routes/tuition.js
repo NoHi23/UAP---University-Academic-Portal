@@ -11,7 +11,8 @@ const {
   getGeneratedBatches,
   getTuitionFees,
   sendReminder,
-  toggleClassVisibility
+  toggleClassVisibility,
+  
 } = require('../controllers/tuitionController');
 
 // Bảo vệ tất cả các route bên dưới, chỉ Staff mới được truy cập

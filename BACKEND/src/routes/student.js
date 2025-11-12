@@ -11,7 +11,8 @@ const {
   getGradesReport,
   getTranscript,
   getExamSchedule,
-  getAttendanceSummary
+  getAttendanceSummary,
+  getStudyProgress
 } = require('../controllers/student'); // Giả sử tên file là studentController.js
 
 // Import từ các controller khác
@@ -44,6 +45,7 @@ router.get('/profile', getProfile);
 router.put('/profile', updateProfile);
 router.get('/grades', getGradesReport);
 router.get('/transcript', getTranscript);
+router.get('/study-progress', getStudyProgress);
 
 // === OTHER ===
 router.get('/materials/me', getStudentMaterials);

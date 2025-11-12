@@ -30,21 +30,40 @@ export default function AcademicResultsChart() {
                 const body = await res.json();
                 const grades = body.grades || body.data || [];
 
-                // Group by subject and compute average
+                // Group by subject and compute weighted average using component weightPercentage when available
                 const bySubject = {};
                 grades.forEach(g => {
                     const subj = (g.subjectId && (g.subjectId.subjectName || g.subjectId.subjectCode)) || g.subjectName || g.subjectCode || 'Unknown';
-                    if (!bySubject[subj]) bySubject[subj] = { total: 0, count: 0 };
+                    if (!bySubject[subj]) {
+                        bySubject[subj] = { weightedSum: 0, totalWeight: 0, fallbackTotal: 0, count: 0 };
+                    }
+
                     const score = typeof g.score === 'number' ? g.score : Number(g.score || 0);
-                    bySubject[subj].total += isNaN(score) ? 0 : score;
+                    const numericScore = Number.isFinite(score) ? score : 0;
+                    const weight = Number(g.componentId?.weightPercentage ?? g.weightPercentage ?? 0);
+
+                    if (weight > 0) {
+                        bySubject[subj].weightedSum += numericScore * (weight / 100);
+                        bySubject[subj].totalWeight += weight;
+                    }
+
+                    bySubject[subj].fallbackTotal += numericScore;
                     bySubject[subj].count += 1;
                 });
 
-                const arr = Object.keys(bySubject).map(subj => ({
-                    subject: subj,
-                    avg: bySubject[subj].count ? (bySubject[subj].total / bySubject[subj].count) : 0,
-                    count: bySubject[subj].count
-                }));
+                const arr = Object.keys(bySubject).map(subj => {
+                    const entry = bySubject[subj];
+                    const weightFactor = entry.totalWeight > 0 ? (entry.totalWeight / 100) : null;
+                    const weightedAvg = weightFactor ? (entry.weightedSum / weightFactor) : null;
+                    const fallbackAvg = entry.count ? (entry.fallbackTotal / entry.count) : 0;
+
+                    return {
+                        subject: subj,
+                        avg: weightedAvg !== null ? weightedAvg : fallbackAvg,
+                        count: entry.count,
+                        weightCoverage: entry.totalWeight
+                    };
+                });
 
                 // Sort by average descending
                 arr.sort((a, b) => b.avg - a.avg);
