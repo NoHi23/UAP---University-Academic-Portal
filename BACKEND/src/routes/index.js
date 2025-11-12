@@ -19,6 +19,10 @@ const aiRouter = require('./ai');
 const adminRouter = require("./adminManagement");
 const examScheduleRouter = require('./examSchedule');
 const curriculumManagementRouter = require('./curriculumManagement');  
+const staffProfileRouter = require('./staffProfile');
+const statsRouter = require('./stats');
+const majorAdminRouter = require('./majorAdmin');
+
 
 router.use("/api/manage/curriculums", curriculumManagementRouter); 
 router.use('/api/exam-schedule', examScheduleRouter);
@@ -40,5 +44,8 @@ router.use('/api/scheduling', schedulingRouter);
 router.use('/api/notifications', notificationRouter);
 router.use('/api/ai', aiRouter);
 router.use('/api/payment', paymentRouter);
+router.use('/api/staff', staffProfileRouter);
+router.use('/api/stats', statsRouter);
+router.use('/api/manage/majors', majorAdminRouter);
 
 module.exports = router;

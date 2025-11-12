@@ -77,6 +77,10 @@ const staffAPI = {
         return api.delete(`${BASE_URL}/lecturers/${id}`);
     },
 
+    //  Profile staff
+    getStaffProfile: () => api.get(`/staff/profile`),
+    updateStaffProfile: (data) => api.put(`/staff/profile`, data),
+
 };
 
 export default staffAPI;

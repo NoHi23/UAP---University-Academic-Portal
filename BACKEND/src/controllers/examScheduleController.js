@@ -5,6 +5,8 @@ const Student = require("../models/student");
 const Lecturer = require("../models/lecturer");
 const Subject = require("../models/subject");
 const Room = require("../models/room");
+const Curriculum = require("../models/curriculum");
+const CurriculumDetail = require("../models/curriculumDetail");
 const e = require("express");
 
 // random helper
@@ -47,85 +49,141 @@ exports.getAll = async (req, res) => {
 
 
 //  Tạo lịch thi + auto add sinh viên cùng chuyên ngành
-exports.createExamSchedule = async (req, res) => {
+ exports.createExamSchedule = async (req, res) => {
   try {
-    const { courseName, examDate, time, room, note, majorCode } = req.body;
+    const { subjectId, examDate, time, room, note } = req.body;
 
-    if (!courseName || !examDate || !time || !room)
-      return res.status(400).json({ message: "Thiếu dữ liệu bắt buộc." });
+    // 1️⃣ Kiểm tra môn học tồn tại
+    const subject = await Subject.findById(subjectId).populate("majorId");
+    if (!subject)
+      return res.status(404).json({ message: "Không tìm thấy môn học." });
 
-    const newSchedule = await ExamSchedule.create({
-      courseName,
+    const majorId = subject.majorId._id;
+
+    // 2️⃣ Kiểm tra trùng phòng + thời gian
+    const existed = await ExamSchedule.findOne({ room, examDate, time });
+    if (existed) {
+      return res.status(400).json({
+        message: "Phòng này đã có lịch thi vào thời điểm đó. Vui lòng chọn phòng hoặc thời gian khác.",
+      });
+    }
+
+    // 3️⃣ Lấy chương trình đào tạo theo ngành
+    const curriculums = await Curriculum.find({ majorId });
+    const curriculumIds = curriculums.map((c) => c._id);
+
+    // 4️⃣ Xác định chương trình nào có môn học này
+    const validCurriculumIds = await CurriculumDetail.distinct("curriculumId", {
+      subjectId,
+      curriculumId: { $in: curriculumIds },
+    });
+
+    // 5️⃣ Tìm sinh viên cùng ngành và học môn này
+    const eligibleStudents = await Student.find({
+      majorId,
+      curriculumId: { $in: validCurriculumIds },
+    });
+
+    if (!eligibleStudents.length) {
+      return res.status(400).json({
+        message: "Không tìm thấy sinh viên đủ điều kiện thi môn học này.",
+      });
+    }
+
+    // 6️⃣ Random 10 sinh viên hợp lệ
+    const selectedStudents = randomPick(eligibleStudents, 10);
+
+    // 7️⃣ Tạo lịch thi mới (thêm courseName để tránh lỗi required)
+    const examSchedule = await ExamSchedule.create({
+      subjectId,
+      majorId,
+      courseName: subject.subjectName,
       examDate,
       time,
       room,
       note,
-      createdBy: req.user.id,
     });
 
-    // Lấy danh sách sinh viên cùng chuyên ngành
-    const students = await Student.find({ major: majorCode }).select("_id");
-    if (!students.length)
-      return res.status(400).json({ message: "Không tìm thấy sinh viên cùng chuyên ngành." });
-
-    // random 10 sinh viên
-    const picked = randomPick(students, 10);
-    const records = picked.map((s) => ({
-      examSchedule: newSchedule._id,
-      student: s._id,
+    // 8️⃣ Gán sinh viên vào lịch thi (đúng field `student`)
+    const studentDocs = selectedStudents.map((sv) => ({
+      student: sv._id,
+      examSchedule: examSchedule._id,
     }));
-    await ExamScheduleOfStudent.insertMany(records);
+    await ExamScheduleOfStudent.insertMany(studentDocs);
 
-    res.status(201).json({
-      message: `Tạo lịch thi thành công. Đã phân ${picked.length} sinh viên.`,
-      data: newSchedule,
+    res.json({
+      message: `Đã tạo lịch thi và gán ${selectedStudents.length} sinh viên hợp lệ.`,
+      examSchedule,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Lỗi khi tạo lịch thi", error: error.message });
+    console.error("Lỗi khi tạo lịch thi:", error);
+    res.status(500).json({ message: error.message });
   }
 };
 
-//  Gán giảng viên tự động (trước 3 ngày thi)
+// 🧩 GÁN GIẢNG VIÊN TỰ ĐỘNG
+// 🧩 GÁN GIẢNG VIÊN TỰ ĐỘNG (KHI NGÀY THI ≤ 3 NGÀY)
 exports.assignLecturersForUpcomingExams = async (req, res) => {
   try {
     const now = new Date();
     const upcoming = new Date();
     upcoming.setDate(now.getDate() + 3);
 
+    // Tìm các kỳ thi trong vòng 3 ngày tới
     const exams = await ExamSchedule.find({
       examDate: { $gte: now, $lte: upcoming },
     });
 
-    const lecturers = await Lecturer.find().select("_id");
+    if (!exams.length) {
+      if (res) return res.json({ message: "Không có kỳ thi nào trong 3 ngày tới." });
+      else return;
+    }
 
+    // Lấy danh sách giảng viên khả dụng
+    const lecturers = await Lecturer.find().select("_id");
+    if (!lecturers.length) {
+      if (res) return res.status(400).json({ message: "Không tìm thấy giảng viên để gán." });
+      else return;
+    }
+
+    let count = 0;
     for (const exam of exams) {
       const exists = await ExamScheduleOfLecture.findOne({ examSchedule: exam._id });
       if (exists) continue;
+
       const randomLecturer = randomPick(lecturers, 1)[0];
       await ExamScheduleOfLecture.create({
         examSchedule: exam._id,
         lecturer: randomLecturer._id,
       });
+
+      count++;
+      console.log(`✅ Đã tự động gán giảng viên cho kỳ thi: ${exam._id}`);
     }
 
-    res.json({ message: "Đã gán giảng viên cho các kỳ thi sắp tới." });
+    if (res)
+      res.json({
+        message: `Đã gán giảng viên cho ${count} kỳ thi sắp tới.`,
+      });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Không thể gán giảng viên.", error: error.message });
+    console.error("❌ Lỗi khi gán giảng viên tự động:", error);
+    if (res)
+      res
+        .status(500)
+        .json({ message: "Không thể gán giảng viên.", error: error.message });
   }
 };
 
-// Lấy danh sách môn học (courseName)  
+// 🧩 LẤY DANH SÁCH MÔN HỌC
 exports.getCourseList = async (req, res) => {
   try {
-    const courses = await Subject.find({ status: true })  // Lọc theo status nếu cần
+    const courses = await Subject.find({ status: true })
       .select("subjectName subjectCode")
-      .sort({ subjectName: 1 });  // Sắp xếp theo tên môn học
+      .sort({ subjectName: 1 });
 
     const formatted = courses.map((c) => ({
-      label: `${c.subjectCode} - ${c.subjectName}`,  // Định dạng label cho Select
-      value: c.subjectName,                          // Giá trị là tên môn học
+      label: `${c.subjectCode} - ${c.subjectName}`,
+      value: c._id,
     }));
 
     res.json(formatted);
@@ -135,11 +193,12 @@ exports.getCourseList = async (req, res) => {
   }
 };
 
-
-// Lấy danh sách phòng thi
+// 🧩 LẤY DANH SÁCH PHÒNG THI
 exports.getRoomList = async (req, res) => {
   try {
-    const rooms = await Room.find().select("roomCode roomName").sort({ roomName: 1 });
+    const rooms = await Room.find()
+      .select("roomCode roomName")
+      .sort({ roomName: 1 });
     const formatted = rooms.map((r) => ({
       label: r.roomName,
       value: r.roomCode,
@@ -149,27 +208,24 @@ exports.getRoomList = async (req, res) => {
     res.status(500).json({ message: "Lỗi khi lấy danh sách phòng học" });
   }
 };
-// DELETE /exam-schedule/:id
+
+// 🧩 XÓA LỊCH THI
 exports.deleteExamSchedule = async (req, res) => {
   try {
     const { id } = req.params;
-
     await ExamScheduleOfStudent.deleteMany({ examSchedule: id });
     await ExamScheduleOfLecture.deleteMany({ examSchedule: id });
     const deleted = await ExamSchedule.findByIdAndDelete(id);
-
     if (!deleted) {
       return res.status(404).json({ message: "Lịch thi không tồn tại" });
     }
-
     res.json({ message: "Xoá lịch thi thành công" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-
-// PUT /exam-schedule/:id (CHỈ sửa thông tin lịch thi)
+// 🧩 CẬP NHẬT LỊCH THI
 exports.updateExamSchedule = async (req, res) => {
   try {
     const { id } = req.params;
@@ -191,13 +247,10 @@ exports.updateExamSchedule = async (req, res) => {
   }
 };
 
-
-// Lấy chi tiết lịch thi (kèm sinh viên tham gia)
-
+// 🧩 LẤY CHI TIẾT LỊCH THI (kèm sinh viên)
 exports.getExamScheduleDetail = async (req, res) => {
   try {
     const { id } = req.params;
-
     const exam = await ExamSchedule.findById(id);
     if (!exam) {
       return res.status(404).json({ message: "Lịch thi không tồn tại" });
@@ -208,21 +261,14 @@ exports.getExamScheduleDetail = async (req, res) => {
 
     res.json({
       exam,
-      students: studentList.map(item => ({
+      students: studentList.map((item) => ({
         _id: item.student._id,
         studentCode: item.student.studentCode,
-        name: item.student.firstName + " " + item.student.lastName // ✅ ghép tên đúng
-      }))
+        name: `${item.student.firstName} ${item.student.lastName}`,
+      })),
     });
-
   } catch (error) {
     console.error("Lỗi khi lấy chi tiết lịch thi:", error);
     res.status(500).json({ message: "Lỗi server" });
   }
 };
-
-
-
-
-
-

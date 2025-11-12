@@ -73,7 +73,7 @@ import AnnouncementList from "./pages/Staff/AnnouncementList";
 import SupportListLecturer from './pages/Lecturer/SupportRequest/SupportList';
 import AdminLayout from "./pages/Admin/AdminLayout";
 import AdminAccountList from "./pages/Admin/AdminAccountList";
-import CurriculumList from './pages/Admin/CurriculumList';
+
 
 
 import ManualClassPage from './pages/Staff/ManualClassPage';
@@ -93,6 +93,10 @@ import StudentMaterialDetail from './pages/Student/StudentMaterialDetail';
 import TuitionConfigPage from './pages/Staff/TuitionConfigPage';
 import TuitionGenerationPage from './pages/Staff/TuitionGenerationPage';
 import TuitionManagementPage from './pages/Staff/TuitionManagementPage';
+
+import StaffDashboard from './pages/Staff/StaffDashboard';
+import StaffProfile from './pages/Staff/StaffProfile';
+import AdminMajorPage from './pages/Admin/MajorAdminPage';
 
 function App() {
   const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
@@ -167,7 +171,7 @@ function App() {
                   <Route path="/subject/:id" element={<SubjectDetail />} />
                 </Route>
                 <Route path="/staff/" element={<StaffLayout />}>
-                  <Route path="dashboard" element={<StaffLayout />} />
+                  <Route path="dashboard" element={<StaffDashboard />} />
                   <Route path="students" element={<StudentAccount />} />
                   <Route path="lectures" element={<LectureAccount />} />
                   <Route path="supports" element={<SupportRequestList />} />
@@ -186,6 +190,7 @@ function App() {
                   <Route path="tuition-generate" element={<TuitionGenerationPage />} />
                   <Route path="tuition-manage" element={<TuitionManagementPage />} />
                   <Route path="announcements" element={<AnnouncementList />} />
+                  <Route path="profile" element={<StaffProfile />} />
                 </Route>
 
                 <Route path="/lecturer/" element={<LecturerLayout />}>
@@ -214,9 +219,11 @@ function App() {
 
 
                 <Route path="/admin/" element={<AdminLayout />}>
-                  <Route path="curriculum" element={<CurriculumList />} />
+                  <Route path="" element={<AdminAccountList />} /> 
+                  <Route path="majors" element={<AdminMajorPage />} />
                   <Route path="accounts" element={<AdminAccountList />} />
                 </Route>
+
 
 
 
