@@ -9,64 +9,56 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem
-} from "@mui/material";
-import { toast } from "react-toastify";
-import examScheduleAPI from "../../api/examScheduleAPI";
-
-import {
+  MenuItem,
+  Paper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Paper
 } from "@mui/material";
-
+import { toast } from "react-toastify";
+import examScheduleAPI from "../../api/examScheduleAPI";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 export default function ExamSchedulePage() {
-
   /** ----------------------- STATE ------------------------ */
-  const [open, setOpen] = useState(false);          // Modal Add / Edit
-  const [openDetail, setOpenDetail] = useState(false); // Modal Detail
-
+  const [open, setOpen] = useState(false);
+  const [openDetail, setOpenDetail] = useState(false);
   const [detailData, setDetailData] = useState(null);
 
   const [form, setForm] = useState({
-    courseName: "",
+    subjectId: "",
     examDate: "",
     time: "",
     room: "",
-    note: ""
+    note: "",
   });
 
   const [schedules, setSchedules] = useState([]);
   const [filtered, setFiltered] = useState([]);
-
   const [courses, setCourses] = useState([]);
   const [rooms, setRooms] = useState([]);
 
   const [editMode, setEditMode] = useState(false);
   const [currentSchedule, setCurrentSchedule] = useState(null);
 
-  // Search & Filter
   const [search, setSearch] = useState("");
   const [filterCourse, setFilterCourse] = useState("");
   const [filterRoom, setFilterRoom] = useState("");
   const [filterDate, setFilterDate] = useState("");
 
-
   /** ----------------------- API CALLS ------------------------ */
   const fetchData = async () => {
     try {
       const res = await examScheduleAPI.getAll({ limit: 1000 });
-      setSchedules(res.data.data || []);
-      setFiltered(res.data.data || []);
+      const data = res?.data?.data || [];
+      setSchedules(data);
+      setFiltered(data);
     } catch {
       toast.error("Không thể tải danh sách lịch thi.");
     }
@@ -76,11 +68,11 @@ export default function ExamSchedulePage() {
     try {
       const [courseRes, roomRes] = await Promise.all([
         examScheduleAPI.getCourses(),
-        examScheduleAPI.getRooms()
+        examScheduleAPI.getRooms(),
       ]);
 
-      setCourses(courseRes.data || []);
-      setRooms(roomRes.data || []);
+      setCourses(courseRes?.data || []);
+      setRooms(roomRes?.data || []);
     } catch {
       toast.error("Không thể tải danh sách môn học hoặc phòng học.");
     }
@@ -91,27 +83,27 @@ export default function ExamSchedulePage() {
     fetchSelectData();
   }, []);
 
-
   /** ----------------------- SEARCH + FILTER ------------------------ */
   useEffect(() => {
     let list = [...schedules];
-
-    if (search.trim() !== "") {
-      list = list.filter(s => s.courseName.toLowerCase().includes(search.toLowerCase()));
-    }
-
-    if (filterCourse !== "") list = list.filter(s => s.courseName === filterCourse);
-    if (filterRoom !== "") list = list.filter(s => s.room === filterRoom);
-    if (filterDate !== "") list = list.filter(s => s.examDate.split("T")[0] === filterDate);
-
+    if (search.trim() !== "")
+      list = list.filter((s) =>
+        s.courseName?.toLowerCase().includes(search.toLowerCase())
+      );
+    if (filterCourse !== "")
+      list = list.filter((s) => s.subjectId === filterCourse);
+    if (filterRoom !== "")
+      list = list.filter((s) => s.room === filterRoom);
+    if (filterDate !== "")
+      list = list.filter(
+        (s) => s.examDate?.split("T")[0] === filterDate
+      );
     setFiltered(list);
   }, [search, filterCourse, filterRoom, filterDate, schedules]);
 
-
   /** ----------------------- CRUD HANDLERS ------------------------ */
-
   const handleSubmit = async () => {
-    if (!form.courseName || !form.examDate || !form.time || !form.room) {
+    if (!form.subjectId || !form.examDate || !form.time || !form.room) {
       toast.error("Vui lòng nhập đủ các trường bắt buộc.");
       return;
     }
@@ -128,7 +120,10 @@ export default function ExamSchedulePage() {
       setOpen(false);
       fetchData();
     } catch (err) {
-      toast.error(err?.response?.data?.message || "Không thể tạo hoặc cập nhật lịch thi!");
+      console.error("❌ Lỗi tạo lịch thi:", err);
+      toast.error(
+        err?.response?.data?.message || "Không thể tạo hoặc cập nhật lịch thi!"
+      );
     }
   };
 
@@ -152,9 +147,7 @@ export default function ExamSchedulePage() {
     }
   };
 
-
   /** ----------------------- EXPORT & COPY ------------------------ */
-
   const handleCopyStudentList = (students) => {
     navigator.clipboard.writeText(
       students.map((s, i) => `${i + 1}. ${s.studentCode} - ${s.name}`).join("\n")
@@ -163,32 +156,33 @@ export default function ExamSchedulePage() {
   };
 
   const handleExportExcel = (students) => {
-    const data = students.map(s => ({ "Mã SV": s.studentCode, "Tên": s.name }));
+    const data = students.map((s) => ({
+      "Mã SV": s.studentCode,
+      Tên: s.name,
+    }));
     const sheet = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, sheet, "Students");
-
-    saveAs(new Blob([XLSX.write(wb, { type: "array", bookType: "xlsx" })]), "DanhSachSinhVien.xlsx");
+    saveAs(
+      new Blob([XLSX.write(wb, { type: "array", bookType: "xlsx" })]),
+      "DanhSachSinhVien.xlsx"
+    );
   };
 
   const handleExportPDF = (students) => {
     const doc = new jsPDF();
     doc.text("Danh sách sinh viên", 14, 15);
-
     autoTable(doc, {
       startY: 20,
       head: [["Mã SV", "Tên"]],
-      body: students.map(s => [s.studentCode, s.name]),
+      body: students.map((s) => [s.studentCode, s.name]),
     });
-
     doc.save("DanhSachSinhVien.pdf");
   };
-
 
   /** ----------------------- RENDER ------------------------ */
   return (
     <Box>
-
       {/* HEADER */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <h2>Quản lý lịch thi</h2>
@@ -196,7 +190,13 @@ export default function ExamSchedulePage() {
           variant="contained"
           onClick={() => {
             setEditMode(false);
-            setForm({ courseName: "", examDate: "", time: "", room: "", note: "" });
+            setForm({
+              subjectId: "",
+              examDate: "",
+              time: "",
+              room: "",
+              note: "",
+            });
             setOpen(true);
           }}
         >
@@ -208,17 +208,35 @@ export default function ExamSchedulePage() {
       <Box display="flex" gap={2} mb={3}>
         <FormControl sx={{ width: "20%" }}>
           <InputLabel>Môn thi</InputLabel>
-          <Select value={filterCourse} label="Môn thi" onChange={(e) => setFilterCourse(e.target.value)}>
+          <Select
+            value={filterCourse}
+            label="Môn thi"
+            onChange={(e) => setFilterCourse(e.target.value)}
+          >
             <MenuItem value="">Tất cả</MenuItem>
-            {courses.map(c => <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>)}
+            {Array.isArray(courses) &&
+              courses.map((c) => (
+                <MenuItem key={c.value} value={c.value}>
+                  {c.label}
+                </MenuItem>
+              ))}
           </Select>
         </FormControl>
 
         <FormControl sx={{ width: "20%" }}>
           <InputLabel>Phòng thi</InputLabel>
-          <Select value={filterRoom} label="Phòng thi" onChange={(e) => setFilterRoom(e.target.value)}>
+          <Select
+            value={filterRoom}
+            label="Phòng thi"
+            onChange={(e) => setFilterRoom(e.target.value)}
+          >
             <MenuItem value="">Tất cả</MenuItem>
-            {rooms.map(r => <MenuItem key={r.value} value={r.value}>{r.label}</MenuItem>)}
+            {Array.isArray(rooms) &&
+              rooms.map((r) => (
+                <MenuItem key={r.value} value={r.value}>
+                  {r.label}
+                </MenuItem>
+              ))}
           </Select>
         </FormControl>
 
@@ -239,7 +257,6 @@ export default function ExamSchedulePage() {
         />
       </Box>
 
-
       {/* BẢNG LỊCH THI */}
       <TableContainer component={Paper}>
         <Table>
@@ -257,23 +274,24 @@ export default function ExamSchedulePage() {
           <TableBody>
             {filtered.map((s) => (
               <TableRow key={s._id}>
-                <TableCell>{s.courseName}</TableCell>
-                <TableCell>{new Date(s.examDate).toLocaleDateString()}</TableCell>
+                <TableCell>{s.courseName || s.subjectName}</TableCell>
+                <TableCell>
+                  {new Date(s.examDate).toLocaleDateString()}
+                </TableCell>
                 <TableCell>{s.time}</TableCell>
                 <TableCell>{s.room}</TableCell>
                 <TableCell>{s.note}</TableCell>
                 <TableCell>
                   <Button onClick={() => handleViewDetails(s._id)}>XEM</Button>
-
                   <Button
                     onClick={() => {
                       setCurrentSchedule(s);
                       setForm({
-                        courseName: s.courseName,
+                        subjectId: s.subjectId || "",
                         examDate: s.examDate.split("T")[0],
                         time: s.time,
                         room: s.room,
-                        note: s.note
+                        note: s.note,
                       });
                       setEditMode(true);
                       setOpen(true);
@@ -281,35 +299,31 @@ export default function ExamSchedulePage() {
                   >
                     SỬA
                   </Button>
-
                   <Button onClick={() => handleDelete(s._id)}>XÓA</Button>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
-
         </Table>
       </TableContainer>
-
-
 
       {/* FORM ADD / EDIT */}
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>{editMode ? "Sửa lịch thi" : "Tạo lịch thi"}</DialogTitle>
         <DialogContent>
-
           <FormControl fullWidth margin="dense">
             <InputLabel>Môn thi</InputLabel>
             <Select
-              value={form.courseName}
+              value={form.subjectId}
               label="Môn thi"
-              onChange={(e) => setForm({ ...form, courseName: e.target.value })}
+              onChange={(e) => setForm({ ...form, subjectId: e.target.value })}
             >
-              {courses.map((course) => (
-                <MenuItem key={course.value} value={course.value}>
-                  {course.label}
-                </MenuItem>
-              ))}
+              {Array.isArray(courses) &&
+                courses.map((course) => (
+                  <MenuItem key={course.value} value={course.value}>
+                    {course.label}
+                  </MenuItem>
+                ))}
             </Select>
           </FormControl>
 
@@ -320,11 +334,12 @@ export default function ExamSchedulePage() {
               label="Phòng thi"
               onChange={(e) => setForm({ ...form, room: e.target.value })}
             >
-              {rooms.map((room) => (
-                <MenuItem key={room.value} value={room.value}>
-                  {room.label}
-                </MenuItem>
-              ))}
+              {Array.isArray(rooms) &&
+                rooms.map((room) => (
+                  <MenuItem key={room.value} value={room.value}>
+                    {room.label}
+                  </MenuItem>
+                ))}
             </Select>
           </FormControl>
 
@@ -356,13 +371,16 @@ export default function ExamSchedulePage() {
             onChange={(e) => setForm({ ...form, note: e.target.value })}
           />
 
-          <Button variant="contained" fullWidth sx={{ mt: 2 }} onClick={handleSubmit}>
+          <Button
+            variant="contained"
+            fullWidth
+            sx={{ mt: 2 }}
+            onClick={handleSubmit}
+          >
             Lưu lịch thi
           </Button>
         </DialogContent>
       </Dialog>
-
-
 
       {/* MODAL DETAIL */}
       <Dialog open={openDetail} onClose={() => setOpenDetail(false)} maxWidth="md" fullWidth>
@@ -370,13 +388,12 @@ export default function ExamSchedulePage() {
         <DialogContent>
           {detailData && (
             <>
-              <p><b>Môn:</b> {detailData.exam.courseName}</p>
+              <p><b>Môn:</b> {detailData.exam.courseName || detailData.exam.subjectName}</p>
               <p><b>Phòng:</b> {detailData.exam.room}</p>
               <p><b>Ngày:</b> {new Date(detailData.exam.examDate).toLocaleDateString()}</p>
               <p><b>Giờ:</b> {detailData.exam.time}</p>
 
               <h4>Danh sách sinh viên</h4>
-
               <Box display="flex" gap={2} mb={2}>
                 <Button variant="outlined" onClick={() => handleCopyStudentList(detailData.students)}>📋 Copy</Button>
                 <Button variant="contained" color="success" onClick={() => handleExportExcel(detailData.students)}>📥 Excel</Button>
@@ -405,7 +422,6 @@ export default function ExamSchedulePage() {
           )}
         </DialogContent>
       </Dialog>
-
     </Box>
   );
 }

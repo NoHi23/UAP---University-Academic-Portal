@@ -13,6 +13,7 @@ const Curriculum = require('../models/curriculum')
 const Subject = require('../models/subject')
 const CurriculumDetail = require('../models/curriculumDetail');
 const Schedule = require('../models/schedule');
+const Staff = require('../models/staff');
 
 
 
@@ -1498,6 +1499,8 @@ const getAllLecturers = async (req, res) => {
         res.status(500).json({ success: false, message: 'Lỗi server' });
     }
 };
+
+
 module.exports = {
     //STUDENT
     createStudentAccount,
@@ -1521,5 +1524,7 @@ module.exports = {
     promoteStudentsBySemester,
     getAllMajors2,
     getFilteredStudents,
-    getAllLecturers
+    getAllLecturers,
+
+    
 };
