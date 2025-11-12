@@ -12,7 +12,8 @@ const {
   getTuitionFees,
   sendReminder,
   toggleClassVisibility,
-  
+  sendBulkReminderByFilter,
+  bulkToggleClassVisibilityByFilter
 } = require('../controllers/tuitionController');
 
 // Bảo vệ tất cả các route bên dưới, chỉ Staff mới được truy cập
@@ -33,6 +34,8 @@ router.get('/generated-batches', getGeneratedBatches);
 
 router.get('/fees', getTuitionFees);
 router.post('/remind', sendReminder);
+router.post('/bulk-remind-by-filter', sendBulkReminderByFilter);
+router.post('/bulk-toggle-visibility-by-filter', bulkToggleClassVisibilityByFilter);
 router.post('/toggle-class-visibility', toggleClassVisibility);
 
 module.exports = router;  
