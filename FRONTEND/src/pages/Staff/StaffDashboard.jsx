@@ -93,7 +93,7 @@ export default function StaffDashboard() {
     { icon: <CalendarMonthIcon />, label: 'Tạo lịch thi', path: '/staff/exam-schedule' },
     { icon: <PlaylistAddIcon />, label: 'Xếp lớp thủ công', path: '/staff/manual-class' },
     { icon: <AssignmentTurnedInIcon />, label: 'Duyệt đơn học vụ', path: '/staff/absence' },
-    { icon: <SmartToyIcon />, label: 'Quản lý AI Tools', path: '/staff/ai-tools' },
+    // { icon: <SmartToyIcon />, label: 'Quản lý AI Tools', path: '/staff/ai-tools' },
     { icon: <AttachMoneyIcon />, label: 'Bảng giá học phí', path: '/staff/tuition-config' },
     { icon: <PaymentIcon />, label: 'Tạo khoản thu', path: '/staff/tuition-generate' },
     { icon: <ReceiptIcon />, label: 'Quản lý học phí', path: '/staff/tuition-manage' },

@@ -23,6 +23,7 @@ import {
   Notifications as NotificationsIcon,
 } from "@mui/icons-material";
 import { useNavigate, Outlet } from "react-router-dom";
+import SmartToyIcon from '@mui/icons-material/SmartToy';
 
 const drawerWidth = 240;
 
@@ -39,10 +40,11 @@ const AdminLayout = () => {
   };
 
   const menuItems = [
-    
+
     { text: "Quản lý tài khoản", icon: <ManageAccountsIcon />, path: "/admin/accounts" },
     { text: "Quản lý Chuyên Ngành", icon: <BarChartIcon />, path: "/admin/majors" },
-  
+    { text: 'Quản lý AI Tools', icon: <SmartToyIcon />, path: '/admin/ai-tools' },
+
   ];
 
   return (

@@ -18,7 +18,7 @@ const {
 // Import từ các controller khác
 const { getStudentMaterials } = require('../controllers/material');
 const { submitRequest, getMyRequests } = require('../controllers/requestController');
-const { getEvaluableClasses, submitEvaluation } = require('../controllers/evaluationController');
+const { getEvaluableClasses, submitEvaluation, getMySubmittedEvaluations } = require('../controllers/evaluationController');
 const { getMySlotNotifications, getNotificationsForSlot, getMyRequestNotifications, getAllNotifications } = require('../controllers/notificationController');
 
 // Import từ paymentController (Logic mới)
@@ -51,8 +51,9 @@ router.get('/study-progress', getStudyProgress);
 router.get('/materials/me', getStudentMaterials);
 router.post('/requests', submitRequest);
 router.get('/requests/me', getMyRequests);
-router.get('/evaluations/classes-to-review', getEvaluableClasses);
-router.post('/evaluations', submitEvaluation);
+router.get('/evaluations/to-do', getEvaluableClasses);
+router.get('/evaluations/submitted', getMySubmittedEvaluations);
+router.post('/evaluations/submit', submitEvaluation);
 router.get('/notifications/slots', getMySlotNotifications);
 router.get('/notifications/requests', getMyRequestNotifications);
 router.get('/notifications', getAllNotifications);

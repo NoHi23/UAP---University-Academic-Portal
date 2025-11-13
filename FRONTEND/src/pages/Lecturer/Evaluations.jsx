@@ -1,28 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Paper, Grid, Chip, CircularProgress, Alert, Button } from '@mui/material';
+import {
+  Box, Typography, Paper, Grid, Chip, CircularProgress, Alert, Button,
+  Card, CardContent, Divider
+} from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import api from '../../services/api';
-
-// Lightweight local fallback when there are no evaluations to show
-const mockEvaluations = [
-  {
-    _id: 'mock1',
-    classId: { className: 'Lập trình nâng cao' },
-    criteria: [ { name: 'Phương pháp giảng dạy', score: 5 }, { name: 'Tương tác', score: 4 } ],
-    comment: 'Giảng viên truyền đạt rõ ràng, bài tập thực tế.',
-    createdAt: new Date().toISOString()
-  },
-  {
-    _id: 'mock2',
-    classId: { className: 'Cơ sở dữ liệu' },
-    criteria: [ { name: 'Phương pháp giảng dạy', score: 4 }, { name: 'Tương tác', score: 3 } ],
-    comment: 'Nội dung hay nhưng tốc độ hơi nhanh.',
-    createdAt: new Date().toISOString()
-  }
-];
+import StarIcon from '@mui/icons-material/Star';
+import api from '../../services/api'; 
 
 const Evaluations = () => {
-  const [evaluations, setEvaluations] = useState([]);
+  const [summary, setSummary] = useState(null);
+  const [comments, setComments] = useState([]);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -30,13 +18,19 @@ const Evaluations = () => {
     setError('');
     setLoading(true);
     try {
-      const res = await api.get('lecturer/evaluations');
-      const data = res?.data || {};
-      setEvaluations(Array.isArray(data.data) ? data.data : (data || []));
+      const res = await api.get('/lecturer/evaluations');
+
+      setSummary(res.data.summary || {});
+      setComments(res.data.comments || []);
+
+      if (res.data.summary?.totalEvaluations === 0) {
+        setError('Chưa có sinh viên nào nộp đánh giá cho bạn.');
+      }
     } catch (err) {
       console.error('Failed to load evaluations', err);
       setError(err?.response?.data?.message || err.message || 'Không thể tải đánh giá');
-      setEvaluations([]);
+      setSummary(null);
+      setComments([]);
     } finally {
       setLoading(false);
     }
@@ -46,51 +40,79 @@ const Evaluations = () => {
     fetchEvaluations();
   }, []);
 
-  const list = evaluations && evaluations.length ? evaluations : mockEvaluations;
-
   return (
     <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-        <Typography variant="h5">Xem đánh giá từ sinh viên (Ẩn danh)</Typography>
-        <Box>
-          <Button startIcon={<RefreshIcon />} onClick={fetchEvaluations} disabled={loading}>Tải lại</Button>
-        </Box>
+        <Typography variant="h5" fontWeight={600}>Đánh giá từ Sinh viên (Ẩn danh)</Typography>
+        <Button startIcon={<RefreshIcon />} onClick={fetchEvaluations} disabled={loading}>Tải lại</Button>
       </Box>
 
-      {error ? <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert> : null}
-
-      <Paper sx={{ p: 2 }}>
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>
-        ) : list.length === 0 ? (
-          <Typography>Chưa có đánh giá nào.</Typography>
-        ) : (
-          <Grid container spacing={2}>
-            {list.map((ev, idx) => (
-              <Grid item xs={12} key={ev._id || idx}>
-                <Paper variant="outlined" sx={{ p: 2 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography sx={{ fontWeight: 600 }}>{`Đánh giá #${idx + 1}`}</Typography>
-                    <Typography variant="caption" color="text.disabled">{ev.createdAt ? new Date(ev.createdAt).toLocaleString() : ''}</Typography>
-                  </Box>
-                  <Typography variant="subtitle2" sx={{ mb: 1 }}>{ev.classId?.className || 'Lớp không xác định'}</Typography>
-
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1 }}>
-                    {Array.isArray(ev.criteria) && ev.criteria.length > 0 ? ev.criteria.map((c, i) => (
-                      <Chip key={i} label={`${c.name}: ${c.score}`} color="primary" size="small" />
-                    )) : <Chip label="Không có tiêu chí" size="small" />}
-                  </Box>
-
-                  {ev.comment ? (
-                    <Typography variant="body2" sx={{ fontStyle: 'italic', mb: 1 }}>{ev.comment}</Typography>
-                  ) : null}
-
-                </Paper>
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>
+      ) : error ? (
+        <Alert severity={summary?.totalEvaluations === 0 ? "info" : "error"} sx={{ mb: 2 }}>{error}</Alert>
+      ) : summary && (
+        <>
+          {/* --- KHU VỰC TÓM TẮT ĐIỂM TRUNG BÌNH --- */}
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <Typography variant="h6" gutterBottom>Tổng quan</Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={4}>
+                <Card variant="outlined">
+                  <CardContent sx={{ textAlign: 'center' }}>
+                    <Typography variant="h4" fontWeight={700} color="primary.main">{summary.totalEvaluations}</Typography>
+                    <Typography variant="body2" color="textSecondary">Tổng lượt đánh giá</Typography>
+                  </CardContent>
+                </Card>
               </Grid>
-            ))}
-          </Grid>
-        )}
-      </Paper>
+              <Grid item xs={12} sm={8}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography>1. Kiến thức & Chuyên môn</Typography>
+                      <Typography variant="h6" fontWeight={600}>{summary.averageKnowledge} <StarIcon sx={{ fontSize: 16, color: '#faaf00' }} /></Typography>
+                    </Box>
+                    <Divider />
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', my: 1 }}>
+                      <Typography>2. Kỹ năng Truyền đạt</Typography>
+                      <Typography variant="h6" fontWeight={600}>{summary.averageTeaching} <StarIcon sx={{ fontSize: 16, color: '#faaf00' }} /></Typography>
+                    </Box>
+                    <Divider />
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 1 }}>
+                      <Typography>3. Thái độ Tôn trọng</Typography>
+                      <Typography variant="h6" fontWeight={600}>{summary.averageRespect} <StarIcon sx={{ fontSize: 16, color: '#faaf00' }} /></Typography>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+          </Paper>
+
+          {/* --- KHU VỰC BÌNH LUẬN --- */}
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>Bình luận chi tiết</Typography>
+            {comments.length === 0 ? (
+              <Typography>Không có bình luận nào.</Typography>
+            ) : (
+              <Grid container spacing={2}>
+                {comments.map((ev, idx) => (
+                  <Grid item xs={12} key={idx}>
+                    <Paper variant="outlined" sx={{ p: 2, bgcolor: '#f9f9f9' }}>
+                      <Typography variant="body2" sx={{ fontStyle: 'italic' }}>"{ev.comment}"</Typography>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+                        <Chip label={`Lớp: ${ev.class} (${ev.subject})`} size="small" />
+                        <Typography variant="caption" color="text.disabled">
+                          {ev.createdAt ? new Date(ev.createdAt).toLocaleString() : ''}
+                        </Typography>
+                      </Box>
+                    </Paper>
+                  </Grid>
+                ))}
+              </Grid>
+            )}
+          </Paper>
+        </>
+      )}
     </Box>
   );
 };

@@ -185,7 +185,6 @@ function App() {
                   <Route path="exam-schedule" element={<ExamSchedulePage />} />
                   <Route path="material/:id" element={<SubjectDetail />} />
                   <Route path="semesters" element={<SemesterManagementPage />} />
-                  <Route path="ai-tools" element={<AiToolManagementPage />} />
                   <Route path="absence" element={<AbsenceList />} />
                   <Route path="absence/:id" element={<AbsenceReview />} />
                   <Route path="manual-class" element={<ManualClassPage />} />
@@ -227,6 +226,8 @@ function App() {
                   <Route path="" element={<AdminAccountList />} />
                   <Route path="majors" element={<AdminMajorPage />} />
                   <Route path="accounts" element={<AdminAccountList />} />
+                  <Route path="ai-tools" element={<AiToolManagementPage />} />
+
                 </Route>
 
 
