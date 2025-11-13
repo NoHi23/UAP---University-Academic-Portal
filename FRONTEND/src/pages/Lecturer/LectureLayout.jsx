@@ -150,17 +150,17 @@ export default function LecturerLayout() {
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/lecturer/dashboard' },
     { text: 'Hồ sơ', icon: <AccountBoxIcon />, path: '/lecturer/profile' },
     { text: 'Lớp', icon: <ImageIcon />, path: '/lecturer/class-info' },
-    { text: 'TKB', icon: <EventNoteIcon />, path: '/lecturer/view-teaching-schedule' },
+    { text: 'Thời khóa biểu', icon: <EventNoteIcon />, path: '/lecturer/view-teaching-schedule' },
     // 'Điểm danh' removed from sidebar (attendance is accessible from attendance-list)
 
     { text: 'Tài liệu', icon: <MenuBookIcon />, path: '/lecturer/material' },
-    { text: 'Góp ý', icon: <FeedbackIcon />, path: '/lecturer/feedback' },
+    { text: 'Hỗ trợ', icon: <FeedbackIcon />, path: '/lecturer/supports' },
     { text: 'Đánh giá', icon: <StarIcon />, path: '/lecturer/evaluations' },
     { text: 'Nhập điểm', icon: <CreateIcon />, path: '/lecturer/enter-grades' },
-  { text: 'Xem điểm', icon: <BarChartIcon />, path: '/lecturer/view-grades' },
+    { text: 'Xem điểm', icon: <BarChartIcon />, path: '/lecturer/view-grades' },
 
     { text: 'DS điểm danh', icon: <ListAltIcon />, path: '/lecturer/attendance-list' },
-    { text: 'TB', icon: <NotificationsIcon />, path: '/lecturer/announcements' },
+    { text: 'Thông báo', icon: <NotificationsIcon />, path: '/lecturer/announcements' },
   ];
 
   return (

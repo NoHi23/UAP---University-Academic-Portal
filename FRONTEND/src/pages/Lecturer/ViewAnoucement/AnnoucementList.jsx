@@ -30,10 +30,12 @@ const LecturerAnnouncements = () => {
                 _id: x?._id,
                 title: x?.title ?? "Không có tiêu đề",
                 createdAt: x?.createdAt ?? x?.created_at ?? x?.updatedAt ?? null,
-                status: x?.status === true, // chuẩn hoá về boolean
+                // backend uses string statuses: 'published' | 'scheduled' | 'draft'
+                isPublished: String(x?.status) === 'published',
+                audience: x?.audience || 'all'
             }))
-                // Chỉ hiển thị những thông báo đang bật (status === true)
-                .filter(x => x.status);
+                // Chỉ hiển thị những thông báo đã đăng và đúng đối tượng (lecturer/all)
+                .filter(x => x.isPublished && (x.audience === 'all' || x.audience === 'lecturer'));
 
             setItems(list);
         } finally {
