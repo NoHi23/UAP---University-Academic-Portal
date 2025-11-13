@@ -5,9 +5,9 @@ const Student = require("../models/student");
 const Lecturer = require("../models/lecturer");
 const Subject = require("../models/subject");
 const Room = require("../models/room");
+const e = require("express");
 const Curriculum = require("../models/curriculum");
 const CurriculumDetail = require("../models/curriculumDetail");
-const e = require("express");
 
 // random helper
 const randomPick = (arr, n) => {
@@ -49,7 +49,7 @@ exports.getAll = async (req, res) => {
 
 
 //  Tạo lịch thi + auto add sinh viên cùng chuyên ngành
- exports.createExamSchedule = async (req, res) => {
+exports.createExamSchedule = async (req, res) => {
   try {
     const { subjectId, examDate, time, room, note } = req.body;
 
@@ -68,17 +68,26 @@ exports.getAll = async (req, res) => {
       });
     }
 
-    // 3️⃣ Lấy chương trình đào tạo theo ngành
+    // 3️⃣ Kiểm tra xem ngày thi có phải trong quá khứ không
+    const currentDate = new Date();
+    const selectedExamDate = new Date(examDate);
+    if (selectedExamDate < currentDate) {
+      return res.status(400).json({
+        message: "Ngày thi không thể là ngày trong quá khứ. Vui lòng chọn ngày khác.",
+      });
+    }
+
+    // 4️⃣ Lấy chương trình đào tạo theo ngành
     const curriculums = await Curriculum.find({ majorId });
     const curriculumIds = curriculums.map((c) => c._id);
 
-    // 4️⃣ Xác định chương trình nào có môn học này
+    // 5️⃣ Xác định chương trình nào có môn học này
     const validCurriculumIds = await CurriculumDetail.distinct("curriculumId", {
       subjectId,
       curriculumId: { $in: curriculumIds },
     });
 
-    // 5️⃣ Tìm sinh viên cùng ngành và học môn này
+    // 6️⃣ Tìm sinh viên cùng ngành và học môn này
     const eligibleStudents = await Student.find({
       majorId,
       curriculumId: { $in: validCurriculumIds },
@@ -90,10 +99,10 @@ exports.getAll = async (req, res) => {
       });
     }
 
-    // 6️⃣ Random 10 sinh viên hợp lệ
+    // 7️⃣ Random 10 sinh viên hợp lệ
     const selectedStudents = randomPick(eligibleStudents, 10);
 
-    // 7️⃣ Tạo lịch thi mới (thêm courseName để tránh lỗi required)
+    // 8️⃣ Tạo lịch thi mới (thêm courseName để tránh lỗi required)
     const examSchedule = await ExamSchedule.create({
       subjectId,
       majorId,
@@ -104,7 +113,7 @@ exports.getAll = async (req, res) => {
       note,
     });
 
-    // 8️⃣ Gán sinh viên vào lịch thi (đúng field `student`)
+    // 9️⃣ Gán sinh viên vào lịch thi (đúng field `student`)
     const studentDocs = selectedStudents.map((sv) => ({
       student: sv._id,
       examSchedule: examSchedule._id,
@@ -121,56 +130,36 @@ exports.getAll = async (req, res) => {
   }
 };
 
+
 // 🧩 GÁN GIẢNG VIÊN TỰ ĐỘNG
-// 🧩 GÁN GIẢNG VIÊN TỰ ĐỘNG (KHI NGÀY THI ≤ 3 NGÀY)
 exports.assignLecturersForUpcomingExams = async (req, res) => {
   try {
     const now = new Date();
     const upcoming = new Date();
     upcoming.setDate(now.getDate() + 3);
 
-    // Tìm các kỳ thi trong vòng 3 ngày tới
     const exams = await ExamSchedule.find({
       examDate: { $gte: now, $lte: upcoming },
     });
 
-    if (!exams.length) {
-      if (res) return res.json({ message: "Không có kỳ thi nào trong 3 ngày tới." });
-      else return;
-    }
-
-    // Lấy danh sách giảng viên khả dụng
     const lecturers = await Lecturer.find().select("_id");
-    if (!lecturers.length) {
-      if (res) return res.status(400).json({ message: "Không tìm thấy giảng viên để gán." });
-      else return;
-    }
 
-    let count = 0;
     for (const exam of exams) {
-      const exists = await ExamScheduleOfLecture.findOne({ examSchedule: exam._id });
+      const exists = await ExamScheduleOfLecture.findOne({
+        examSchedule: exam._id,
+      });
       if (exists) continue;
-
       const randomLecturer = randomPick(lecturers, 1)[0];
       await ExamScheduleOfLecture.create({
         examSchedule: exam._id,
         lecturer: randomLecturer._id,
       });
-
-      count++;
-      console.log(`✅ Đã tự động gán giảng viên cho kỳ thi: ${exam._id}`);
     }
 
-    if (res)
-      res.json({
-        message: `Đã gán giảng viên cho ${count} kỳ thi sắp tới.`,
-      });
+    res.json({ message: "Đã gán giảng viên cho các kỳ thi sắp tới." });
   } catch (error) {
-    console.error("❌ Lỗi khi gán giảng viên tự động:", error);
-    if (res)
-      res
-        .status(500)
-        .json({ message: "Không thể gán giảng viên.", error: error.message });
+    console.error(error);
+    res.status(500).json({ message: "Không thể gán giảng viên.", error: error.message });
   }
 };
 
