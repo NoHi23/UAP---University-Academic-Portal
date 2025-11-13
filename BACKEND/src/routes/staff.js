@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { verifyToken, authorize } = require('../middleware/authorization');
-const tuitionRouter = require('./tuition');
+const tuitionRouter = require('./tuition'); 
 const { createMaterial, getAllMaterials, updateMaterial, deleteMaterial, exportMaterialsExcel } = require('../controllers/material');
 const { bulkCreateGradeComponents, exportGradeComponentsExcel, getGradeComponents } = require('../controllers/gradeComponent');
 const gradeController = require('../controllers/gradeController');
@@ -11,7 +11,7 @@ const { createSlotNotification } = require('../controllers/notificationControlle
 const { getAllSemesters } = require('../controllers/semesterController');
 const { getAllMajors } = require('../controllers/majorController');
 const { createSubject, getSubjects, getSubjectById, bulkCreateMaterials, bulkCreateCLOs, bulkCreateSessionMaterials, getCLOs, getSessionMaterials, updateSubject, exportCLOsExcel, exportSessionMaterialsExcel } = require('../controllers/MaterialManagerController');
-const { getFilteredStudents, getAllMajors2, getAllLecturers, reassignClass, getAllClasses } = require('../controllers/staff');
+const { getFilteredStudents, getAllMajors2, getAllLecturers } = require('../controllers/staff');
 const { scheduleManualClass } = require('../controllers/schedulingController');
 
 // Export/import grade components
@@ -25,6 +25,7 @@ router.get('/grades/export-class', gradeController.exportClassGradesExcel);
 router.get('/clos/export-excel', exportCLOsExcel);
 router.get('/materials/export-excel', exportMaterialsExcel);
 router.get('/session-materials/export-excel', exportSessionMaterialsExcel);
+
 
 const { getEligibleStudentsForManualEnroll, createManualClass, enrollStudentsManually, getAllSemesters2, promoteStudentsBySemester } = require('../controllers/staff')
 const {
@@ -44,7 +45,6 @@ router.use(verifyToken);
 
 
 router.get('/manage/users/lecturers', getAllLecturers);
-router.get('/classes', getAllClasses);
 router.route('/materials')
     .post(authorize('staff', 'admin'), createMaterial)
     .get(getAllMaterials);
@@ -70,7 +70,7 @@ router.get('/majors', getAllMajors);
 // Create subject (used by Material Manager UI) - staff only
 router.get('/subjects', authorize('staff', 'admin', 'student'), getSubjects);
 router.post('/subjects', authorize('staff', 'admin'), createSubject);
-router.put('/subjects/:id', authorize('staff', 'admin', 'student'), updateSubject);
+router.put('/subjects/:id', authorize('staff', 'admin','student'), updateSubject);
 
 router.get('/subjects/filter-by-semester', getSubjectsBySemester);
 
@@ -100,6 +100,6 @@ router.post('/schedule-manual-class', scheduleManualClass);
 
 router.use('/tuition', tuitionRouter);
 
-router.put('/classes/:classId/reassign', reassignClass);
+
 
 module.exports = router;

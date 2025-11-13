@@ -16,6 +16,7 @@ import {
   TextField,
   MenuItem,
 } from "@mui/material";
+
 import { useNavigate } from "react-router-dom";
 import absenceAPI from "../../api/absenceAPI";
 import { notifyError } from "../../services/notificationService";
@@ -113,8 +114,8 @@ export default function AbsenceList() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Sinh viên</TableCell>
-              <TableCell>Buổi học</TableCell>
+              
+              <TableCell>Kỳ học</TableCell>
               <TableCell>Lý do</TableCell>
               <TableCell>Trạng thái</TableCell>
               <TableCell>Ngày gửi</TableCell>
@@ -131,12 +132,8 @@ export default function AbsenceList() {
             ) : (
               list.map((item) => (
                 <TableRow key={item._id} hover>
-                  <TableCell>
-                    {item.studentId
-                      ? `${item.studentId.lastName || ""} ${item.studentId.firstName || ""}`
-                      : "—"}
-                  </TableCell>
-                  <TableCell>{item.slotId || "—"}</TableCell>
+                  
+                   <TableCell>{item.semesterId?.semesterName || "—"}</TableCell> 
                   <TableCell>
                     <div
                       style={{

@@ -1,54 +1,44 @@
-import React, { useState, useMemo, useRef } from "react";
-import {
-  Box,
-  Paper,
-  Typography,
-  CircularProgress,
-  Button,
-  Stack,
-  Divider,
-  TextField,
-  MenuItem,
-} from "@mui/material";
+import React, { useState, useMemo, useEffect } from "react";
+import { Box, Paper, Typography, CircularProgress, Button, Stack, Divider, TextField, MenuItem } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import JoditEditor from "jodit-react";
 import absenceAPI from "../../api/absenceAPI";
-import {
-  notifySuccess,
-  notifyError,
-  showConfirmDialog,
-} from "../../services/notificationService";
-
+import { notifySuccess, notifyError, showConfirmDialog } from "../../services/notificationService";
+import JoditEditor from "jodit-react";
 export default function RequestAbsenceCreate() {
   const navigate = useNavigate();
-  const editorRef = useRef(null);
-
-  const [slotId, setSlotId] = useState("");
+  const [semesterId, setSemesterId] = useState("");
   const [reason, setReason] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [semesters, setSemesters] = useState([]);
 
-  // Jodit config (soạn nội dung)
-  const editorConfig = useMemo(
-    () => ({
-      readonly: false,
-      minHeight: 220,
-      toolbarAdaptive: false,
-      placeholder: "Nhập lý do xin nghỉ học...",
-      uploader: { insertImageAsBase64URI: true },
-    }),
-    []
-  );
+  // Lấy danh sách kỳ học
+  useEffect(() => {
+    const fetchSemesters = async () => {
+      try {
+        const res = await absenceAPI.getSemesters();  // Gọi API lấy danh sách kỳ học
+        console.log(res);  // Debug thông tin trả về
+        if (res && res.data) {
+          setSemesters(res.data);  // Cập nhật danh sách kỳ học
+        } else {
+          notifyError("Không tải được danh sách kỳ học.");
+        }
+      } catch (e) {
+        console.error("Lỗi khi gọi API:", e);
+        notifyError("Không tải được danh sách kỳ học.");
+      } finally {
+        setLoading(false);  // Dừng loading sau khi có kết quả
+      }
+    };
+    fetchSemesters();
+  }, []);
 
-  // giả lập danh sách slot học (thực tế bạn fetch từ API /schedules/my-week)
-  const mockSlots = [
-    { id: "SLOT001", subject: "Lập trình Java", time: "07:30 - 09:50" },
-    { id: "SLOT002", subject: "Cơ sở dữ liệu", time: "10:00 - 12:20" },
-  ];
+
+
 
   const onSubmit = async () => {
-    if (!slotId) {
-      notifyError("Vui lòng chọn buổi học muốn xin nghỉ.");
+    if (!semesterId) {
+      notifyError("Vui lòng chọn kỳ học.");
       return;
     }
     if (!reason || !reason.trim()) {
@@ -67,9 +57,9 @@ export default function RequestAbsenceCreate() {
 
     try {
       setSubmitting(true);
-      await absenceAPI.createRequest({ slotId, reason }); // POST /api/absence
+      await absenceAPI.createRequest({ semesterId, reason }); // POST yêu cầu với semesterId
       notifySuccess("Gửi đơn xin nghỉ học thành công!");
-      navigate("/student/absences", { replace: true });
+      navigate("/student/absence", { replace: true });
     } catch (e) {
       notifyError(e?.response?.data?.message || "Gửi đơn thất bại.");
     } finally {
@@ -89,52 +79,46 @@ export default function RequestAbsenceCreate() {
   return (
     <Box>
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-        <Typography variant="h5" sx={{ fontWeight: 600 }}>
-          Gửi đơn xin nghỉ học
-        </Typography>
-        <Button variant="outlined" onClick={() => navigate(-1)}>
-          Quay lại
-        </Button>
+        <Typography variant="h5" sx={{ fontWeight: 600 }}>Gửi đơn xin nghỉ học</Typography>
+        <Button variant="outlined" onClick={() => navigate(-1)}>Quay lại</Button>
       </Stack>
 
       <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
-        {/* chọn slot */}
-        <Typography variant="subtitle2" sx={{ mb: 1, color: "text.secondary" }}>
-          Chọn buổi học (slot)
-        </Typography>
+        {/* chọn kỳ học */}
+        <Typography variant="subtitle2" sx={{ mb: 1, color: "text.secondary" }}>Chọn kỳ học</Typography>
         <TextField
           select
-          value={slotId}
-          onChange={(e) => setSlotId(e.target.value)}
+          value={semesterId}
+          onChange={(e) => setSemesterId(e.target.value)}
           fullWidth
           size="small"
           sx={{ mb: 2 }}
         >
-          <MenuItem value="">-- Chọn buổi học --</MenuItem>
-          {mockSlots.map((s) => (
-            <MenuItem key={s.id} value={s.id}>
-              {s.subject} ({s.time})
+          <MenuItem value="">-- Chọn kỳ học --</MenuItem>
+          {semesters.map((s) => (
+            <MenuItem key={s._id} value={s._id}>
+              {s.semesterName} ({new Date(s.startDate).toLocaleDateString()} - {new Date(s.endDate).toLocaleDateString()})
             </MenuItem>
           ))}
         </TextField>
 
+
         {/* nhập lý do */}
-        <Typography variant="subtitle2" sx={{ mb: 1, color: "text.secondary" }}>
-          Lý do xin nghỉ học
-        </Typography>
+        <Typography variant="subtitle2" sx={{ mb: 1, color: "text.secondary" }}>Lý do xin nghỉ học</Typography>
         <JoditEditor
-          ref={editorRef}
           value={reason}
-          config={editorConfig}
           onBlur={(newContent) => setReason(newContent)}
+          config={{
+            readonly: false,
+            minHeight: 220,
+            toolbarAdaptive: false,
+            placeholder: "Nhập lý do xin nghỉ học...",
+            uploader: { insertImageAsBase64URI: true },
+          }}
         />
 
         <Stack direction="row" justifyContent="flex-end" sx={{ mt: 2 }}>
-          <Button
-            variant="contained"
-            onClick={onSubmit}
-            disabled={submitting}
-          >
+          <Button variant="contained" onClick={onSubmit} disabled={submitting}>
             {submitting ? "Đang gửi..." : "Gửi đơn"}
           </Button>
         </Stack>

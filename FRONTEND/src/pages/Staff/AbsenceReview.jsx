@@ -107,10 +107,9 @@ export default function AbsenceReview() {
             ? `${absence.studentId.lastName || ""} ${absence.studentId.firstName || ""}`
             : "(chưa có thông tin)"}
         </Typography>
-        <Typography variant="subtitle2" sx={{ mb: 1 }}>
-          <strong>Buổi học:</strong>{" "}
-          {absence?.slotId || "(Mã buổi học không xác định)"}
-        </Typography>
+
+       
+
         <Typography variant="subtitle2" sx={{ mb: 2 }}>
           <strong>Trạng thái hiện tại:</strong>{" "}
           <span
@@ -183,3 +182,4 @@ export default function AbsenceReview() {
     </Box>
   );
 }
+

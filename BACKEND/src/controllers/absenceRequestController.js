@@ -1,15 +1,31 @@
 const AbsenceRequest = require("../models/absenceRequest");
+const Semester = require("../models/semester");
+const Student = require("../models/student");
 
 // --- Sinh viên gửi đơn ---
 exports.submitAbsenceRequest = async (req, res) => {
   try {
-    const { slotId, reason, attachments } = req.body;
-    if (!slotId || !reason)
-      return res.status(400).json({ message: "Thiếu thông tin slot hoặc lý do nghỉ học." });
+    if (!req.user || !req.user.id)
+      return res.status(401).json({ message: "Bạn chưa đăng nhập." });
 
+    if (req.user.role !== "student")
+      return res.status(403).json({ message: "Chỉ sinh viên mới có thể gửi đơn." });
+
+    const { semesterId, reason, attachments } = req.body;
+    if (!semesterId || !reason)
+      return res.status(400).json({ message: "Thiếu thông tin kỳ học hoặc lý do." });
+
+    const semester = await Semester.findById(semesterId);
+    if (!semester)
+      return res.status(400).json({ message: "Kỳ học không tồn tại hoặc không hợp lệ." });
+
+    const student = await Student.findOne({ accountId: req.user.id });
+        if (!student) {
+          return res.status(404).json({ success: false, message: 'Không tìm thấy thông tin sinh viên.' });
+        }
     const doc = await AbsenceRequest.create({
       studentId: req.user.id,
-      slotId,
+      semesterId,
       reason,
       attachments,
     });
@@ -25,13 +41,16 @@ exports.submitAbsenceRequest = async (req, res) => {
 exports.getMyAbsenceRequests = async (req, res) => {
   try {
     const list = await AbsenceRequest.find({ studentId: req.user.id })
-      .populate("studentId", "fullName")
+      .populate('studentId', 'studentCode firstName lastName')
+      .populate("semesterId", "semesterName startDate endDate")
       .sort("-createdAt");
     res.json(list);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
+
 
 // --- Staff/Admin lấy toàn bộ đơn (lọc + phân trang) ---
 exports.getAllAbsences = async (req, res) => {
@@ -57,6 +76,7 @@ exports.getAllAbsences = async (req, res) => {
     const [data, total] = await Promise.all([
       AbsenceRequest.find(where)
         .populate("studentId", "firstName lastName studentCode")
+        .populate("semesterId", "semesterName startDate endDate")
         .sort(sort)
         .skip(skip)
         .limit(parseInt(limit)),
@@ -112,3 +132,17 @@ exports.getAbsenceById = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// --- Lấy danh sách kỳ học ---
+exports.getAllSemesters = async (req, res) => {
+  try {
+    const semesters = await Semester.find({ status: true })
+      .select("semesterName startDate endDate")
+      .sort("startDate");
+    res.json(semesters);
+  } catch (error) {
+    console.error("Lỗi khi tải danh sách kỳ học:", error);
+    res.status(500).json({ message: "Không thể tải danh sách kỳ học.", error: error.message });
+  }
+};
+
