@@ -221,18 +221,16 @@ const toggleClassVisibility = async (req, res) => {
       { isClassHidden: isClassHidden },
       { new: true }
     );
+    fee.isClassHidden = !fee.isClassHidden; // Tự động đảo ngược
+    await fee.save();
     if (!fee) return res.status(404).json({ message: 'Không tìm thấy khoản phí.' });
     const actionText = isClassHidden ? "ẩn" : "hiện";
-    res.status(200).json({ success: true, message: `Đã ${actionText} lịch học của sinh viên.` });
+    res.status(200).json({ success: true, message: `Đã ${actionText} lịch học của sinh viên.`, data: fee });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Lỗi server', error: error.message });
   }
 };
 
-/**
- * @desc    Gửi email nhắc nhở HÀNG LOẠT (THEO BỘ LỌC)
- * @route   POST /api/staff/tuition/bulk-remind-by-filter
- */
 const sendBulkReminderByFilter = async (req, res) => {
   try {
     const { semesterId, majorId, status, message } = req.body;
@@ -297,10 +295,6 @@ const sendBulkReminderByFilter = async (req, res) => {
   }
 };
 
-/**
- * @desc    Ẩn/Hiện lịch học HÀNG LOẠT (THEO BỘ LỌC)
- * @route   POST /api/staff/tuition/bulk-toggle-visibility-by-filter
- */
 const bulkToggleClassVisibilityByFilter = async (req, res) => {
   try {
     const { semesterId, majorId, status, isClassHidden } = req.body;

@@ -99,9 +99,9 @@ const WeekTimeTable = () => {
     { slot: 2, time: '10:00-12:20' },
     { slot: 3, time: '10:50-12:20' },
     { slot: 4, time: '15:20-17:40' },
-    { slot: 5, time: '' },
-    { slot: 6, time: '' },
-   
+    { slot: 5, time: '18:00-20:20' },
+    { slot: 6, time: '20:30-22:50' },
+
   ];
 
   // Prepare header days for the current week so JSX can render labels/dates
@@ -131,7 +131,7 @@ const WeekTimeTable = () => {
   // Organize schedule data into grid
   const organizeScheduleByWeek = (data) => {
     const weekGrid = Array(13).fill(null).map(() => Array(7).fill(null));
-    
+
     data.forEach(item => {
       // Sử dụng item.date (kiểu Date) thay vì item.time
       const date = dayjs(item.date);
@@ -151,7 +151,7 @@ const WeekTimeTable = () => {
         };
       }
     });
-    
+
     return weekGrid;
   };
 
@@ -186,7 +186,7 @@ const WeekTimeTable = () => {
 
       {/* Controls */}
       <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-      
+
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <IconButton size="small" onClick={() => setSelectedWeekIndex(i => Math.max(0, i - 1))}>
@@ -248,12 +248,12 @@ const WeekTimeTable = () => {
                 SLOT
               </TableCell>
               {daysOfWeek.map((day, index) => (
-                <TableCell 
+                <TableCell
                   key={day.key}
-                  sx={{ 
-                    fontWeight: 600, 
+                  sx={{
+                    fontWeight: 600,
                     textAlign: 'center',
-                    borderRight: index < 6 ? 1 : 0, 
+                    borderRight: index < 6 ? 1 : 0,
                     borderColor: 'grey.300'
                   }}
                 >
@@ -273,9 +273,9 @@ const WeekTimeTable = () => {
             {timeSlots.map((slot, slotIndex) => (
               <TableRow key={slotIndex} sx={{ borderBottom: 1, borderColor: 'grey.300' }}>
                 {/* Slot Column */}
-                <TableCell 
-                  sx={{ 
-                    borderRight: 1, 
+                <TableCell
+                  sx={{
+                    borderRight: 1,
                     borderColor: 'grey.300',
                     backgroundColor: 'grey.50',
                     textAlign: 'center',
@@ -296,10 +296,10 @@ const WeekTimeTable = () => {
 
                 {/* Day Columns */}
                 {weekGrid[(slot.slot)].map((scheduleItem, dayIndex) => (
-                  <TableCell 
+                  <TableCell
                     key={dayIndex}
-                    sx={{ 
-                      borderRight: dayIndex < 6 ? 1 : 0, 
+                    sx={{
+                      borderRight: dayIndex < 6 ? 1 : 0,
                       borderColor: 'grey.300',
                       p: 0.5,
                       verticalAlign: 'top',
@@ -341,12 +341,12 @@ const WeekTimeTable = () => {
                             }}
                             onClick={chooseActionForClass(scheduleItem)}
                           >
-                            
+
                             <CardContent sx={{ p: 1, '&:last-child': { pb: 1 }, height: '100%' }}>
                               <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5, height: '100%' }}>
-                                <Typography 
-                                  variant="caption" 
-                                  sx={{ 
+                                <Typography
+                                  variant="caption"
+                                  sx={{
                                     color: textColor,
                                     fontSize: '0.6rem'
                                   }}
@@ -354,10 +354,10 @@ const WeekTimeTable = () => {
                                   {getStatusIcon(scheduleItem.status)}
                                 </Typography>
                                 <Box sx={{ flex: 1 }}>
-                                  <Typography 
-                                    variant="subtitle2" 
+                                  <Typography
+                                    variant="subtitle2"
                                     fontWeight={600}
-                                    sx={{ 
+                                    sx={{
                                       fontSize: '0.75rem',
                                       color: textColor,
                                       lineHeight: 1.2
@@ -365,11 +365,11 @@ const WeekTimeTable = () => {
                                   >
                                     {scheduleItem.subjectId?.subjectCode || 'test'}
                                   </Typography>
-                                  <Typography 
-                                    variant="caption" 
-                                    sx={{ 
-                                      display: 'flex', 
-                                      alignItems: 'center', 
+                                  <Typography
+                                    variant="caption"
+                                    sx={{
+                                      display: 'flex',
+                                      alignItems: 'center',
                                       gap: 0.3,
                                       color: textColor,
                                       fontSize: '0.5rem'
@@ -378,11 +378,11 @@ const WeekTimeTable = () => {
                                     <ScheduleIcon sx={{ fontSize: 6, color: textColor }} />
                                     {scheduleItem.timeDisplay}
                                   </Typography>
-                                  <Typography 
-                                    variant="caption" 
-                                    sx={{ 
-                                      display: 'flex', 
-                                      alignItems: 'center', 
+                                  <Typography
+                                    variant="caption"
+                                    sx={{
+                                      display: 'flex',
+                                      alignItems: 'center',
                                       gap: 0.3,
                                       color: textColor,
                                       fontSize: '0.5rem'
@@ -393,8 +393,8 @@ const WeekTimeTable = () => {
                                   </Typography>
                                 </Box>
                                 {status === 'incomplete' && (
-                                  <Typography 
-                                    variant="caption" 
+                                  <Typography
+                                    variant="caption"
                                     sx={{ color: theme.palette.warning.main || 'orange', fontSize: '0.6rem' }}
                                   >
                                     ●
@@ -416,8 +416,8 @@ const WeekTimeTable = () => {
         </Table>
       </TableContainer>
 
-  {/* Class activity modal: opened when a schedule cell is clicked */}
-  <ClassActivityModal open={showModal} onClose={() => setShowModal(false)} schedule={selectedSchedule} />
+      {/* Class activity modal: opened when a schedule cell is clicked */}
+      <ClassActivityModal open={showModal} onClose={() => setShowModal(false)} schedule={selectedSchedule} />
 
       {/* Legend */}
       <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>

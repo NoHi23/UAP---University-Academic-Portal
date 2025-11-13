@@ -44,6 +44,9 @@ import PaymentIcon from '@mui/icons-material/Payment';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import supportAPI, { SUPPORT_STATUS } from '../../api/supportAPI';
 
+import EditCalendarIcon from '@mui/icons-material/EditCalendar';
+import DynamicFeedIcon from '@mui/icons-material/DynamicFeed';
+
 const drawerWidth = 260;
 
 //  Theme
@@ -129,7 +132,7 @@ export default function StaffLayout() {
         setTimeout(() => {
             setUser({
                 fullName: 'Nguyễn Văn A',
-                studentCode: 'HE123456',
+                studentCode: 'STAFF',
             });
         }, 500);
     }, []);
@@ -163,7 +166,8 @@ export default function StaffLayout() {
         { text: 'Thông tin cá nhân', icon: <AccountBoxIcon />, path: '/staff/profile' },
         { text: 'Quản lý Sinh viên', icon: <SchoolIcon />, path: '/staff/students' },
         { text: 'Quản lý Giảng viên', icon: <GroupsIcon />, path: '/staff/lectures' },
-        { text: 'Quản lý lớp học', icon: <LibraryBooksIcon />, path: '/staff/class' },
+        { text: 'Quản lý Lớp học', icon: <DynamicFeedIcon />, path: '/staff/manage-classes' },
+        { text: 'Quản lý TKB', icon: <EditCalendarIcon />, path: '/staff/manage-schedules' },
         { text: "Quản lý thông báo", icon: <NotificationsIcon />, path: "/staff/announcements" },
         { text: 'Hỗ trợ', icon: <SupportAgentIcon />, path: '/staff/supports' },
         { text: 'Bảng giá Học phí', icon: <AttachMoneyIcon />, path: '/staff/tuition-config' },
@@ -375,7 +379,7 @@ export default function StaffLayout() {
                 {/* 📄 MAIN CONTENT */}
                 <Box
                     component="main"
-                    sx={{  flexGrow: 1, height: '100vh', overflow: 'auto' }}
+                    sx={{ flexGrow: 1, height: '100vh', overflow: 'auto' }}
                 >
                     <Toolbar sx={{ minHeight: 55 }} />
                     <Container sx={{ mt: 4, mb: 4 }}>

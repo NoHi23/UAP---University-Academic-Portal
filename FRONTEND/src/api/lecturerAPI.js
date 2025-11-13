@@ -21,10 +21,13 @@ const getStudentsByClass = async (classId, scheduleId) => {
   return res.data;
 };
 
-const getClassesBySemester = async (semesterId) => {
-  const url = (semesterId === undefined || semesterId === null || semesterId === '')
-    ? '/lecturer/classes-by-semester'
-    : `/lecturer/classes-by-semester?semesterId=${semesterId}`;
+const getClassesBySemester = async (semesterId, subjectId) => {
+  // Accepts optional subjectId to let server filter classes for a specific subject
+  const params = [];
+  if (semesterId !== undefined && semesterId !== null && semesterId !== '') params.push(`semesterId=${semesterId}`);
+  if (subjectId !== undefined && subjectId !== null && String(subjectId).trim() !== '') params.push(`subjectId=${subjectId}`);
+  const query = params.length ? `?${params.join('&')}` : '';
+  const url = `/lecturer/classes-by-semester${query}`;
   const res = await api.get(url);
   return res.data;
 };
