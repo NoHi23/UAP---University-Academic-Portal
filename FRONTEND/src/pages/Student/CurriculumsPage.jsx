@@ -4,214 +4,275 @@ import {
     Box,
     Typography,
     Grid,
-    Card,
-    CardContent,
+    Paper,
+    Divider,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
     Button,
     Container,
-    Paper,
     Chip,
-    Divider,
-    CircularProgress,
-    Stack,
+    Card,
+    CardContent,
+    LinearProgress,
     IconButton
 } from '@mui/material';
-import { School as SchoolIcon, Grade as GradeIcon } from '@mui/icons-material';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import {
+    School as SchoolIcon,
+    Schedule as ScheduleIcon,
+    Description as DescriptionIcon,
+    Grade as GradeIcon
+} from '@mui/icons-material';
+import { useParams, Link } from 'react-router-dom';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
-const gradeColors = {
-    'A+': '#2E7D32', // dark green
-    'A': '#388E3C',  // slightly lighter green
-    'B+': '#1976D2', // dark blue
-    'B': '#2196F3',  // lighter blue
-    'C+': '#F57C00', // dark orange
-    'C': '#FF9800',  // orange
-    'D+': '#D32F2F', // dark red
-    'D': '#E57373',  // lighter red
-    'F+': '#B71C1C', // very dark red
-    'F': '#F44336',  // bright red
-    '—': '#9e9e9e'   // grey for no grade
-};
-
-const CurriculumsPage = () => {
-    const [curriculums, setCurriculums] = useState([]);
+const CurriculumDetailsPage = () => {
+    const { id } = useParams();
+    const [curriculum, setCurriculum] = useState(null);
+    const [details, setDetails] = useState([]);
+    const [grades, setGrades] = useState([]);
     const [loading, setLoading] = useState(true);
-    const navigate = useNavigate();
-    const location = useLocation();
 
     useEffect(() => {
         const fetch = async () => {
             try {
-                const params = new URLSearchParams(location.search);
-                const majorId = params.get('majorId');
-                const url = majorId ? `curriculums?majorId=${majorId}` : 'curriculums';
-                const res = await api.get(url);
-                setCurriculums(res.data || []);
+                const res = await api.get(`/curriculums/${id}/details`);
+                setCurriculum(res.data.curriculum || null);
+                setDetails(res.data.details || []);
+                try {
+                    const gRes = await api.get('/student/grades');
+                    setGrades(gRes.data.grades || []);
+                } catch {
+                    setGrades([]);
+                }
             } catch (err) {
-                console.error('Failed to load curriculums', err);
+                console.error('Failed to load curriculum details', err);
             } finally {
                 setLoading(false);
             }
         };
-        fetch();
-    }, [location.search]);
+        if (id) fetch();
+    }, [id]);
 
-    if (loading) {
-        return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
-                <CircularProgress />
-            </Box>
-        );
-    }
+    const groupedBySemester = details.reduce((acc, d) => {
+        const sem = d.semester || 0;
+        if (!acc[sem]) acc[sem] = [];
+        acc[sem].push(d);
+        return acc;
+    }, {});
+
+    const findGradesForSubjectList = (subj) =>
+        (grades || []).filter(gr => {
+            if (gr.subjectId) {
+                const sid = typeof gr.subjectId === 'object' ? gr.subjectId._id : gr.subjectId;
+                if (sid && (sid === subj.subjectId || sid === subj._id)) return true;
+            }
+            if (gr.subjectCode && subj.subjectCode && gr.subjectCode === subj.subjectCode) return true;
+            if (gr.subjectName && subj.subjectName && gr.subjectName.toLowerCase() === subj.subjectName.toLowerCase()) return true;
+            return false;
+        });
+
+    const computeAverageFromGradesList = (gradesForSubj) => {
+        const normalized = (gradesForSubj || []).map(g => {
+            const score = Number(String(g.score ?? g.mark ?? '').replace(',', '.')) || null;
+            const w = Number(String(g.weightPercentage ?? g.weight ?? '').replace(',', '.')) || null;
+            return { score, weight: w };
+        });
+        const totalW = normalized.reduce((s, c) => s + (c.weight || 0), 0);
+        if (totalW > 0) {
+            const weighted = normalized.reduce((s, c) => s + (c.score || 0) * (c.weight || 0), 0);
+            return weighted / totalW;
+        }
+        const list = normalized.map(n => n.score).filter(v => v != null);
+        if (list.length) return list.reduce((a, b) => a + b, 0) / list.length;
+        return null;
+    };
+
+    const [openJson, setOpenJson] = useState(false);
+    const [selectedDetail, setSelectedDetail] = useState(null);
+    const handleOpenJson = (detail) => { setSelectedDetail(detail); setOpenJson(true); };
+    const handleCloseJson = () => { setOpenJson(false); setSelectedDetail(null); };
 
     return (
-        <Container maxWidth="lg" sx={{ py: 4, position: 'relative' }}>
-            <IconButton component={Link} to="/student/dashboard" sx={{ position: 'absolute', top: 16, left: 16 }}>
+        <Container maxWidth="xl" sx={{ py: 4, position: 'relative' }}>
+            <IconButton component={Link} to="/student/dashboard" sx={{ position: 'absolute', top: 20, left: 24 }}>
                 <ArrowBackIcon />
             </IconButton>
-            <Paper
-                elevation={3}
-                sx={{
-                    p: 4,
-                    mb: 4,
-                    borderRadius: 3,
-                    background: 'linear-gradient(to right, #f8f9fa, #f1f8ff)'
-                }}
-            >
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <SchoolIcon sx={{ fontSize: 40, mr: 2, color: 'primary.main' }} />
-                    <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                        Chương trình đào tạo
-                    </Typography>
-                </Box>
-                <Divider sx={{ mb: 3 }} />
 
-                {curriculums.length === 0 ? (
-                    <Typography align="center" color="text.secondary">
-                        Không có chương trình nào.
-                    </Typography>
-                ) : (
-                    curriculums.map((curriculum) => (
-                        <Paper
-                            key={curriculum._id || curriculum.curriculumId}
-                            elevation={2}
-                            sx={{
-                                p: 3,
-                                mb: 4,
-                                borderRadius: 3,
-                                bgcolor: '#fff'
-                            }}
-                        >
-                            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                                {`Học kỳ ${curriculum.semester || '—'} | Năm học ${curriculum.year || '2024-2025'}`}
+            {loading ? (
+                <Box sx={{ width: '100%' }}>
+                    <LinearProgress />
+                    <Typography sx={{ mt: 2, textAlign: 'center' }}>Đang tải thông tin chương trình...</Typography>
+                </Box>
+            ) : (
+                <Paper sx={{ p: 4, borderRadius: 3, boxShadow: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                        <SchoolIcon sx={{ fontSize: 42, mr: 2, color: 'primary.main' }} />
+                        <Box>
+                            <Typography variant="h4" sx={{ fontWeight: 600 }}>
+                                {curriculum?.curriculumName || 'Chương trình học'}
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                                <Chip icon={<DescriptionIcon />} label={curriculum?.major} color="primary" variant="outlined" />
+                                <Chip icon={<ScheduleIcon />} label={`${curriculum?.totalSemester} học kỳ`} color="secondary" variant="outlined" />
+                            </Box>
+                        </Box>
+                    </Box>
+
+                    <Divider sx={{ mb: 4 }} />
+
+                    {Object.keys(groupedBySemester).sort((a, b) => a - b).map((sem) => (
+                        <Box key={sem} sx={{ mb: 5 }}>
+                            <Typography variant="h5" sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <ScheduleIcon color="primary" /> Học kỳ {sem}
                             </Typography>
 
-                            <Grid container spacing={3}>
-                                {(curriculum.subjects || []).map((subj, idx) => (
-                                    <Grid item xs={12} sm={6} md={3} key={idx}>
-                                        <Card
-                                            sx={{
-                                                height: 160,
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                borderRadius: 2,
-                                                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                                                '&:hover': {
-                                                    transform: 'translateY(-4px)',
-                                                    boxShadow: 3
-                                                }
-                                            }}
-                                        >
-                                            <CardContent sx={{
-                                                p: 2.5,
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                height: '100%',
-                                                justifyContent: 'space-between',
-                                                '&:last-child': {
-                                                    pb: 2.5
-                                                }
-                                            }}>
-                                                <Box>
+                            {/* hiển thị 4 môn 1 hàng */}
+                            <Grid container spacing={2}>
+                                {groupedBySemester[sem].map((d) => {
+                                    const gradesFor = findGradesForSubjectList(d);
+                                    const avg = computeAverageFromGradesList(gradesFor);
+                                    return (
+                                        <Grid item xs={12} sm={6} md={3} key={d.curriculumDetailId || d._id}>
+                                            <Card
+                                                onClick={() => handleOpenJson(d)}
+                                                sx={{
+                                                    height: '100%',
+                                                    cursor: 'pointer',
+                                                    borderRadius: 3,
+                                                    border: '1px solid #e0e0e0',
+                                                    transition: 'all 0.2s ease',
+                                                    '&:hover': {
+                                                        transform: 'translateY(-4px)',
+                                                        boxShadow: 4,
+                                                        borderColor: 'primary.light'
+                                                    }
+                                                }}
+                                            >
+                                                <CardContent>
                                                     <Typography
                                                         variant="subtitle1"
+                                                        color="primary"
+                                                        sx={{ fontWeight: 700, whiteSpace: 'pre-line' }}
+                                                    >
+                                                        {d.subjectCode}
+                                                    </Typography>
+                                                    <Typography
+                                                        variant="body2"
                                                         sx={{
-                                                            fontWeight: 600,
-                                                            color: 'primary.main',
-                                                            mb: 1,
-                                                            height: '2.6em',
-                                                            lineHeight: 1.3,
-                                                            overflow: 'hidden',
-                                                            display: '-webkit-box',
-                                                            WebkitBoxOrient: 'vertical',
-                                                            WebkitLineClamp: 2
+                                                            fontWeight: 500,
+                                                            whiteSpace: 'pre-line',
+                                                            color: 'text.secondary',
+                                                            minHeight: 48
                                                         }}
                                                     >
-                                                        {subj.name}
+                                                        {d.subjectName}
                                                     </Typography>
-                                                </Box>
-                                                <Stack
-                                                    direction="row"
-                                                    spacing={1}
-                                                    alignItems="center"
-                                                    justifyContent="space-between"
-                                                >
-                                                    <Chip
+
+                                                    <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                                        {d.type && <Chip size="small" label={d.type} variant="outlined" />}
+                                                        <Chip
+                                                            size="small"
+                                                            label={avg != null ? String(Number(avg).toFixed(2)) : '—'}
+                                                            icon={<GradeIcon sx={{ fontSize: '1rem' }} />}
+                                                            sx={{
+                                                                minWidth: '70px',
+                                                                bgcolor: (avg != null ? (avg >= 5 ? '#2E7D3215' : '#F4433615') : undefined),
+                                                                color: (avg != null ? (avg >= 5 ? '#2E7D32' : '#F44336') : undefined),
+                                                                borderColor: (avg != null ? (avg >= 5 ? '#2E7D3250' : '#F4433650') : undefined),
+                                                                border: 1,
+                                                                fontWeight: 600,
+                                                                '& .MuiChip-icon': {
+                                                                    color: (avg != null ? (avg >= 5 ? '#2E7D32' : '#F44336') : undefined)
+                                                                }
+                                                            }}
+                                                        />
+                                                    </Box>
+
+                                                    <Button
                                                         size="small"
-                                                        label={`${subj.credit || 2} tín chỉ`}
                                                         variant="outlined"
-                                                        sx={{
-                                                            borderColor: 'rgba(0, 0, 0, 0.12)',
-                                                            backgroundColor: 'white'
-                                                        }}
-                                                    />
-                                                    <Chip
-                                                        size="small"
-                                                        label={subj.grade || '—'}
-                                                        icon={<GradeIcon sx={{ fontSize: '1rem' }} />}
-                                                        sx={{
-                                                            minWidth: '70px',
-                                                            bgcolor: gradeColors[subj.grade] ? gradeColors[subj.grade] + '15' : undefined,
-                                                            color: gradeColors[subj.grade] || '#555',
-                                                            borderColor: gradeColors[subj.grade] ? gradeColors[subj.grade] + '50' : undefined,
-                                                            border: 1,
-                                                            fontWeight: 600,
-                                                            '& .MuiChip-icon': {
-                                                                color: gradeColors[subj.grade] || '#555'
-                                                            }
-                                                        }}
-                                                    />
-                                                </Stack>
-                                                {/* pass/fail indicator based on numeric grade (>= 5 = pass) */}
-                                                {(() => {
-                                                    const raw = subj.grade;
-                                                    const numeric = raw === undefined || raw === null ? NaN : parseFloat(String(raw).replace(',', '.'));
-                                                    if (!isNaN(numeric)) {
-                                                        const passed = numeric >= 5;
-                                                        return (
-                                                            <Typography variant="body2" sx={{ mt: 1, fontWeight: 700, color: passed ? 'success.main' : 'error.main' }}>
-                                                                {passed ? 'Đạt' : 'Không đạt'}
-                                                            </Typography>
-                                                        );
-                                                    }
-                                                    // if not numeric, show neutral text
-                                                    return (
-                                                        <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
-                                                            {raw ? String(raw) : '—'}
-                                                        </Typography>
-                                                    );
-                                                })()}
-                                            </CardContent>
-                                        </Card>
-                                    </Grid>
-                                ))}
+                                                        fullWidth
+                                                        sx={{ mt: 1 }}
+                                                        onClick={(e) => { e.stopPropagation(); handleOpenJson(d); }}
+                                                    >
+                                                        Xem chi tiết
+                                                    </Button>
+                                                </CardContent>
+                                            </Card>
+                                        </Grid>
+                                    );
+                                })}
                             </Grid>
-                        </Paper>
-                    ))
-                )}
-            </Paper>
+                        </Box>
+                    ))}
+                </Paper>
+            )}
+
+            {/* Hộp thoại chi tiết */}
+            <DetailDialog open={openJson} detail={selectedDetail} onClose={handleCloseJson} grades={grades} allDetails={details} />
         </Container>
     );
 };
 
-export default CurriculumsPage;
+// === Chi tiết từng môn học ===
+const DetailDialog = ({ open, detail, onClose, grades = [], allDetails = [] }) => {
+    if (!detail) return null;
+    const idEq = (a, b) => String(a) === String(b);
+    const findComponentGrades = () =>
+        (grades || []).filter(g => {
+            const sid = typeof g.subjectId === 'object' ? g.subjectId._id : g.subjectId;
+            return idEq(sid, detail.subjectId) || idEq(sid, detail._id) || g.subjectCode === detail.subjectCode;
+        });
+
+    const componentGrades = findComponentGrades();
+    const normalized = componentGrades.map(g => ({
+        name: g.componentId?.name || g.componentName || 'Điểm tổng kết',
+        score: Number(String(g.score ?? g.mark ?? '').replace(',', '.')) || null,
+        weight: Number(String(g.weightPercentage ?? g.weight ?? '').replace(',', '.')) || null
+    }));
+    const totalW = normalized.reduce((s, c) => s + (c.weight || 0), 0);
+    const weightedAvg = totalW ? normalized.reduce((s, c) => s + (c.score || 0) * (c.weight || 0), 0) / totalW : null;
+
+    return (
+        <Dialog open={open} onClose={onClose} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: 3 } }}>
+            <DialogTitle>
+                <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                    {detail.subjectCode} — {detail.subjectName}
+                </Typography>
+            </DialogTitle>
+            <DialogContent dividers>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
+                    <Chip icon={<SchoolIcon />} label={`${detail.credits} tín chỉ`} color="primary" />
+                    {weightedAvg != null && (
+                        <Chip
+                            icon={<GradeIcon />}
+                            label={`Điểm TB: ${weightedAvg.toFixed(2)}`}
+                            color={weightedAvg >= 5 ? 'success' : 'error'}
+                        />
+                    )}
+                </Box>
+
+                {normalized.length > 0 && (
+                    <Paper variant="outlined" sx={{ p: 2 }}>
+                        <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
+                            Điểm thành phần
+                        </Typography>
+                        {normalized.map((c, i) => (
+                            <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                <Typography>{c.name}</Typography>
+                                <Typography>{c.score ?? '-'}</Typography>
+                            </Box>
+                        ))}
+                    </Paper>
+                )}
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={onClose} variant="contained">Đóng</Button>
+            </DialogActions>
+        </Dialog>
+    );
+};
+
+export default CurriculumDetailsPage;
