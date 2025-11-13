@@ -162,7 +162,15 @@ const getGradesReport = async (req, res) => {
         } else {
             grades = await Grade.find({ studentId: student._id }).populate('subjectId').populate('componentId');
         }
-        return res.json({ grades });
+
+        // Ensure each returned grade has a numeric weightPercentage field for the frontend
+        const gradesOut = (grades || []).map(g => {
+            const obj = (typeof g.toObject === 'function') ? g.toObject() : Object.assign({}, g);
+            obj.weightPercentage = Number(obj.componentId?.weightPercentage ?? obj.weightPercentage ?? 0);
+            return obj;
+        });
+
+        return res.json({ grades: gradesOut });
     } catch (error) {
         return res.status(500).json({ message: error.message });
     }

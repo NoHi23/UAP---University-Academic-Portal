@@ -1,30 +1,37 @@
 const nodemailer = require('nodemailer');
 require('dotenv').config();
-// Log environment variables for debugging (remove in production)
-console.log('EMAIL_USER:', process.env.EMAIL_USER);
-console.log('EMAIL_PASS:', process.env.EMAIL_PASS ? '[REDACTED]' : 'undefined');
+const TEST_MODE = process.env.NODE_ENV === 'test';
+// Avoid creating real SMTP transporter or logging sensitive info during tests
+if (!TEST_MODE) {
+  // Log environment variables for debugging (remove in production)
+  console.log('EMAIL_USER:', process.env.EMAIL_USER);
+  console.log('EMAIL_PASS:', process.env.EMAIL_PASS ? '[REDACTED]' : 'undefined');
+}
 const dayjs = require('dayjs');
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false,
-  },
-});
+let transporter = null;
+if (!TEST_MODE) {
+  transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+    tls: {
+      rejectUnauthorized: false,
+    },
+  });
 
-// Verify transporter connectivity at startup to catch SMTP/auth errors early
-transporter.verify((err, success) => {
-  if (err) {
-    console.error('❌ SMTP verification failed:', err);
-  } else {
-    console.log('✅ SMTP transporter is ready to send messages');
-  }
-});
+  // Verify transporter connectivity at startup to catch SMTP/auth errors early
+  transporter.verify((err, success) => {
+    if (err) {
+      console.error('❌ SMTP verification failed:', err);
+    } else {
+      console.log('✅ SMTP transporter is ready to send messages');
+    }
+  });
+}
 
 
 async function sendWelcomeEmail({ to, fullName, schoolEmail, initialPassword }) {
@@ -144,6 +151,7 @@ async function sendWelcomeEmail({ to, fullName, schoolEmail, initialPassword }) 
 `;
 
 
+  if (TEST_MODE) return; // no-op in tests
   try {
     await transporter.sendMail({
       from: process.env.MAIL_FROM || '"No-Reply" <no-reply@edu.vn>',
@@ -185,17 +193,18 @@ const sendResetPasswordEmail = async ({ to, fullName, schoolEmail, newPassword }
     </div>
 
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f5f7fb;">
-      <tr>
-        <td align="center" style="padding:24px;">
-          <!-- Container -->
-          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" class="container" style="width:600px; max-width:100%; background:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 6px 24px rgba(2,6,23,0.08);">
-            
-            <!-- Header -->
-            <tr>
-              <td style="background:linear-gradient(135deg,#1e3a8a,#2563eb); padding:28px;">
-                <table role="presentation" width="100%">
-                  <tr>
-                    <td align="left">
+      if (TEST_MODE) return; // no-op in tests
+      try {
+        await transporter.sendMail({
+          from: process.env.MAIL_FROM || '"No-Reply" <no-reply@edu.vn>',
+          to,
+          subject: 'Yêu cầu Reset Mật khẩu',
+          html,
+        });
+      } catch (err) {
+        console.error('❌ sendResetPasswordEmail failed for', to, err);
+        throw err;
+      }
                       <div style="font-size:12px; letter-spacing:1px; text-transform:uppercase; color:#c7d2fe;">University Academic Portal</div>
                       <div class="h1" style="margin-top:6px; font-size:22px; font-weight:700; color:#ffffff;">Yêu cầu Reset Mật khẩu</div>
                     </td>

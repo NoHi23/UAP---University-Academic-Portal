@@ -48,8 +48,10 @@ const CurriculumDetailsPage = () => {
                 setDetails(res.data.details || []);
                 try {
                     const gRes = await api.get('/student/grades');
+                    console.log('🔍 API Response grades:', gRes.data);
                     setGrades(gRes.data.grades || []);
-                } catch {
+                } catch (err) {
+                    console.error('❌ Failed to load grades:', err);
                     setGrades([]);
                 }
             } catch (err) {
@@ -68,8 +70,8 @@ const CurriculumDetailsPage = () => {
         return acc;
     }, {});
 
-    const findGradesForSubjectList = (subj) =>
-        (grades || []).filter(gr => {
+    const findGradesForSubjectList = (subj) => {
+        const result = (grades || []).filter(gr => {
             if (gr.subjectId) {
                 const sid = typeof gr.subjectId === 'object' ? gr.subjectId._id : gr.subjectId;
                 if (sid && (sid === subj.subjectId || sid === subj._id)) return true;
@@ -78,6 +80,15 @@ const CurriculumDetailsPage = () => {
             if (gr.subjectName && subj.subjectName && gr.subjectName.toLowerCase() === subj.subjectName.toLowerCase()) return true;
             return false;
         });
+
+        console.log(`🔍 Subject ${subj.subjectCode}:`, {
+            subject: subj,
+            foundGrades: result,
+            allGrades: grades
+        });
+
+        return result;
+    };
 
     const computeAverageFromGradesList = (gradesForSubj) => {
         const normalized = (gradesForSubj || []).map(g => {
@@ -223,43 +234,37 @@ const CurriculumDetailsPage = () => {
     );
 };
 
-// Helper: compute fixed-column averages (Ass1, pt1, pt2, fe, pe)
+// Helper: compute averages using actual weightPercentage from database
 const computeFixedAverageAndPresent = (componentGrades = []) => {
+    console.log('🔍 computeFixedAverageAndPresent input:', componentGrades);
+    // Normalize grades but keep items even if weight is missing so we can fallback
     const normalized = (componentGrades || []).map(g => ({
         name: g.componentId?.name || g.componentName || 'Điểm tổng kết',
         score: Number(String(g.score ?? g.mark ?? '').replace(',', '.')) || null,
-        weight: Number(String(g.weightPercentage ?? g.weight ?? '').replace(',', '.')) || null
-    }));
+        weight: (g.weightPercentage ?? g.weight) != null ? Number(String(g.weightPercentage ?? g.weight ?? '').replace(',', '.')) : null
+    })).filter(g => g.score !== null); // keep items that have scores
 
-    const columns = [
-        { key: 'ass1', label: 'Ass1', weight: 10 },
-        { key: 'pt1', label: 'pt1', weight: 10 },
-        { key: 'pt2', label: 'pt2', weight: 10 },
-        { key: 'fe', label: 'fe', weight: 30 },
-        { key: 'pe', label: 'pe', weight: 40 }
-    ];
+    console.log('🔍 normalized grades (with possible missing weights):', normalized);
 
-    const matchKey = (name) => {
-        if (!name) return null;
-        const n = name.toLowerCase();
-        if (n.includes('ass')) return 'ass1';
-        if (n.includes('pt1') || n.includes('test1') || n.includes('quiz1')) return 'pt1';
-        if (n.includes('pt2') || n.includes('test2') || n.includes('quiz2')) return 'pt2';
-        if (n.includes('fe') || n.includes('final')) return 'fe';
-        if (n.includes('pe') || n.includes('practical') || n.includes('project')) return 'pe';
-        return null;
-    };
+    // Sum only existing weights
+    const totalWeight = normalized.reduce((sum, g) => sum + (g.weight || 0), 0);
+    let avg = null;
+    let present = [];
 
-    const valuesByKey = {};
-    normalized.forEach(c => {
-        const k = matchKey(c.name) || matchKey(c.name?.replace(/\s/g, ''));
-        if (k) valuesByKey[k] = c.score;
-    });
-
-    const present = columns.map(col => ({ ...col, score: (valuesByKey[col.key] != null ? valuesByKey[col.key] : null) }));
-    const sumWeights = present.reduce((s, c) => s + (c.score != null ? c.weight : 0), 0);
-    const weightedSum = present.reduce((s, c) => s + ((c.score != null ? c.score : 0) * (c.score != null ? c.weight : 0)), 0);
-    const avg = sumWeights ? (weightedSum / sumWeights) : null;
+    if (totalWeight > 0) {
+        const weightedSum = normalized.reduce((sum, g) => sum + ((g.score || 0) * (g.weight || 0)), 0);
+        avg = weightedSum / totalWeight;
+        present = normalized.map(g => ({ label: g.name, score: g.score, weight: g.weight }));
+        console.log('🔍 calculation (weighted):', { totalWeight, weightedSum, avg });
+    } else if (normalized.length > 0) {
+        // Fallback: equal-weight average when no weights provided
+        const n = normalized.length;
+        const simpleSum = normalized.reduce((s, g) => s + (g.score || 0), 0);
+        avg = simpleSum / n;
+        const equalWeight = 100 / n;
+        present = normalized.map(g => ({ label: g.name, score: g.score, weight: Number(equalWeight.toFixed(2)) }));
+        console.log('🔍 calculation (equal-weight fallback):', { n, simpleSum, avg, equalWeight });
+    }
 
     return { avg, present, normalized };
 };
@@ -278,39 +283,28 @@ const DetailDialog = ({ open, detail, onClose, grades = [], allDetails = [] }) =
     const normalized = componentGrades.map(g => ({
         name: g.componentId?.name || g.componentName || 'Điểm tổng kết',
         score: Number(String(g.score ?? g.mark ?? '').replace(',', '.')) || null,
-        weight: Number(String(g.weightPercentage ?? g.weight ?? '').replace(',', '.')) || null
-    }));
+        weight: (g.weightPercentage ?? g.weight) != null ? Number(String(g.weightPercentage ?? g.weight ?? '').replace(',', '.')) : null
+    })).filter(g => g.score !== null);
 
-    // Fixed columns as requested
-    const columns = [
-        { key: 'ass1', label: 'Ass1', weight: 10 },
-        { key: 'pt1', label: 'pt1', weight: 10 },
-        { key: 'pt2', label: 'pt2', weight: 10 },
-        { key: 'fe', label: 'fe', weight: 30 },
-        { key: 'pe', label: 'pe', weight: 40 }
-    ];
-
-    const matchKey = (name) => {
-        if (!name) return null;
-        const n = name.toLowerCase();
-        if (n.includes('ass')) return 'ass1';
-        if (n.includes('pt1') || n.includes('test1') || n.includes('quiz1')) return 'pt1';
-        if (n.includes('pt2') || n.includes('test2') || n.includes('quiz2')) return 'pt2';
-        if (n.includes('fe') || n.includes('final')) return 'fe';
-        if (n.includes('pe') || n.includes('practical') || n.includes('project')) return 'pe';
-        return null;
-    };
-
-    const valuesByKey = {};
-    normalized.forEach(c => {
-        const k = matchKey(c.name) || matchKey(c.name?.replace(/\s/g, ''));
-        if (k) valuesByKey[k] = c.score;
-    });
-
-    const present = columns.map(col => ({ ...col, score: (valuesByKey[col.key] != null ? valuesByKey[col.key] : null) }));
-    const sumWeights = present.reduce((s, c) => s + (c.score != null ? c.weight : 0), 0);
-    const weightedSum = present.reduce((s, c) => s + ((c.score != null ? c.score : 0) * (c.score != null ? c.weight : 0)), 0);
-    const fixedWeightedAvg = sumWeights ? (weightedSum / sumWeights) : null;
+    // Compute average with fallback to equal-weight when no weights present
+    const totalWeight = normalized.reduce((s, g) => s + (g.weight || 0), 0);
+    let actualWeightedAvg = null;
+    let displayRows = [];
+    if (totalWeight > 0) {
+        const weightedSum = normalized.reduce((s, g) => s + ((g.score || 0) * (g.weight || 0)), 0);
+        actualWeightedAvg = weightedSum / totalWeight;
+        displayRows = normalized.map(g => ({ name: g.name, score: g.score, weight: g.weight }));
+        console.log('🔍 DetailDialog weighted calc', { normalized, totalWeight, weightedSum: weightedSum, actualWeightedAvg });
+    } else if (normalized.length > 0) {
+        const n = normalized.length;
+        const simpleSum = normalized.reduce((s, g) => s + (g.score || 0), 0);
+        actualWeightedAvg = simpleSum / n;
+        const equalWeight = Number((100 / n).toFixed(2));
+        displayRows = normalized.map(g => ({ name: g.name, score: g.score, weight: equalWeight }));
+        console.log('🔍 DetailDialog equal-weight fallback', { normalized, n, simpleSum, actualWeightedAvg, equalWeight });
+    } else {
+        console.log('🔍 DetailDialog: no component grades found', { componentGrades });
+    }
 
     return (
         <Dialog open={open} onClose={onClose} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: 3 } }}>
@@ -329,16 +323,16 @@ const DetailDialog = ({ open, detail, onClose, grades = [], allDetails = [] }) =
 
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
                     <Chip icon={<SchoolIcon />} label={`${detail.credits} tín chỉ`} color="primary" />
-                    {fixedWeightedAvg != null && (
+                    {actualWeightedAvg != null && (
                         <Chip
                             icon={<GradeIcon />}
-                            label={`Điểm TB: ${fixedWeightedAvg.toFixed(2)}`}
-                            color={fixedWeightedAvg >= 5 ? 'success' : 'error'}
+                            label={`Điểm TB: ${actualWeightedAvg.toFixed(2)}`}
+                            color={actualWeightedAvg >= 5 ? 'success' : 'error'}
                         />
                     )}
                 </Box>
 
-                {normalized.length > 0 && (
+                {displayRows.length > 0 && (
                     <Paper variant="outlined" sx={{ p: 2 }}>
                         <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
                             Điểm thành phần
@@ -347,16 +341,27 @@ const DetailDialog = ({ open, detail, onClose, grades = [], allDetails = [] }) =
                             <Table size="small">
                                 <TableHead>
                                     <TableRow>
-                                        {present.map((col) => (
-                                            <TableCell key={col.key} align="center">{`${col.label} (${col.weight}%)`}</TableCell>
-                                        ))}
+                                        <TableCell>Loại điểm</TableCell>
+                                        <TableCell align="center">Điểm số</TableCell>
+                                        <TableCell align="center">Tỷ trọng (%)</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    <TableRow>
-                                        {present.map((col) => (
-                                            <TableCell key={col.key} align="center">{col.score != null ? col.score : '-'}</TableCell>
-                                        ))}
+                                    {displayRows.map((grade, index) => (
+                                        <TableRow key={index}>
+                                            <TableCell>{grade.name}</TableCell>
+                                            <TableCell align="center">{grade.score}</TableCell>
+                                            <TableCell align="center">{grade.weight}%</TableCell>
+                                        </TableRow>
+                                    ))}
+                                    <TableRow sx={{ bgcolor: 'grey.50', fontWeight: 'bold' }}>
+                                        <TableCell sx={{ fontWeight: 600 }}>Tổng cộng</TableCell>
+                                        <TableCell align="center" sx={{ fontWeight: 600 }}>
+                                            {actualWeightedAvg != null ? actualWeightedAvg.toFixed(2) : '-'}
+                                        </TableCell>
+                                        <TableCell align="center" sx={{ fontWeight: 600 }}>
+                                            {displayRows.reduce((s, r) => s + (r.weight || 0), 0)}%
+                                        </TableCell>
                                     </TableRow>
                                 </TableBody>
                             </Table>
