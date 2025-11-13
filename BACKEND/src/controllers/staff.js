@@ -84,7 +84,7 @@ const createStudentAccount = async (req, res) => {
             return res.status(400).json({ message: 'studentAvatar phải là data URI base64 của ảnh (png/jpg/jpeg/gif/webp)' });
         }
 
-        if (!validator.isEmail(personalEmail)) {
+        if (!personalEmail || typeof personalEmail !== 'string' || !validator.isEmail(String(personalEmail))) {
             return res.status(400).json({ message: 'personalEmail không đúng định dạng email' });
         }
 
@@ -665,7 +665,7 @@ const createLecturerAccount = async (req, res) => {
             return res.status(400).json({ message: 'Thiếu dữ liệu đầu vào' });
         }
 
-        if (!validator.isEmail(personalEmail)) {
+        if (!personalEmail || typeof personalEmail !== 'string' || !validator.isEmail(String(personalEmail))) {
             return res.status(400).json({ message: 'personalEmail không đúng định dạng email' });
         }
 
@@ -854,7 +854,7 @@ const importLecturersExcel = async (req, res) => {
             if (!dobRaw) errList.push('Thiếu ngày sinh');
             else if (!dateOfBirth || isNaN(new Date(dateOfBirth).getTime())) errList.push('Ngày sinh không hợp lệ');
             if (!personalEmail) errList.push('Thiếu Email cá nhân');
-            else if (!validator.isEmail(personalEmail)) errList.push('Email cá nhân không hợp lệ');
+            else if (typeof personalEmail !== 'string' || !validator.isEmail(String(personalEmail))) errList.push('Email cá nhân không hợp lệ');
 
             const majorKey = typeof majorInput === 'undefined' || majorInput === null ? '' : String(majorInput).trim().toLowerCase();
             const majorId = majorMap.get(majorKey);
@@ -1180,7 +1180,7 @@ const resetPassword = async (req, res) => {
         const { personalEmail } = req.body;
 
         // Validate email
-        if (!validator.isEmail(personalEmail)) {
+        if (!personalEmail || typeof personalEmail !== 'string' || !validator.isEmail(String(personalEmail))) {
             return res.status(400).json({ message: 'Email cá nhân không hợp lệ' });
         }
 
@@ -1552,7 +1552,7 @@ const getAllClasses = async (req, res) => {
         const classes = await Class.find()
             .populate({
                 path: 'subjectId',
-                select: 'subjectCode subjectName majorId', 
+                select: 'subjectCode subjectName majorId',
                 populate: {
                     path: 'majorId',
                     select: 'majorName'
@@ -1561,12 +1561,12 @@ const getAllClasses = async (req, res) => {
             .populate('lecturerId', 'firstName lastName')
             .populate('roomId', 'roomName')
             .sort({ className: 1 })
-            .lean(); 
+            .lean();
 
         const transformedClasses = classes.map(cls => ({
             ...cls,
-            majorId: cls.subjectId?.majorId?._id, 
-            majorName: cls.subjectId?.majorId?.majorName 
+            majorId: cls.subjectId?.majorId?._id,
+            majorName: cls.subjectId?.majorId?.majorName
         }));
 
         res.status(200).json({ success: true, data: transformedClasses });
