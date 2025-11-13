@@ -1,100 +1,176 @@
 const Evaluation = require('../models/evaluationModel');
 const Student = require('../models/student');
+const ScheduleOfStudent = require('../models/scheduleOfStudent');
 const Class = require('../models/class');
-const Grade = require('../models/grade');
+const Schedule = require('../models/schedule'); 
+const mongoose = require('mongoose');
+const Lecturer = require('../models/lecturer');
+
 
 const getEvaluableClasses = async (req, res) => {
     try {
         const student = await Student.findOne({ accountId: req.user.id });
-        if (!student) {
-            return res.status(404).json({ message: 'Không tìm thấy sinh viên.' });
+        if (!student) return res.status(404).json({ message: 'Không tìm thấy sinh viên.' });
+
+        const enrollments = await ScheduleOfStudent.find({ studentId: student._id })
+            .populate({
+                path: 'classId',
+                select: 'className subjectId lecturerId',
+                populate: [
+                    { path: 'subjectId', select: 'subjectName subjectCode' },
+                    { path: 'lecturerId', select: 'firstName lastName' }
+                ]
+            });
+
+        if (!enrollments.length) {
+            return res.status(200).json({ success: true, data: [] });
         }
 
-        const subjectsWithGrades = await Grade.distinct('subjectId', { studentId: student._id });
+        const validClassIds = enrollments
+            .map(e => e.classId)
+            .filter(Boolean) 
+            .map(c => c._id);
 
-        const potentialClasses = await Class.find({ subjectId: { $in: subjectsWithGrades } });
-        const potentialClassIds = potentialClasses.map(c => c._id);
+        const submittedEvals = await Evaluation.find({
+            studentId: student._id,
+            classId: { $in: validClassIds }
+        }).select('classId').lean();
 
-        const evaluatedClasses = await Evaluation.distinct('classId', { studentId: student._id });
+        const submittedClassIds = new Set(submittedEvals.map(e => e.classId.toString()));
 
-        const classesToReviewIds = potentialClassIds.filter(classId => !evaluatedClasses.some(evaluatedId => evaluatedId.equals(classId)));
+        const toDoList = enrollments
+            .filter(e => e.classId && !submittedClassIds.has(e.classId._id.toString()))
+            .map(e => e.classId); 
 
-        const classesToReview = await Class.find({ _id: { $in: classesToReviewIds } })
-            .populate('subjectId', 'subjectName subjectCode')
-            .populate('lecturerId', 'firstName lastName');
-
-        res.status(200).json({ success: true, count: classesToReview.length, data: classesToReview });
+        res.status(200).json({ success: true, data: toDoList });
 
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Lỗi máy chủ', error: error.message });
+        console.error("Lỗi khi lấy danh sách cần đánh giá:", error);
+        res.status(500).json({ success: false, message: 'Lỗi server' });
     }
 };
 
 const submitEvaluation = async (req, res) => {
     try {
+        const { classId, criteria_knowledge, criteria_teaching, criteria_respect, comment } = req.body;
+
+        if (!classId || !criteria_knowledge || !criteria_teaching || !criteria_respect) {
+            return res.status(400).json({ message: 'Vui lòng cung cấp đầy đủ thông tin.' });
+        }
+
         const student = await Student.findOne({ accountId: req.user.id });
-        if (!student) {
-            return res.status(404).json({ message: 'Không tìm thấy sinh viên.' });
+        if (!student) return res.status(404).json({ message: 'Không tìm thấy sinh viên.' });
+
+        const schedule = await Schedule.findOne({ classId: classId });
+        if (!schedule) {
+            return res.status(404).json({ message: 'Lỗi: Không tìm thấy thông tin lịch học của lớp này.' });
         }
 
-        const { classId, criteria, comment } = req.body;
-
-        const classInfo = await Class.findById(classId);
-        if (!classInfo) {
-            return res.status(404).json({ message: 'Không tìm thấy lớp học này.' });
-        }
-
-        const newEvaluation = await Evaluation.create({
+        const newEvaluation = {
             studentId: student._id,
-            lecturerId: classInfo.lecturerId, 
             classId: classId,
-            criteria,
-            comment
-        });
+            lecturerId: schedule.lecturerId,
+            semesterId: schedule.semesterId, 
+            criteria_knowledge: Number(criteria_knowledge),
+            criteria_teaching: Number(criteria_teaching),
+            criteria_respect: Number(criteria_respect),
+            comment: comment
+        };
 
-        res.status(201).json({ success: true, message: 'Cảm ơn bạn đã gửi đánh giá!', data: newEvaluation });
+        await Evaluation.create(newEvaluation);
+
+        res.status(201).json({ success: true, message: 'Gửi đánh giá thành công. Cảm ơn bạn!' });
 
     } catch (error) {
         if (error.code === 11000) {
-            return res.status(400).json({ success: false, message: 'Bạn đã đánh giá lớp học này rồi.' });
+            return res.status(400).json({ message: 'Bạn đã đánh giá lớp học này rồi.' });
         }
-        res.status(400).json({ success: false, message: 'Dữ liệu không hợp lệ', error: error.message });
+        console.error("Lỗi khi nộp đánh giá:", error);
+        res.status(500).json({ success: false, message: 'Lỗi server', error: error.message });
+    }
+};
+
+const getMySubmittedEvaluations = async (req, res) => {
+    try {
+        const student = await Student.findOne({ accountId: req.user.id });
+        if (!student) return res.status(404).json({ message: 'Không tìm thấy sinh viên.' });
+
+        const evaluations = await Evaluation.find({ studentId: student._id })
+            .populate({
+                path: 'classId',
+                select: 'className',
+                populate: { path: 'subjectId', select: 'subjectCode' }
+            })
+            .populate('lecturerId', 'firstName lastName')
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({ success: true, data: evaluations });
+    } catch (error) {
+        console.error("Lỗi khi lấy lịch sử đánh giá:", error);
+        res.status(500).json({ success: false, message: 'Lỗi server' });
+    }
+};
+
+const getEvaluationsForLecturer = async (req, res) => {
+    try {
+        const lecturer = await Lecturer.findOne({ accountId: req.user.id });
+        if (!lecturer) return res.status(404).json({ message: 'Không tìm thấy thông tin giảng viên.' });
+
+        const evaluations = await Evaluation.find({ lecturerId: lecturer._id })
+            .populate({
+                path: 'classId',
+                select: 'className',
+                populate: { path: 'subjectId', select: 'subjectCode subjectName' }
+            })
+            .populate('semesterId', 'semesterName')
+            .select('-studentId -lecturerId') 
+            .sort({ createdAt: -1 });
+
+        let totalKnowledge = 0;
+        let totalTeaching = 0;
+        let totalRespect = 0;
+        const totalEvals = evaluations.length;
+
+        if (totalEvals > 0) {
+            for (const ev of evaluations) {
+                totalKnowledge += ev.criteria_knowledge;
+                totalTeaching += ev.criteria_teaching;
+                totalRespect += ev.criteria_respect;
+            }
+        }
+
+        const summary = {
+            totalEvaluations: totalEvals,
+            averageKnowledge: totalEvals > 0 ? (totalKnowledge / totalEvals).toFixed(2) : 0,
+            averageTeaching: totalEvals > 0 ? (totalTeaching / totalEvals).toFixed(2) : 0,
+            averageRespect: totalEvals > 0 ? (totalRespect / totalEvals).toFixed(2) : 0,
+        };
+
+        const comments = evaluations
+            .filter(ev => ev.comment && ev.comment.trim() !== '')
+            .map(ev => ({
+                comment: ev.comment,
+                class: ev.classId?.className || 'N/A',
+                subject: ev.classId?.subjectId?.subjectCode || 'N/A',
+                date: ev.createdAt
+            }));
+
+        res.status(200).json({ 
+            success: true, 
+            summary: summary, 
+            comments: comments 
+        });
+
+    } catch (error) {
+        console.error("Lỗi khi lấy đánh giá của giảng viên:", error);
+        res.status(500).json({ success: false, message: 'Lỗi server' });
     }
 };
 
 module.exports = {
     getEvaluableClasses,
-    submitEvaluation
+    submitEvaluation,
+    getMySubmittedEvaluations,
+    getEvaluationsForLecturer
 };
 
-// Lecturers: view evaluations submitted about them (anonymized)
-const getEvaluationsForLecturer = async (req, res) => {
-    try {
-        // Resolve lecturer document from account id (req.user.id)
-        const Lecturer = require('../models/lecturer');
-        const lecturer = await Lecturer.findOne({ accountId: req.user.id });
-        if (!lecturer) return res.status(403).json({ success: false, message: 'Lecturer profile not found or unauthorized' });
-
-        // Find evaluations for this lecturer
-        const evaluations = await Evaluation.find({ lecturerId: lecturer._id })
-            .sort({ createdAt: -1 })
-            .populate({ path: 'classId', select: 'className subjectId' })
-            .lean();
-
-        // Map to anonymized shape: do NOT include studentId or any identifiable student info
-        const anonymized = evaluations.map(ev => ({
-            _id: ev._id,
-            classId: ev.classId ? { _id: ev.classId._id, className: ev.classId.className, subjectId: ev.classId.subjectId } : null,
-            criteria: ev.criteria || [],
-            comment: ev.comment || '',
-            createdAt: ev.createdAt
-        }));
-
-        return res.status(200).json({ success: true, count: anonymized.length, data: anonymized });
-    } catch (err) {
-        console.error('getEvaluationsForLecturer error', err);
-        return res.status(500).json({ success: false, message: 'Lỗi máy chủ', error: err.message });
-    }
-};
-
-module.exports = Object.assign(module.exports, { getEvaluationsForLecturer });

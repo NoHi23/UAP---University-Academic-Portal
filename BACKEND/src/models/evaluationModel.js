@@ -7,35 +7,46 @@ const evaluationSchema = new Schema({
         ref: 'Student',
         required: true
     },
-    lecturerId: {
-        type: Schema.Types.ObjectId,
-        ref: 'Lecturer',
-        required: true
-    },
     classId: {
         type: Schema.Types.ObjectId,
         ref: 'Class',
         required: true
     },
-    criteria: [{
-        name: {
-            type: String,
-            required: true,
-        },
-        score: {
-            type: Number,
-            required: true,
-            min: 1,
-            max: 5
-        }
-    }],
+    lecturerId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Lecturer',
+        required: true
+    },
+    semesterId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Semester',
+        required: true
+    },
+    
+    criteria_knowledge: {
+        type: Number,
+        required: true,
+        min: 1,
+        max: 5
+    },
+    criteria_teaching: { 
+        type: Number,
+        required: true,
+        min: 1,
+        max: 5
+    },
+    criteria_respect: {
+        type: Number,
+        required: true,
+        min: 1,
+        max: 5
+    },
+    
     comment: {
         type: String,
         trim: true
     }
-}, {
-    timestamps: true
-});
+}, { timestamps: true });
 
 evaluationSchema.index({ studentId: 1, classId: 1 }, { unique: true });
 

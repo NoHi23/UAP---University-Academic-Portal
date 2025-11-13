@@ -32,7 +32,6 @@ import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
 import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
-import SmartToyIcon from '@mui/icons-material/SmartToy';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 
 
@@ -167,19 +166,17 @@ export default function StaffLayout() {
         { text: 'Quản lý Sinh viên', icon: <SchoolIcon />, path: '/staff/students' },
         { text: 'Quản lý Giảng viên', icon: <GroupsIcon />, path: '/staff/lectures' },
         { text: 'Quản lý Lớp học', icon: <DynamicFeedIcon />, path: '/staff/manage-classes' },
-        { text: 'Quản lý TKB', icon: <EditCalendarIcon />, path: '/staff/manage-schedules' },
+        { text: 'Quản lý Thời khóa biểu', icon: <EditCalendarIcon />, path: '/staff/manage-schedules' },
         { text: "Quản lý thông báo", icon: <NotificationsIcon />, path: "/staff/announcements" },
         { text: 'Hỗ trợ', icon: <SupportAgentIcon />, path: '/staff/supports' },
         { text: 'Bảng giá Học phí', icon: <AttachMoneyIcon />, path: '/staff/tuition-config' },
         { text: 'Tạo Khoản thu', icon: <PaymentIcon />, path: '/staff/tuition-generate' },
         { text: 'Quản lý Học phí', icon: <ReceiptIcon />, path: '/staff/tuition-manage' },
-        { text: 'Quản lý thời khóa biểu', icon: <EventNoteIcon />, path: '/staff/schedule' },
         { text: 'Quản lý tài liệu', icon: <MenuBookIcon />, path: '/staff/material' },
         { text: 'Quản lý Học kỳ', icon: <AssessmentIcon />, path: '/staff/semesters' },
         { text: 'Tạo Lịch tự động', icon: <EventNoteIcon />, path: '/staff/scheduling' },
         { text: 'Xếp lớp thủ công', icon: <PlaylistAddIcon />, path: '/staff/manual-class' },
         { text: 'Duyệt đơn học vụ', icon: <AssignmentTurnedInIcon />, path: '/staff/absence' },
-        { text: 'Quản lý AI Tools', icon: <SmartToyIcon />, path: '/staff/ai-tools' },
         { text: "Tạo lịch thi", icon: <CalendarMonthIcon />, path: '/staff/exam-schedule' },
     ];
 

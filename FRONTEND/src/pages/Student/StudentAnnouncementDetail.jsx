@@ -99,10 +99,14 @@ const StudentAnnouncementDetail = () => {
                             </Box>
                         ) : null}
 
-                        {item?.description ? (
-                            <Typography variant="body1" sx={{ whiteSpace: "pre-wrap" }}>
-                                {item.description}
-                            </Typography>
+                        {item?.content ? (
+                            <Box
+                                sx={{
+                                    "& img": { maxWidth: "100%" },
+                                    "& p": { lineHeight: 1.8 }
+                                }}
+                                dangerouslySetInnerHTML={{ __html: item.content }}
+                            />
                         ) : (
                             <Typography variant="body2" color="text.secondary">
                                 Không có mô tả.

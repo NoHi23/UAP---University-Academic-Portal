@@ -172,7 +172,7 @@ const AttendanceReport = () => {
                                     >
                                         <CardContent sx={{ flexGrow: 1 }}>
                                             <Typography
-                                                variant="h6"
+                                                variant="h9"
                                                 gutterBottom
                                                 sx={{ fontWeight: 600 }}
                                             >

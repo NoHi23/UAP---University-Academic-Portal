@@ -29,9 +29,11 @@ const StudentAnnouncements = () => {
                 _id: x?._id,
                 title: x?.title ?? "Không có tiêu đề",
                 createdAt: x?.createdAt ?? x?.created_at ?? x?.updatedAt ?? null,
-                status: x?.status === true,
+                // backend uses string statuses: 'published' | 'scheduled' | 'draft'
+                isPublished: String(x?.status) === 'published',
+                audience: x?.audience || 'all'
             }))
-                .filter(x => x.status);
+                .filter(x => x.isPublished && (x.audience === 'all' || x.audience === 'student'));
 
             setItems(list);
         } finally {

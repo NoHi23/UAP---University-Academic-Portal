@@ -190,10 +190,6 @@ const Dashboard = () => {
       {/* Phần Header */}
       <header className="dashboard-header">
         <h1>UAP - University Academic Portal</h1>
-        <div className="user-profile">
-          <span>{user?.name || studentInfo?.fullName} ({studentInfo?.studentCode})</span>
-          <button style={{ marginLeft: 12, padding: '6px 10px' }} onClick={() => handleOpenCurriculum()}>Debug: Open Khung CT</button>
-        </div>
       </header>
 
       {/* Phần nội dung chính */}
@@ -208,7 +204,7 @@ const Dashboard = () => {
               <p><strong>Nơi Sinh:</strong> {studentInfo?.pob}</p>
               <p><strong>Chuyên Ngành:</strong> {studentInfo?.major}</p>
               {studentInfo?.semester && (
-                <p><strong>Kỳ hiện tại:</strong> {studentInfo.semester} {studentInfo.semesterNo ? `(Số: ${studentInfo.semesterNo})` : ''}</p>
+                <p><strong>Kỳ hiện tại:</strong> Học Kỳ {studentInfo.semester}</p>
               )}
             </div>
           </div>
