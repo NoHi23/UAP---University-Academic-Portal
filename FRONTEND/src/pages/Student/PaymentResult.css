@@ -1,0 +1,61 @@
+.payment-result-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.payment-card {
+  width: 350px;
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  text-align: center;
+  animation: scaleFade 0.6s ease-out;
+  border: 3px solid transparent;
+  background-color: #fff;
+}
+
+.payment-card.success {
+  border-color: #4caf50;
+  background: linear-gradient(145deg, #e8f5e9, #c8e6c9);
+}
+
+.payment-card.failed {
+  border-color: #f44336;
+  background: linear-gradient(145deg, #ffebee, #ffcdd2);
+}
+
+.icon {
+  font-size: 60px;
+  margin-bottom: 20px;
+  animation: bounce 1s infinite;
+}
+
+h2 {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.message {
+  color: #555;
+  font-size: 16px;
+  margin-bottom: 20px;
+}
+
+.note {
+  font-size: 14px;
+  color: #888;
+}
+
+/* Animations */
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes scaleFade {
+  0% { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
