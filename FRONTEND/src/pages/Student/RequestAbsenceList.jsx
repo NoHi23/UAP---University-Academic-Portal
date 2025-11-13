@@ -71,8 +71,8 @@ export default function RequestAbsenceList() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Thời gian</TableCell>
-              <TableCell>Môn học</TableCell>
+              
+              <TableCell>Kỳ học</TableCell>  
               <TableCell>Lý do</TableCell>
               <TableCell>Trạng thái</TableCell>
               <TableCell>Ngày gửi</TableCell>
@@ -88,10 +88,10 @@ export default function RequestAbsenceList() {
             ) : (
               list.map((item) => (
                 <TableRow key={item._id}>
-                  <TableCell>
-                    {item.slotId?.timeRange || "--"}
-                  </TableCell>
-                  <TableCell>{item.slotId?.subjectName || "—"}</TableCell>
+
+                  {/* Hiển thị thông tin Kỳ học */}
+                  <TableCell>{item.semesterId?.semesterName || "--"}</TableCell> {/* Tên kỳ học */}
+
                   <TableCell>
                     <div
                       style={{
@@ -103,6 +103,7 @@ export default function RequestAbsenceList() {
                       dangerouslySetInnerHTML={{ __html: item.reason }}
                     />
                   </TableCell>
+
                   <TableCell>
                     <Chip
                       label={STATUS_COLOR[item.status]?.label || item.status}
@@ -122,3 +123,4 @@ export default function RequestAbsenceList() {
     </Box>
   );
 }
+
