@@ -104,8 +104,6 @@ const WeekTimeTable = () => {
 
   ];
 
-  // Prepare header days for the current week so JSX can render labels/dates
-  // build weeks list when selectedYear changes and pick default week (today's week if same year)
   useEffect(() => {
     const yearNum = parseInt(selectedYear, 10);
     const weeks = generateWeeksOfYearSimple(yearNum);
