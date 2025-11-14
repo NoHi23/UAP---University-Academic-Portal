@@ -170,6 +170,31 @@ const get_subjects_for_students = async (accountId) => {
     }
 };
 
+const get_lecturer_schedule_for_date = async (accountId, date) => {
+    try {
+        const lecturer = await Lecturer.findOne({ accountId });
+        if (!lecturer) return { error: "Không tìm thấy giảng viên." };
+
+        const targetDate = dayjs(date);
+        const startOfDay = targetDate.startOf('day').toDate();
+        const endOfDay = targetDate.endOf('day').toDate();
+
+        const schedules = await Schedule.find({
+            lecturerId: lecturer._id, // Tìm theo lecturerId
+            date: { $gte: startOfDay, $lte: endOfDay }
+        })
+            .populate('subjectId', 'subjectName subjectCode')
+            .populate('roomId', 'roomName')
+            .populate('classId', 'className')
+            .sort({ slot: 1 })
+            .lean();
+
+        return { schedule: schedules };
+    } catch (e) {
+        return { error: e.message };
+    }
+};
+
 // --- BỘ ĐIỀU PHỐI (Giữ nguyên) ---
 const toolFunctions = {
     'get_schedule_for_date': get_schedule_for_date,
@@ -179,6 +204,7 @@ const toolFunctions = {
     'get_classmates_list': get_classmates_list,
     'get_student_profile': get_student_profile,
     'get_subjects_for_students': get_subjects_for_students,
+    'get_lecturer_schedule_for_date': get_lecturer_schedule_for_date,
 };
 
 const executeTool = async (toolName, args, accountId) => {
@@ -194,6 +220,7 @@ const executeTool = async (toolName, args, accountId) => {
         if (toolName === 'get_classmates_list') return await tool(accountId, args.className);
         if (toolName === 'get_student_profile') return await tool(accountId);
         if (toolName === 'get_subjects_for_students') return await tool(accountId);
+        if (toolName === 'get_lecturer_schedule_for_date') return await tool(accountId, args.date);
     } catch (e) {
         console.error(`Lỗi khi thực thi tool ${toolName}:`, e);
         return { error: `Lỗi khi chạy công cụ ${toolName}.` };

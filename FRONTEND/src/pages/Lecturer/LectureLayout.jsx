@@ -33,9 +33,9 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { notifySuccess, showConfirmDialog } from '../../services/notificationService';
-
+import Fab from '@mui/material/Fab';
 import { Outlet, useNavigate } from 'react-router-dom';
-
+import SmartToyIcon from '@mui/icons-material/SmartToy';
 const drawerWidth = 260;
 
 //  Theme (reuse staff theme)
@@ -116,8 +116,8 @@ export default function LecturerLayout() {
   React.useEffect(() => {
     setTimeout(() => {
       setUser({
-        fullName: 'Nguyễn Văn A',
-        staffCode: 'GV123456',
+        fullName: 'XIN CHÀO',
+        staffCode: 'GIẢNG VIÊN CỦA UAP',
       });
     }, 400);
   }, []);
@@ -148,8 +148,9 @@ export default function LecturerLayout() {
 
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/lecturer/dashboard' },
+    { text: 'Thông báo', icon: <NotificationsIcon />, path: '/lecturer/announcements' },
     { text: 'Hồ sơ', icon: <AccountBoxIcon />, path: '/lecturer/profile' },
-    { text: 'Lớp', icon: <ImageIcon />, path: '/lecturer/class-info' },
+    // { text: 'Lớp', icon: <ImageIcon />, path: '/lecturer/class-info' },
     { text: 'Thời khóa biểu', icon: <EventNoteIcon />, path: '/lecturer/view-teaching-schedule' },
     // 'Điểm danh' removed from sidebar (attendance is accessible from attendance-list)
 
@@ -160,7 +161,6 @@ export default function LecturerLayout() {
     { text: 'Xem điểm', icon: <BarChartIcon />, path: '/lecturer/view-grades' },
 
     { text: 'DS điểm danh', icon: <ListAltIcon />, path: '/lecturer/attendance-list' },
-    { text: 'Thông báo', icon: <NotificationsIcon />, path: '/lecturer/announcements' },
   ];
 
   return (
@@ -345,6 +345,15 @@ export default function LecturerLayout() {
               <Outlet />
             </Box>
           </Container>
+          <Tooltip title="AI Support">
+            <Fab
+              color="primary"
+              sx={{ position: 'fixed', bottom: 40, right: 40, zIndex: 1100 }}
+              onClick={() => navigate('/lecturer/ai-chat')} 
+            >
+              <SmartToyIcon />
+            </Fab>
+          </Tooltip>
         </Box>
       </Box>
     </ThemeProvider>

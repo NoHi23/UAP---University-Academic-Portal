@@ -29,7 +29,7 @@ const LecturerDashboard = () => {
   const [lecturerInfo, setLecturerInfo] = React.useState(null);
   const [stats, setStats] = React.useState([
     { value: 0, label: "Lịch dạy trong tuần", color: "#4FC3F7" },
-    { value: 0, label: "Lịch thi trong tuần", color: "#FF7043" }
+    { value: 0, label: "Lịch thi trong tuần", color: "#4FC3F7" }
   ]);
 
   // Load lecturer profile and weekly schedule count

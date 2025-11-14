@@ -61,8 +61,7 @@ const register = async (req, res) => {
 }
 
 const login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
+
   try {
     const { email, password } = req.body;
 
@@ -127,90 +126,84 @@ const login = async (req, res) => {
     return res.status(500).json({ message: "Đã có lỗi xảy ra ở server." });
   }
 
-  }
-
-  catch (error) {
-    console.error("Lỗi khi đăng nhập:", error);
-    return res.status(500).json({ message: "Đã có lỗi xảy ra ở server." });
-  }
 }
 
 
 
 
 const loginWithGoogle = async (req, res) => {
-    try {
-        const { credential } = req.body;
+  try {
+    const { credential } = req.body;
 
-        const ticket = await client.verifyIdToken({
-            idToken: credential,
-            audience: process.env.GOOGLE_CLIENT_ID,
-        });
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
 
-        const { email } = ticket.getPayload();
+    const { email } = ticket.getPayload();
 
-        if (!email || !email.endsWith('.edu.vn')) {
-            return res.status(403).json({ message: 'Đăng nhập thất bại: Chỉ chấp nhận tài khoản Google có email .edu.vn.' });
-        }
-
-        const account = await User.findOne({ email }).lean();
-
-        if (!account) {
-            return res.status(403).json({
-                message: 'Đăng nhập thất bại. Tài khoản Google này chưa được đăng ký trong hệ thống.'
-            });
-        }
-
-        let profileData = null;
-        let userName = '';
-        let userAvatar = account.avatar; 
-
-        if (account.role === 'student') {
-            profileData = await Student.findOne({ accountId: account._id }).lean();
-            if (profileData) {
-                userName = `${profileData.lastName} ${profileData.firstName}`;
-                userAvatar = profileData.studentAvatar || userAvatar;
-            }
-        } else if (account.role === 'lecturer' || account.role === 'lecture') {
-            profileData = await Lecturer.findOne({ accountId: account._id }).lean();
-             if (profileData) {
-                userName = `${profileData.lastName} ${profileData.firstName}`;
-                userAvatar = profileData.lecturerAvatar || userAvatar;
-            }
-        }
-
-         const combinedUser = {
-            _id: account._id,
-            email: account.email,
-            role: account.role,
-            status: account.status,
-            isFirstLogin: account.isFirstLogin,
-            name: userName,
-            avatar: userAvatar,
-        };
-
-        const token = generateToken(combinedUser);
-
-        if (account.isFirstLogin) {
-            return res.status(200).json({
-                message: 'Đăng nhập lần đầu, yêu cầu đổi mật khẩu.',
-                token,
-                user: combinedUser, 
-                passwordChangeRequired: true 
-            });
-        }
-
-        return res.status(200).json({
-            message: 'Đăng nhập bằng Google thành công!',
-            token,
-            user: combinedUser, 
-            passwordChangeRequired: false
-        });
-
-    } catch (error) {
-        console.error("Lỗi khi đăng nhập Google:", error);
-        return res.status(401).json({ message: 'Credential không hợp lệ hoặc đã hết hạn.' });
+    if (!email || !email.endsWith('.edu.vn')) {
+      return res.status(403).json({ message: 'Đăng nhập thất bại: Chỉ chấp nhận tài khoản Google có email .edu.vn.' });
     }
+
+    const account = await User.findOne({ email }).lean();
+
+    if (!account) {
+      return res.status(403).json({
+        message: 'Đăng nhập thất bại. Tài khoản Google này chưa được đăng ký trong hệ thống.'
+      });
+    }
+
+    let profileData = null;
+    let userName = '';
+    let userAvatar = account.avatar;
+
+    if (account.role === 'student') {
+      profileData = await Student.findOne({ accountId: account._id }).lean();
+      if (profileData) {
+        userName = `${profileData.lastName} ${profileData.firstName}`;
+        userAvatar = profileData.studentAvatar || userAvatar;
+      }
+    } else if (account.role === 'lecturer' || account.role === 'lecture') {
+      profileData = await Lecturer.findOne({ accountId: account._id }).lean();
+      if (profileData) {
+        userName = `${profileData.lastName} ${profileData.firstName}`;
+        userAvatar = profileData.lecturerAvatar || userAvatar;
+      }
+    }
+
+    const combinedUser = {
+      _id: account._id,
+      email: account.email,
+      role: account.role,
+      status: account.status,
+      isFirstLogin: account.isFirstLogin,
+      name: userName,
+      avatar: userAvatar,
+    };
+
+    const token = generateToken(combinedUser);
+
+    if (account.isFirstLogin) {
+      return res.status(200).json({
+        message: 'Đăng nhập lần đầu, yêu cầu đổi mật khẩu.',
+        token,
+        user: combinedUser,
+        passwordChangeRequired: true
+      });
+    }
+
+    return res.status(200).json({
+      message: 'Đăng nhập bằng Google thành công!',
+      token,
+      user: combinedUser,
+      passwordChangeRequired: false
+    });
+
+  } catch (error) {
+    console.error("Lỗi khi đăng nhập Google:", error);
+    return res.status(401).json({ message: 'Credential không hợp lệ hoặc đã hết hạn.' });
+  }
 };
 
 const getProfile = async (req, res) => {

@@ -75,7 +75,6 @@ import AdminLayout from "./pages/Admin/AdminLayout";
 import AdminAccountList from "./pages/Admin/AdminAccountList";
 
 
-
 import ManualClassPage from './pages/Staff/ManualClassPage';
 import StudentClassmatesPage from './pages/Student/StudentClassmatesPage';
 import StudentSlotNotificationPage from './pages/Student/StudentSlotNotificationPage';
@@ -169,6 +168,7 @@ function App() {
                     <Route index element={<AiChatPage />} />
                     <Route path=":chatId" element={<AiChatPage />} />
                   </Route>
+
                 </Route>
                 <Route element={<ProtectedRoute />}>
                   <Route path="/subject/:id" element={<SubjectDetail />} />
@@ -218,6 +218,10 @@ function App() {
                   <Route path="material" element={<LecturerMaterialManager />} />
                   <Route path="material/:id" element={<SubjectDetailPublic />} />
                   <Route path="view-attendance-list" element={<AttendanceList />} />
+                  <Route path="chat" element={<AiChatLayout />}>
+                    <Route index element={<AiChatPage />} />
+                    <Route path=":chatId" element={<AiChatPage />} />
+                  </Route>
                 </Route>
 
 
@@ -229,9 +233,6 @@ function App() {
                   <Route path="ai-tools" element={<AiToolManagementPage />} />
 
                 </Route>
-
-
-
 
 
               </Routes>

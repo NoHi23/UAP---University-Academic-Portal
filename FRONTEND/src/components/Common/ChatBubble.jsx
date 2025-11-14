@@ -1,27 +1,35 @@
-import React from 'react';
-import './Chat.css'; 
-import { FaRobot } from 'react-icons/fa';
+import React, { useContext, useState, useEffect } from 'react';
+import './Chat.css';
+import { Fab, Tooltip } from '@mui/material';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
 import { useNavigate, useLocation } from 'react-router-dom';
-
+import { AuthContext } from '../../context/AuthContext';
 const ChatBubble = () => {
     const navigate = useNavigate();
     const location = useLocation();
-
+    const { user } = useContext(AuthContext);
     const userRole = localStorage.getItem('userRole') || 'student';
 
-    const hiddenPaths = ['/', '/register'];
-
-    if (hiddenPaths.includes(location.pathname)) {
+    const handleChatClick = () => {
+        if (user?.role === 'lecturer') {
+            navigate('/lecturer/chat');
+        } else if (user?.role === 'student') {
+            navigate('/student/chat');
+        }
+    };
+    if (!user || (user.role !== 'student' && user.role !== 'lecturer')) {
         return null;
     }
-
     return (
-        <button 
-            className="chat-bubble" 
-            onClick={() => navigate(`/${userRole}/chat`)} 
-        >
-            <FaRobot />
-        </button>
+        <Tooltip title="AI Support">
+            <Fab
+                color="primary"
+                sx={{ position: 'fixed', bottom: 40, right: 40, zIndex: 1100 }}
+                onClick={handleChatClick}
+            >
+                <SmartToyIcon />
+            </Fab>
+        </Tooltip>
     );
 };
 
