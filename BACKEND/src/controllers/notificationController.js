@@ -15,7 +15,9 @@ const getMySlotNotifications = async (req, res) => {
         if (!student) {
             return res.status(404).json({ message: 'Không tìm thấy sinh viên.' });
         }
-        // ScheduleOfStudent stores schedule references inside attendance[].scheduleId
+        // Collect scheduleIds from student's attendance records and enrolled classes
+        let scheduleIds = [];
+        // From attendance entries
         const sosDocs = await ScheduleOfStudent.find({ studentId: student._id });
         sosDocs.forEach(doc => {
             if (Array.isArray(doc.attendance)) {
@@ -25,14 +27,17 @@ const getMySlotNotifications = async (req, res) => {
             }
         });
 
+        // From enrolled classes
         const enrollments = await ScheduleOfStudent.find({ studentId: student._id }).select('classId');
         if (!enrollments || enrollments.length === 0) {
             return res.status(200).json({ success: true, count: 0, data: [] });
         }
         const enrolledClassIds = enrollments.map(e => e.classId);
-
         const schedules = await Schedule.find({ classId: { $in: enrolledClassIds } }).select('_id');
-        const scheduleIds = schedules.map(s => s._id);
+        const scheduleIdsFromClasses = schedules.map(s => s._id);
+
+        // merge unique ids
+        scheduleIds = Array.from(new Set([...scheduleIds, ...scheduleIdsFromClasses]));
 
         const notifications = await SlotNotification.find({ scheduleId: { $in: scheduleIds } })
             .populate({
@@ -118,8 +123,11 @@ const getNotificationsForSlot = async (req, res) => {
         const { scheduleId } = req.params;
         if (!scheduleId) return res.status(400).json({ message: 'scheduleId is required' });
 
+        const mongoose = require('mongoose');
+        if (!mongoose.Types.ObjectId.isValid(scheduleId)) return res.status(400).json({ message: 'Invalid schedule ID' });
+
         const schedule = await Schedule.findById(scheduleId);
-        if (!schedule) return res.status(404).json({ message: 'Schedule not found' });
+        if (!schedule) return res.status(200).json({ success: true, count: 0, data: [] });
 
         const notifications = await SlotNotification.find({ scheduleId })
             .populate('senderId', 'email role')
